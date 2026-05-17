@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Code2, Eye, Save } from 'lucide-react';
+import { X, Code2, Eye, Save, Wand2, Copy, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { toast } from '../lib/toast';
 import { DynamicPresentationViewer } from './DynamicPresentationViewer';
@@ -38,11 +38,29 @@ render([
   <ContentSlide key="2" />,
 ]);`;
 
+function buildPrompt(content: string): string {
+  return `以下の仕様でReact TSXコードを生成してください。
+
+【フォーマット規則】
+- import文は不要（React、motion、useState、useEffectは自動的に利用可能）
+- スライドを関数コンポーネントで定義する（例: function TitleSlide() { ... }）
+- 最後の行で render([<Slide1 key="1" />, <Slide2 key="2" />, ...]) を呼び出す
+- 各スライドのルート要素に style={{ width: '100%', height: '100%' }} を設定
+- スタイリングはTailwind CSSまたはインラインスタイルを使用
+- コードブロック（\`\`\`tsx など）は含めず、コードのみを出力する
+
+【作成する資料の内容】
+${content}`;
+}
+
 export function AddSlideDialog({ onClose, initialParentId }: AddSlideDialogProps) {
   const { addDynamicPresentation } = useApp();
   const [code, setCode] = useState('');
   const [title, setTitle] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [contentDescription, setContentDescription] = useState('');
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const handleSave = () => {
     if (!title.trim() || !code.trim()) return;
@@ -57,6 +75,17 @@ export function AddSlideDialog({ onClose, initialParentId }: AddSlideDialogProps
     onClose();
   };
 
+  const handleGeneratePrompt = () => {
+    if (!contentDescription.trim()) return;
+    setGeneratedPrompt(buildPrompt(contentDescription.trim()));
+  };
+
+  const handleCopyPrompt = async () => {
+    await navigator.clipboard.writeText(generatedPrompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (showPreview) {
     return (
       <DynamicPresentationViewer
@@ -69,7 +98,7 @@ export function AddSlideDialog({ onClose, initialParentId }: AddSlideDialogProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -93,10 +122,56 @@ export function AddSlideDialog({ onClose, initialParentId }: AddSlideDialogProps
           />
         </div>
 
+        {/* Prompt Generator Section */}
+        <div className="px-6 pt-4 pb-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-2">
+            <Wand2 className="w-4 h-4 text-violet-500" />
+            <span className="text-sm font-semibold text-gray-700">① AIへのプロンプトを生成</span>
+          </div>
+          <textarea
+            value={contentDescription}
+            onChange={e => setContentDescription(e.target.value)}
+            placeholder="作成したい資料の内容を入力（例：React.jsの入門資料を10枚のスライドで。基本概念から実践まで）"
+            rows={2}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none outline-none focus:border-violet-400 transition-all text-gray-800"
+          />
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={handleGeneratePrompt}
+              disabled={!contentDescription.trim()}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-violet-500 text-white rounded-lg text-sm font-medium hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              プロンプトを生成
+            </button>
+            {generatedPrompt && (
+              <span className="text-xs text-gray-400">生成完了 — コピーしてClaudeやChatGPTに貼り付けてください</span>
+            )}
+          </div>
+
+          {generatedPrompt && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-500">生成されたプロンプト</span>
+                <button
+                  onClick={handleCopyPrompt}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-all"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? 'コピーしました' : 'コピー'}
+                </button>
+              </div>
+              <pre className="bg-gray-900 text-gray-100 text-xs p-3 rounded-lg overflow-auto max-h-36 whitespace-pre-wrap leading-relaxed">
+                {generatedPrompt}
+              </pre>
+            </div>
+          )}
+        </div>
+
         {/* Code textarea */}
         <div className="flex-1 px-6 py-4 min-h-0 flex flex-col">
           <p className="text-xs text-gray-400 mb-2">
-            TSXコードを貼り付けてください。import文は自動的に除去されます。
+            ② AIが生成したTSXコードを貼り付けてください。import文は自動的に除去されます。
           </p>
           <textarea
             value={code}
