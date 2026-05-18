@@ -118,7 +118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (dbMeta) {
           for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
         }
-        setFiles(buildFileItems(metaMap));
+        setFiles([...buildFileItems(metaMap), ...loadDynamicEntries().map(dynamicEntryToFileItem)]);
       } catch (err) {
         console.error('Supabase load error:', err);
       } finally {
