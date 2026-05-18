@@ -49,6 +49,7 @@ interface AppContextType {
   isDescendantOf: (ancestorId: string, candidateId: string) => boolean;
   addDynamicPresentation: (entry: { title: string; thumbnail: string; author: string; code: string; parentId?: string | null }) => void;
   updateDynamicCode: (id: string, code: string) => void;
+  updateDynamicMeta: (id: string, updates: { title?: string; thumbnail?: string }) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -261,6 +262,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDynamicCodeMap(prev => ({ ...prev, [id]: code }));
   };
 
+  const updateDynamicMeta = (id: string, updates: { title?: string; thumbnail?: string }) => {
+    const updated = loadDynamicEntries().map(e => e.id === id ? { ...e, ...updates } : e);
+    saveDynamicEntries(updated);
+    setFiles(prev => prev.map(f => f.id === id ? {
+      ...f,
+      ...(updates.title ? { name: updates.title } : {}),
+      ...(updates.thumbnail ? { thumbnail: updates.thumbnail } : {}),
+    } : f));
+  };
+
   const setCurrentFolder = (folderId: string | null) => setCurrentFolderId(folderId);
   const addSharedUser = (user: SharedUser) => setSharedUsers(prev => [...prev, user]);
   const updateSharedUser = (id: string, updates: Partial<SharedUser>) =>
@@ -287,7 +298,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateItem, deleteItem, setCurrentFolder,
       addSharedUser, updateSharedUser, deleteSharedUser,
       getItemsByParent, getCurrentFolderPath, isDescendantOf,
-      addDynamicPresentation, updateDynamicCode,
+      addDynamicPresentation, updateDynamicCode, updateDynamicMeta,
     }}>
       {children}
     </AppContext.Provider>
