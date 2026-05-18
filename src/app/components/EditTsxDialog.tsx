@@ -5,6 +5,7 @@ import { toast } from '../lib/toast';
 import { FileItem } from '../types';
 import { DynamicPresentationViewer } from './DynamicPresentationViewer';
 import { uploadAsset, isSupabaseConfigured } from '../../lib/supabase';
+import { ImageAssetManager } from './ImageAssetManager';
 
 interface EditTsxDialogProps {
   file: FileItem;
@@ -223,6 +224,9 @@ export function EditTsxDialog({ file, onClose }: EditTsxDialogProps) {
             </div>
           </>
         )}
+
+        {/* Image Asset Manager */}
+        <ImageAssetManager />
 
         {/* Code area */}
         <div className="flex-1 px-6 py-4 min-h-0 flex flex-col">

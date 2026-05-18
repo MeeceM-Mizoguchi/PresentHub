@@ -1,0 +1,731 @@
+const DARK = '#0D1B3E', BLUE = '#1D6FE8', CYAN = '#0ABDE3', PU = '#7B5FF5', PK = '#F72585';
+const BG = '#F0F4FF', WHITE = '#FFFFFF', GRAY = '#64748B', LGRAY = '#94A3B8', BORD = '#E1E8F5';
+const SHAD = '0 2px 16px rgba(13,27,62,0.09)';
+const gt = (c1, c2) => ({ background: `linear-gradient(135deg, ${c1}, ${c2})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' });
+const topBar = (c1 = CYAN, c2 = PU) => <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: `linear-gradient(90deg, ${c1}, ${c2})` }} />;
+const lbl = (t, c = CYAN) => <div style={{ fontSize: '10px', letterSpacing: '4px', color: c, marginBottom: '8px', fontWeight: 700 }}>{t}</div>;
+
+// ── SVG Icons ──
+const ICode = () => <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#E8F3FF"/><path d="M13 14L5 20L13 26" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M27 14L35 20L27 26" stroke={CYAN} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M24 11L16 29" stroke={PU} strokeWidth="2.5" strokeLinecap="round"/></svg>;
+const IBrain = () => <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#F0EBFF"/><circle cx="20" cy="20" r="6" stroke={PU} strokeWidth="2"/><circle cx="20" cy="20" r="2" fill={PU}/><path d="M20 10V14M20 26V30M10 20H14M26 20H30" stroke={PU} strokeWidth="2" strokeLinecap="round"/><path d="M13.4 13.4L16.2 16.2M23.8 23.8L26.6 26.6M13.4 26.6L16.2 23.8M23.8 16.2L26.6 13.4" stroke={PU} strokeWidth="2" strokeLinecap="round"/></svg>;
+const IChart = () => <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#E8EFFF"/><rect x="8" y="25" width="5" height="8" rx="1.5" fill={BLUE} opacity="0.4"/><rect x="17" y="20" width="5" height="13" rx="1.5" fill={BLUE} opacity="0.7"/><rect x="26" y="14" width="5" height="19" rx="1.5" fill={BLUE}/><path d="M10 18L19 12L28 16" stroke={PK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="18" r="2" fill={PK}/><circle cx="19" cy="12" r="2" fill={PK}/><circle cx="28" cy="16" r="2" fill={PK}/></svg>;
+const INet = () => <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="#FFF0F8"/><circle cx="20" cy="13" r="3" fill={PK}/><circle cx="11" cy="27" r="3" fill={PK} opacity="0.7"/><circle cx="29" cy="27" r="3" fill={PK} opacity="0.7"/><path d="M20 16L11 24M20 16L29 24M11 27H29" stroke={PK} strokeWidth="1.8" strokeLinecap="round"/></svg>;
+const ITag = () => <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="9" fill="#E8F3FF"/><path d="M11 19L19 11H29V21L21 29L11 19Z" stroke={BLUE} strokeWidth="2" strokeLinejoin="round"/><circle cx="25" cy="15" r="2" fill={BLUE}/></svg>;
+const IHead = () => <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="9" fill="#F0EBFF"/><path d="M11 21C11 15.477 14.582 11 19 11C23.418 11 27 15.477 27 21" stroke={PU} strokeWidth="2" strokeLinecap="round"/><rect x="9" y="19" width="5" height="8" rx="2.5" fill={PU} opacity="0.6"/><rect x="24" y="19" width="5" height="8" rx="2.5" fill={PU} opacity="0.6"/><path d="M27 25C27 27 25 29 23 29H19" stroke={PU} strokeWidth="2" strokeLinecap="round"/></svg>;
+const IBldg = () => <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="9" fill="#FFE8F0"/><rect x="9" y="16" width="11" height="15" rx="1" stroke={PK} strokeWidth="2"/><rect x="20" y="20" width="9" height="11" rx="1" stroke={PK} strokeWidth="2"/><path d="M9 16L14.5 10L20 16" stroke={PK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><rect x="13" y="22" width="3" height="9" rx="1" fill={PK} opacity="0.3"/></svg>;
+const ICard = () => <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="9" fill="#E8F3FF"/><rect x="6" y="12" width="26" height="16" rx="2" stroke={BLUE} strokeWidth="2"/><circle cx="13" cy="20" r="3" fill={BLUE} opacity="0.4"/><path d="M19 17H30M19 21H26" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round"/><path d="M6 22H32" stroke={BLUE} strokeWidth="1.5" opacity="0.25"/></svg>;
+const IBook = () => <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="9" fill="#F0EBFF"/><rect x="7" y="9" width="24" height="22" rx="2" stroke={PU} strokeWidth="2"/><line x1="19" y1="9" x2="19" y2="31" stroke={PU} strokeWidth="2"/><path d="M11 15H17M11 19H17M11 23H17M21 15H27M21 19H27" stroke={PU} strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/></svg>;
+const ISlide = () => <svg width="38" height="38" viewBox="0 0 38 38" fill="none"><rect width="38" height="38" rx="9" fill="#FFE8F0"/><rect x="5" y="8" width="28" height="18" rx="2" stroke={PK} strokeWidth="2"/><path d="M19 26V31M13 31H25" stroke={PK} strokeWidth="2" strokeLinecap="round"/><rect x="9" y="12" width="20" height="10" rx="1" fill={PK} opacity="0.12"/><path d="M12 16H22M12 20H18" stroke={PK} strokeWidth="1.5" strokeLinecap="round"/></svg>;
+
+// ── ブラウザ風モックアップフレーム ──
+function MockBrowser({ url, barBg = '#E8ECF0', contentBg = WHITE, children }) {
+  return (
+    <div style={{ borderRadius: '10px', overflow: 'hidden', boxShadow: '0 12px 40px rgba(0,0,0,0.14)', height: '100%', display: 'flex', flexDirection: 'column', border: `1px solid ${BORD}` }}>
+      <div style={{ background: barBg, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '5px' }}>
+          {['#FF5F57','#FEBC2E','#28C840'].map(c => <div key={c} style={{ width: '9px', height: '9px', borderRadius: '50%', background: c }} />)}
+        </div>
+        <div style={{ flex: 1, background: barBg === '#E8ECF0' ? WHITE : '#FFFFFF18', borderRadius: '5px', padding: '3px 10px', marginLeft: '8px', fontSize: '9px', color: LGRAY }}>{url}</div>
+      </div>
+      <div style={{ flex: 1, background: contentBg, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>{children}</div>
+    </div>
+  );
+}
+
+// ── TechTags ──
+function Tags({ items, c }) {
+  return (
+    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+      {items.map((t, i) => <span key={i} style={{ background: `${c}12`, border: `1px solid ${c}33`, borderRadius: '4px', padding: '2px 10px', fontSize: '11px', color: c, fontWeight: 500 }}>{t}</span>)}
+    </div>
+  );
+}
+
+// ── CaseStudy layout ──
+function CaseLayout({ color, tag, title, client, desc, tech, children }) {
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', padding: '40px 56px', gap: '36px', fontFamily: 'sans-serif', boxSizing: 'border-box', overflow: 'hidden', position: 'relative' }}>
+      {topBar(color, color === BLUE ? CYAN : color === PU ? PK : BLUE)}
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1.15, display: 'flex' }}>{children}</motion.div>
+      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }} style={{ flex: 0.85, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'inline-block', background: `${color}18`, border: `1px solid ${color}44`, borderRadius: '4px', padding: '3px 12px', marginBottom: '12px', fontSize: '10px', color, fontWeight: 600 }}>{tag}</div>
+        <h2 style={{ fontSize: '26px', fontWeight: 800, margin: '0 0 6px 0', color: DARK }}>{title}</h2>
+        <div style={{ fontSize: '12px', color: LGRAY, marginBottom: '18px' }}>クライアント：{client}</div>
+        <p style={{ fontSize: '13px', color: GRAY, lineHeight: 1.9, margin: '0 0 20px 0' }}>{desc}</p>
+        <div style={{ marginBottom: '0' }}>
+          <div style={{ fontSize: '10px', color: LGRAY, letterSpacing: '2px', marginBottom: '8px', fontWeight: 600 }}>TECH STACK</div>
+          <Tags items={tech} c={color} />
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ════════════════════ SLIDES ════════════════════
+
+function TitleSlide() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${WHITE} 0%, #EEF3FF 100%)`, color: DARK, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', fontFamily: 'sans-serif' }}>
+      {topBar(CYAN, PK)}
+      <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '400px', height: '400px', borderRadius: '50%', background: `radial-gradient(circle, ${CYAN}18, transparent 70%)` }} />
+      <div style={{ position: 'absolute', bottom: '-80px', left: '-60px', width: '350px', height: '350px', borderRadius: '50%', background: `radial-gradient(circle, ${PU}14, transparent 70%)` }} />
+      <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} style={{ textAlign: 'center', zIndex: 1, padding: '0 40px' }}>
+        <div style={{ display: 'inline-block', border: `1px solid ${CYAN}66`, borderRadius: '999px', padding: '6px 20px', marginBottom: '28px', background: `${CYAN}12` }}>
+          <span style={{ fontSize: '11px', letterSpacing: '5px', color: CYAN, fontWeight: 700 }}>DIGITAL CREATIVE FIRM</span>
+        </div>
+        <h1 style={{ fontSize: '64px', fontWeight: 800, margin: '0 0 16px 0', ...gt(BLUE, PU) }}>Meece株式会社</h1>
+        <div style={{ width: '60px', height: '3px', background: `linear-gradient(90deg, ${CYAN}, ${PK})`, margin: '0 auto 28px', borderRadius: '2px' }} />
+        <p style={{ fontSize: '20px', color: GRAY, margin: '0 0 12px 0' }}>必要なときに、必要な規模で、最適な一手を。</p>
+        <p style={{ fontSize: '13px', color: LGRAY, letterSpacing: '2px' }}>時代をまたぎ、新しいデジタルをデザインする。</p>
+      </motion.div>
+      <div style={{ position: 'absolute', bottom: '32px', right: '48px', fontSize: '12px', color: LGRAY, letterSpacing: '3px' }}>2026</div>
+    </div>
+  );
+}
+
+function CompanyOverviewSlide() {
+  const items = [
+    { label: '商号', value: 'Meece株式会社' }, { label: '設立', value: '2022年8月22日' },
+    { label: '代表取締役', value: '溝口 雅登' }, { label: '資本金', value: '1,000,000円' },
+    { label: '所在地', value: '東京都千代田区丸の内1-8-3\n丸の内トラストタワー本館 20階' },
+    { label: '電話', value: '03-5288-5125' }, { label: '取引銀行', value: 'みずほ銀行 八重洲口支店' },
+    { label: 'アクセス', value: 'JR東京駅 日本橋口 徒歩1分\n地下鉄大手町駅 B7出口 徒歩2分' },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar()}
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>{lbl('COMPANY PROFILE')}<h2 style={{ fontSize: '30px', fontWeight: 700, margin: '0 0 24px 0' }}>会社概要</h2></motion.div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', flex: 1 }}>
+        {items.map((item, i) => (
+          <motion.div key={item.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+            style={{ background: WHITE, borderRadius: '10px', padding: '16px 20px', boxShadow: SHAD, borderLeft: `3px solid ${CYAN}` }}>
+            <div style={{ fontSize: '10px', color: CYAN, letterSpacing: '2px', marginBottom: '6px', fontWeight: 600 }}>{item.label}</div>
+            <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{item.value}</div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NameOriginSlide() {
+  const letters = [
+    { letter: 'M', word: 'Manufacturing', ja: '製造・ものづくり', c: BLUE },
+    { letter: 'E', word: 'Education', ja: '教育・学習支援', c: CYAN },
+    { letter: 'E', word: 'Entertainment', ja: '娯楽・エンタメ', c: PU },
+    { letter: 'C', word: 'Commerce', ja: '商業・流通', c: PK },
+    { letter: 'E', word: 'Energy & Life', ja: 'エネルギー・生活', c: '#F5A623' },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(BLUE, '#F5A623')}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{lbl('BRAND STORY')}<h2 style={{ fontSize: '30px', fontWeight: 700, margin: '0 0 8px 0' }}>社名の由来</h2><p style={{ color: GRAY, fontSize: '14px', margin: '0 0 28px 0' }}>「Meece」は、私たちが変革を目指す5つの主要産業ドメインの頭文字から生まれました。</p></motion.div>
+      <div style={{ display: 'flex', gap: '14px', flex: 1 }}>
+        {letters.map((item, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1, duration: 0.6 }}
+            style={{ flex: 1, background: WHITE, borderRadius: '14px', padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: SHAD, borderTop: `4px solid ${item.c}` }}>
+            <div style={{ fontSize: '52px', fontWeight: 800, color: item.c, lineHeight: 1, marginBottom: '16px' }}>{item.letter}</div>
+            <div style={{ width: '32px', height: '2px', background: item.c, borderRadius: '1px', marginBottom: '14px' }} />
+            <div style={{ fontSize: '11px', color: item.c, letterSpacing: '0.5px', marginBottom: '6px', fontWeight: 600 }}>{item.word}</div>
+            <div style={{ fontSize: '12px', color: GRAY }}>{item.ja}</div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CEOMessageSlide() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(BLUE, PU)}
+      <div style={{ position: 'absolute', bottom: '-60px', right: '-60px', width: '280px', height: '280px', borderRadius: '50%', background: `radial-gradient(circle, ${PU}10, transparent 70%)` }} />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{lbl('FOUNDER MESSAGE')}<h2 style={{ fontSize: '30px', fontWeight: 700, margin: '0 0 24px 0' }}>代表メッセージ</h2></motion.div>
+      <div style={{ display: 'flex', gap: '48px', flex: 1, alignItems: 'stretch' }}>
+        <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} style={{ flex: 1.6, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ background: WHITE, borderRadius: '16px', padding: '28px 32px', boxShadow: SHAD, marginBottom: '20px', borderLeft: `4px solid ${BLUE}` }}>
+            <div style={{ fontSize: '20px', fontWeight: 600, lineHeight: 1.8, color: DARK }}>「お客様と常に歩み寄り、<br />自ら限界を決めず<br />最後までやり遂げる意思を込めて。」</div>
+          </div>
+          <p style={{ color: GRAY, fontSize: '14px', lineHeight: 2.0, margin: 0 }}>Meece株式会社は、「ITの歯車」として、<br />お客様が心に描いた「実現したい物語」を、<br />確かな技術力というラスト・ピースで完成に導く<br />プロフェッショナル集団です。</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: WHITE, borderRadius: '20px', padding: '28px', boxShadow: SHAD, textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
+            <img src="【ここにアップロードしたURLを貼り付け】" alt="溝口雅登" style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', objectPosition: 'center top', marginBottom: '16px', border: `3px solid ${BLUE}44` }} />
+            <div style={{ fontSize: '22px', fontWeight: 700, marginBottom: '6px' }}>溝口 雅登</div>
+            <div style={{ fontSize: '11px', color: BLUE, letterSpacing: '2px', marginBottom: '4px' }}>MIZOGUCHI MASATO</div>
+            <div style={{ fontSize: '12px', color: LGRAY }}>代表取締役社長 / CEO・FOUNDER</div>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ── ミッション：カードなし、左右分割レイアウト ──
+function MissionSlide() {
+  const principles = [
+    { num: '01', title: '深い当事者意識', desc: '外部ベンダーの枠を超え、お客様の事業を自社の痛みとして捉え、最高の物語を生み出す。', c: CYAN },
+    { num: '02', title: '実利的な現実主義', desc: '技術はあくまで手段。予算・KPIに即した「本当に機能するIT」のみを実装する。', c: BLUE },
+    { num: '03', title: '無限の機動力', desc: '自らの限界を定めず、最適な技術を選択し、物語を加速させる適応力を持ち続ける。', c: PU },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(CYAN, PU)}
+      <div style={{ display: 'flex', gap: '48px', flex: 1, alignItems: 'stretch' }}>
+        {/* Left: Mission statement */}
+        <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {lbl('MISSION & PRINCIPLES')}
+          <h2 style={{ fontSize: '28px', fontWeight: 700, margin: '0 0 24px 0' }}>ミッション・行動指針</h2>
+          <div style={{ background: `linear-gradient(135deg, ${BLUE}10, ${CYAN}10)`, border: `1px solid ${CYAN}44`, borderRadius: '16px', padding: '28px 32px' }}>
+            <div style={{ fontSize: '10px', color: CYAN, letterSpacing: '4px', marginBottom: '14px', fontWeight: 700 }}>MISSION</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, lineHeight: 1.7, color: DARK }}>「ITの歯車」として、<br />まだ見ぬ感動の続きを<br />創り出す。</div>
+          </div>
+        </motion.div>
+        {/* Right: 3 principles as list */}
+        <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '20px' }}>
+          {principles.map((p, i) => (
+            <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }}
+              style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', background: WHITE, borderRadius: '14px', padding: '20px 24px', boxShadow: SHAD, borderLeft: `4px solid ${p.c}` }}>
+              <div style={{ fontSize: '36px', fontWeight: 800, color: p.c, opacity: 0.2, lineHeight: 1, flexShrink: 0 }}>{p.num}</div>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px', color: DARK }}>{p.title}</div>
+                <div style={{ fontSize: '13px', color: GRAY, lineHeight: 1.8 }}>{p.desc}</div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// ── 事業内容：横並びリスト、カードなし ──
+function ServicesSlide() {
+  const services = [
+    { Icon: ICode, title: '受託開発', sub: 'Custom Development', desc: 'SaaS・業務システム・Webアプリ・モバイルアプリ。MVP開発から大規模システムまで一気通貫。', c: BLUE },
+    { Icon: IBrain, title: 'AI研究開発', sub: 'AI R&D', desc: '生成AI・LLMの業務活用、独自学習モデル構築。最先端の知能をプロダクトに組み込む。', c: PU },
+    { Icon: IChart, title: 'ITコンサルティング', sub: 'IT Consulting', desc: '技術的実現可能性を担保した戦略提案。ビジネス成功から逆算した最適なアーキテクチャ設計。', c: CYAN },
+    { Icon: INet, title: '多角的事業支援', sub: 'Business Support', desc: 'マーケティング・人事採用・資金調達・新規事業開発まで、ITを超えた包括的な支援を提供。', c: PK },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(BLUE, PK)}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{lbl('SERVICES')}<h2 style={{ fontSize: '30px', fontWeight: 700, margin: '0 0 28px 0' }}>事業内容</h2></motion.div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+        {services.map((s, i) => (
+          <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.09 }}
+            style={{ display: 'flex', gap: '20px', alignItems: 'center', flex: 1, padding: '0 4px' }}>
+            <div style={{ width: '4px', alignSelf: 'stretch', borderRadius: '2px', background: s.c, flexShrink: 0 }} />
+            <div style={{ flexShrink: 0 }}><s.Icon /></div>
+            <div style={{ width: '140px', flexShrink: 0 }}>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: DARK }}>{s.title}</div>
+              <div style={{ fontSize: '10px', color: s.c, letterSpacing: '1px', fontWeight: 600 }}>{s.sub}</div>
+            </div>
+            <div style={{ width: '1px', alignSelf: 'stretch', background: BORD, flexShrink: 0 }} />
+            <div style={{ fontSize: '13px', color: GRAY, lineHeight: 1.8, flex: 1 }}>{s.desc}</div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── AI開発ラボ：フィーチャー分割レイアウト ──
+function AILabOverviewSlide() {
+  const features = [
+    { title: '最短2週間でPOC', desc: 'アイデアを素早くプロトタイプ化し、市場検証を加速します。' },
+    { title: 'AI駆動型開発', desc: '生成AIをフル活用した高速・高品質なプロダクト開発を実現。' },
+    { title: '無料プラン診断', desc: 'お客様の状況に最適なプランをコストゼロでご提案します。' },
+    { title: '柔軟なスケール対応', desc: 'スタートアップから大手企業まで対応するプラン体系を用意。' },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', padding: '40px 60px', gap: '52px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(PU, PK)}
+      <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: `${PU}14`, border: `1px solid ${PU}44`, borderRadius: '999px', padding: '5px 16px', marginBottom: '20px', width: 'fit-content' }}>
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: PU }} />
+          <span style={{ fontSize: '10px', color: PU, letterSpacing: '3px', fontWeight: 700 }}>NEW SERVICE</span>
+        </div>
+        <h2 style={{ fontSize: '36px', fontWeight: 800, margin: '0 0 10px 0', lineHeight: 1.2 }}>AI開発ラボ</h2>
+        <p style={{ color: GRAY, fontSize: '15px', marginBottom: '36px', lineHeight: 1.8 }}>AI駆動型開発で、あなたの<br />アイデアを最速でプロダクトへ。</p>
+        <div style={{ background: `linear-gradient(135deg, ${PU}12, ${PK}12)`, border: `1px solid ${PU}30`, borderRadius: '16px', padding: '24px 28px' }}>
+          <div style={{ fontSize: '44px', fontWeight: 800, ...gt(PU, PK), lineHeight: 1 }}>2週間</div>
+          <div style={{ fontSize: '14px', color: GRAY, marginTop: '6px' }}>でPOC開発を実現</div>
+        </div>
+      </motion.div>
+      <motion.div initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '18px' }}>
+        {features.map((f, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.08 }}
+            style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', background: WHITE, borderRadius: '12px', padding: '18px 22px', boxShadow: SHAD }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, marginTop: '2px' }}><circle cx="10" cy="10" r="9" fill={PU} opacity="0.15"/><path d="M6 10L9 13L14 7" stroke={PU} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px', color: DARK }}>{f.title}</div>
+              <div style={{ fontSize: '12px', color: GRAY, lineHeight: 1.7 }}>{f.desc}</div>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+function AILabPlansSlide() {
+  const plans = [
+    { name: 'スタートアップ', en: 'Startup Plan', c: BLUE, target: '0〜10名 / MVP開発フェーズ', features: ['アイデア整理・要件定義支援', 'AI活用MVP開発（2〜4週間）', '技術スタック選定', 'ピッチ資料作成支援'] },
+    { name: '中小企業', en: 'SME Plan', c: PU, target: '10〜100名 / 業務効率化フェーズ', features: ['業務プロセス分析・課題抽出', 'AI自動化システム開発', '既存システムとの連携設計', '運用・保守サポート'], rec: true },
+    { name: '大手企業', en: 'Enterprise Plan', c: PK, target: '100名以上 / DX推進フェーズ', features: ['AI戦略策定コンサルティング', '大規模システム開発', 'セキュリティ・ガバナンス対応', '専任チームアサイン'] },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(BLUE, PK)}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{lbl('AI LAB — PLANS')}<h2 style={{ fontSize: '30px', fontWeight: 700, margin: '0 0 4px 0' }}>AI開発ラボ — プラン詳細</h2><p style={{ color: GRAY, fontSize: '13px', margin: '0 0 22px 0' }}>最適なプランを無料診断でご提案します。</p></motion.div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', flex: 1 }}>
+        {plans.map((plan, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+            style={{ background: WHITE, borderRadius: '14px', padding: '22px 20px', boxShadow: plan.rec ? `0 4px 24px ${plan.c}28` : SHAD, display: 'flex', flexDirection: 'column', borderTop: `4px solid ${plan.c}`, position: 'relative', outline: plan.rec ? `2px solid ${plan.c}44` : 'none' }}>
+            {plan.rec && <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: `linear-gradient(90deg, ${CYAN}, ${PU})`, borderRadius: '999px', padding: '3px 16px', fontSize: '10px', fontWeight: 700, color: WHITE, whiteSpace: 'nowrap' }}>RECOMMENDED</div>}
+            <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '2px' }}>{plan.name}</div>
+            <div style={{ fontSize: '10px', color: plan.c, letterSpacing: '1px', marginBottom: '8px', fontWeight: 600 }}>{plan.en}</div>
+            <div style={{ fontSize: '11px', color: LGRAY, marginBottom: '14px', paddingBottom: '14px', borderBottom: `1px solid ${BORD}` }}>{plan.target}</div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {plan.features.map((f, j) => (
+                <div key={j} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="8" cy="8" r="7" fill={plan.c} opacity="0.15"/><path d="M5 8L7 10L11 6" stroke={plan.c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <span style={{ fontSize: '12px', color: GRAY, lineHeight: 1.5 }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── フェーズモデル：交互配置で線ずれを解消 ──
+function SupportPhaseSlide() {
+  const phases = [
+    { num: '01', title: '創業・MVP', sub: 'Creation & MVP', desc: 'アイデアの検証から最小限のプロダクトを最速で市場へ届ける。', items: ['要件定義・技術選定', 'MVP高速開発', 'PMF検証支援'], c: CYAN },
+    { num: '02', title: '成長・PMF', sub: 'Growth & PMF', desc: 'PMFを達成し、プロダクトと組織のスケールを加速させる。', items: ['機能拡張・UX改善', 'データ分析基盤構築', 'マーケティング連携'], c: PU },
+    { num: '03', title: '統合・グローバル', sub: 'Integration & Global', desc: '組織拡大・海外展開に対応した堅牢なシステム基盤を構築。', items: ['マイクロサービス化', 'グローバル対応', 'エンタープライズ連携'], c: PK },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(CYAN, PK)}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{lbl('SUPPORT MODEL')}<h2 style={{ fontSize: '30px', fontWeight: 700, margin: '0 0 6px 0' }}>支援対象・フェーズモデル</h2><p style={{ color: GRAY, fontSize: '13px', margin: '0 0 20px 0' }}>事業フェーズに応じた「過不足のないリソース」を提供。初期投資の肥大化を防ぎ、売上成長に同期したITコストを実現。</p></motion.div>
+      {/* ── 円と線を同一 flex 行に並べ、線ずれを解消 ── */}
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+        {phases.map((p, i) => (
+          <React.Fragment key={i}>
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.12 }}
+              style={{ width: '68px', height: '68px', borderRadius: '50%', background: WHITE, border: `2px solid ${p.c}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 0 0 4px ${p.c}18`, zIndex: 1 }}>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: p.c, textAlign: 'center', lineHeight: 1.3 }}>Phase<br />{p.num}</span>
+            </motion.div>
+            {i < phases.length - 1 && (
+              <div style={{ flex: 1, height: '2px', background: `linear-gradient(90deg, ${phases[i].c}, ${phases[i + 1].c})` }} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: '14px', flex: 1 }}>
+        {phases.map((p, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }}
+            style={{ flex: 1, background: WHITE, borderRadius: '14px', padding: '20px', boxShadow: SHAD, borderTop: `3px solid ${p.c}` }}>
+            <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '3px' }}>{p.title}</div>
+            <div style={{ fontSize: '10px', color: p.c, letterSpacing: '1.5px', marginBottom: '10px', fontWeight: 600 }}>{p.sub}</div>
+            <div style={{ fontSize: '12px', color: GRAY, lineHeight: 1.7, marginBottom: '14px', paddingBottom: '12px', borderBottom: `1px solid ${BORD}` }}>{p.desc}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {p.items.map((item, j) => (
+                <div key={j} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: p.c, flexShrink: 0 }} />
+                  <span style={{ fontSize: '12px', color: GRAY }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── 事例1：AI MDシステム ──
+function Case1Slide() {
+  return (
+    <CaseLayout color={BLUE} tag="受託開発" title="AI MDシステム" client="時谷堂（帽子販売EC）"
+      desc="商品ごとの販売速度・在庫状況・シーズン残期間をもとにAIが最適価格を自動提案。粗利最大化とブランド価値維持を両立する「経営思想埋め込み型」AIを実現。"
+      tech={['React', 'Supabase', 'AI/LLM', 'Recharts', 'TypeScript']}>
+      <MockBrowser url="ai-md-system.meece.io" barBg="#1a2744" contentBg="#0D1B3E">
+        <div style={{ display: 'flex', height: '100%' }}>
+          <div style={{ width: '100px', background: '#112258', padding: '10px 0', flexShrink: 0 }}>
+            <div style={{ padding: '8px 10px', marginBottom: '4px' }}><span style={{ fontSize: '11px', fontWeight: 700, color: '#00FBFF' }}>AI MD</span></div>
+            {['ダッシュボード', '価格承認', '在庫一覧', 'データ管理'].map((m, i) => <div key={i} style={{ padding: '7px 10px', fontSize: '9px', color: i === 0 ? '#00FBFF' : '#475569', background: i === 0 ? '#1E3A8A33' : 'transparent', borderLeft: `2px solid ${i === 0 ? '#00FBFF' : 'transparent'}` }}>{m}</div>)}
+          </div>
+          <div style={{ flex: 1, padding: '10px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+              {[{ l: '粗利率', v: '67.2%', c: '#00FBFF' }, { l: '提案待ち', v: '8件', c: '#F59E0B' }, { l: '承認済み', v: '23件', c: '#10B981' }].map((k, i) => (
+                <div key={i} style={{ flex: 1, background: '#1E3A8A22', borderRadius: '5px', padding: '7px', borderTop: `2px solid ${k.c}` }}>
+                  <div style={{ fontSize: '8px', color: '#64748B' }}>{k.l}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: k.c }}>{k.v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: '#0F1E4A', borderRadius: '5px', padding: '8px', marginBottom: '8px' }}>
+              <div style={{ fontSize: '8px', color: '#475569', marginBottom: '4px' }}>価格最適化トレンド</div>
+              <svg width="100%" height="36" viewBox="0 0 300 36" preserveAspectRatio="none">
+                <defs><linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#00FBFF" stopOpacity="0.4"/><stop offset="100%" stopColor="#00FBFF" stopOpacity="0"/></linearGradient></defs>
+                <polygon points="0,30 60,20 120,24 180,12 240,15 300,6 300,36 0,36" fill="url(#cg1)"/>
+                <polyline points="0,30 60,20 120,24 180,12 240,15 300,6" fill="none" stroke="#00FBFF" strokeWidth="1.5"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: '8px' }}>
+              <div style={{ display: 'flex', color: '#475569', padding: '3px 4px', borderBottom: '1px solid #1E3A8A' }}>
+                <span style={{ flex: 2 }}>商品名</span><span style={{ flex: 1 }}>現在価格</span><span style={{ flex: 1 }}>AI推奨</span><span style={{ flex: 1 }}>状態</span>
+              </div>
+              {[['ウールキャップ A', '¥3,200', '¥2,800', '要承認', '#F59E0B'], ['ストローハット B', '¥5,800', '¥6,200', '承認済', '#10B981'], ['ベレー帽 C', '¥4,500', '¥3,900', '要承認', '#F59E0B']].map((r, i) => (
+                <div key={i} style={{ display: 'flex', padding: '4px', borderBottom: '1px solid #1E3A8A33', color: '#CBD5E1' }}>
+                  <span style={{ flex: 2 }}>{r[0]}</span><span style={{ flex: 1 }}>{r[1]}</span><span style={{ flex: 1, color: '#00FBFF' }}>{r[2]}</span><span style={{ flex: 1, color: r[4] as string }}>{r[3]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </MockBrowser>
+    </CaseLayout>
+  );
+}
+
+// ── 事例2：Looop Connect ──
+function Case2Slide() {
+  return (
+    <CaseLayout color={PU} tag="受託開発" title="Looop Connect" client="Looopブランド"
+      desc="次世代コンタクトセンター＆CRM。WebRTCリアルタイム通話・オペレーター管理・顧客対応履歴を一元管理。ロールベースアクセス制御とリモート強制ログアウト機能搭載。"
+      tech={['React', 'WebRTC', 'PeerJS', 'Supabase', 'TypeScript']}>
+      <MockBrowser url="connect.looop.co.jp" barBg="#1A1A2E" contentBg="#F8F9FA">
+        <div style={{ display: 'flex', height: '100%' }}>
+          <div style={{ width: '90px', background: '#1A1A2E', padding: '12px 0', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '8px 10px', marginBottom: '8px', textAlign: 'center' }}>
+              <div style={{ width: '32px', height: '32px', background: '#ff6600', borderRadius: '8px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: WHITE, fontSize: '14px', fontWeight: 800 }}>L</span>
+              </div>
+            </div>
+            {['ダッシュ', '顧客管理', '通話履歴', '設定'].map((m, i) => <div key={i} style={{ padding: '7px 8px', fontSize: '8px', color: i === 0 ? '#ff6600' : '#94A3B8', textAlign: 'center' }}>{m}</div>)}
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ background: WHITE, borderBottom: `2px solid #ff6600`, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#1A1A2E' }}>コンタクトセンター</span>
+              <span style={{ fontSize: '8px', background: '#10B981', color: WHITE, borderRadius: '4px', padding: '2px 6px' }}>稼働中</span>
+            </div>
+            <div style={{ flex: 1, padding: '8px', overflow: 'hidden' }}>
+              {[{ name: '田中 太郎', status: '通話中', c: '#ff6600' }, { name: '佐藤 花子', status: '待機中', c: '#10B981' }, { name: '鈴木 一郎', status: '対応済', c: '#64748B' }].map((r, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px', background: i === 0 ? '#fff3e0' : 'transparent', borderRadius: '6px', marginBottom: '4px' }}>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: `${r.c}22`, border: `1px solid ${r.c}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: r.c, flexShrink: 0 }}>{r.name[0]}</div>
+                  <div style={{ flex: 1 }}><div style={{ fontSize: '9px', fontWeight: 600, color: '#1A1A2E' }}>{r.name}</div><div style={{ fontSize: '8px', color: '#64748B' }}>顧客ID #100{i + 1}</div></div>
+                  <span style={{ fontSize: '8px', color: r.c, fontWeight: 600 }}>{r.status}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: '#1A1A2E', padding: '10px', borderRadius: '0 0 0 0', flexShrink: 0 }}>
+              <div style={{ fontSize: '8px', color: '#94A3B8', marginBottom: '6px', textAlign: 'center' }}>ソフトフォン</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginBottom: '6px' }}>
+                {['1','2','3','4','5','6','7','8','9','*','0','#'].map((d, i) => (
+                  <div key={i} style={{ background: '#2D3148', borderRadius: '4px', padding: '4px', textAlign: 'center', fontSize: '9px', color: WHITE }}>{d}</div>
+                ))}
+              </div>
+              <div style={{ background: '#ff6600', borderRadius: '4px', padding: '5px', textAlign: 'center', fontSize: '9px', color: WHITE }}>📞 発信</div>
+            </div>
+          </div>
+        </div>
+      </MockBrowser>
+    </CaseLayout>
+  );
+}
+
+// ── 事例3：テナントマッチング ──
+function Case3Slide() {
+  return (
+    <CaseLayout color={PK} tag="受託開発" title="テナントマッチングシステム" client="不動産会社"
+      desc="土地オーナーとテナントをAIが自動マッチングするB2Bプラットフォーム。マジックリンクでテナントへの打診〜回答収集を完全自動化し、成約プロセスを大幅に効率化。"
+      tech={['React', 'TypeScript', 'Google Maps API', 'Tailwind CSS']}>
+      <MockBrowser url="tenant-matching.meece.io" barBg="#E8ECF0" contentBg="#F8FAFF">
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ background: WHITE, borderBottom: `1px solid ${BORD}`, padding: '8px 14px', display: 'flex', gap: '12px', alignItems: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: DARK }}>テナントマッチング</span>
+            {['物件一覧', 'テナント', 'マッチング', '履歴'].map((m, i) => <span key={i} style={{ fontSize: '9px', color: i === 2 ? PK : LGRAY, borderBottom: i === 2 ? `2px solid ${PK}` : 'none', paddingBottom: '2px' }}>{m}</span>)}
+          </div>
+          <div style={{ display: 'flex', gap: '6px', padding: '8px', flexShrink: 0 }}>
+            {[{ l: '登録物件', v: '24件', c: BLUE }, { l: 'テナント数', v: '87社', c: PU }, { l: '打診中', v: '12件', c: '#F59E0B' }, { l: '成約', v: '8件', c: '#10B981' }].map((k, i) => (
+              <div key={i} style={{ flex: 1, background: WHITE, borderRadius: '6px', padding: '7px', boxShadow: SHAD, borderTop: `2px solid ${k.c}` }}>
+                <div style={{ fontSize: '7px', color: LGRAY }}>{k.l}</div><div style={{ fontSize: '13px', fontWeight: 700, color: k.c }}>{k.v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ flex: 1, padding: '0 8px 8px', overflow: 'hidden' }}>
+            <div style={{ fontSize: '8px', color: LGRAY, marginBottom: '4px' }}>マッチング候補</div>
+            {[
+              { land: '渋谷区桜丘町 120㎡', tenant: 'カフェ A 社', score: 94, c: '#10B981' },
+              { land: '新宿区西新宿 85㎡', tenant: 'コンビニ B 社', score: 87, c: '#10B981' },
+              { land: '港区南青山 200㎡', tenant: '学習塾 C 社', score: 72, c: '#F59E0B' },
+            ].map((r, i) => (
+              <div key={i} style={{ background: WHITE, borderRadius: '6px', padding: '7px 10px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: SHAD }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '9px', fontWeight: 600, color: DARK }}>{r.land}</div>
+                  <div style={{ fontSize: '8px', color: LGRAY }}>{r.tenant}</div>
+                </div>
+                <div style={{ background: `${r.c}18`, borderRadius: '4px', padding: '2px 8px', fontSize: '9px', color: r.c, fontWeight: 700 }}>{r.score}%</div>
+                <div style={{ fontSize: '8px', background: PK, color: WHITE, borderRadius: '4px', padding: '2px 6px' }}>打診</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </MockBrowser>
+    </CaseLayout>
+  );
+}
+
+// ── 自社プロダクト1：MEcar ──
+function Product1Slide() {
+  return (
+    <CaseLayout color={BLUE} tag="自社プロダクト" title="MEcar" client="Meece Card — AI搭載名刺デザインツール"
+      desc="Google Gemini AIを活用したブラウザベースの名刺デザインツール。ドラッグ&ドロップ操作で要素を配置し、AIがデザインを自動生成。PDF出力まで完結。"
+      tech={['React', 'Google Gemini AI', 'jsPDF', 'html2canvas', 'TypeScript']}>
+      <MockBrowser url="mecar.meece.io" barBg="#E8ECF0" contentBg="#F4F6F9">
+        <div style={{ display: 'flex', height: '100%' }}>
+          <div style={{ width: '44px', background: WHITE, borderRight: `1px solid ${BORD}`, padding: '8px 6px', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+            {['T', 'Img', '□', '○', '✦'].map((t, i) => <div key={i} style={{ width: '30px', height: '28px', borderRadius: '5px', background: i === 0 ? `${BLUE}18` : '#F0F0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: i === 0 ? BLUE : GRAY }}>{t}</div>)}
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '10px' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+              <div style={{ width: '200px', height: '115px', background: `linear-gradient(135deg, #0D1B3E, #1D6FE8)`, borderRadius: '8px', padding: '14px 18px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', position: 'relative' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: WHITE }}>Meece株式会社</div>
+                <div style={{ fontSize: '9px', color: '#00FBFF', marginTop: '2px' }}>DIGITAL CREATIVE FIRM</div>
+                <div style={{ position: 'absolute', bottom: '12px', left: '18px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: WHITE }}>溝口 雅登</div>
+                  <div style={{ fontSize: '8px', color: '#94A3B8' }}>代表取締役 / CEO</div>
+                  <div style={{ fontSize: '8px', color: '#94A3B8', marginTop: '2px' }}>03-5288-5125</div>
+                </div>
+                <div style={{ position: 'absolute', bottom: '12px', right: '14px', width: '20px', height: '20px', background: '#00FBFF22', borderRadius: '4px' }} />
+              </div>
+            </div>
+            <div style={{ background: WHITE, borderRadius: '6px', padding: '7px 10px', boxShadow: SHAD, display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7B5FF5' }} />
+              <span style={{ fontSize: '8px', color: GRAY, flex: 1 }}>AIデザインを生成中…</span>
+              <div style={{ background: BLUE, borderRadius: '4px', padding: '3px 8px', fontSize: '8px', color: WHITE }}>PDF出力</div>
+            </div>
+          </div>
+          <div style={{ width: '90px', background: WHITE, borderLeft: `1px solid ${BORD}`, padding: '8px', flexShrink: 0 }}>
+            <div style={{ fontSize: '8px', color: LGRAY, marginBottom: '6px' }}>プロパティ</div>
+            {['フォント', 'サイズ', 'カラー', '配置'].map((p, i) => (
+              <div key={i} style={{ marginBottom: '6px' }}>
+                <div style={{ fontSize: '7px', color: LGRAY, marginBottom: '2px' }}>{p}</div>
+                <div style={{ background: '#F0F0F0', borderRadius: '3px', height: '16px' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </MockBrowser>
+    </CaseLayout>
+  );
+}
+
+// ── 自社プロダクト2：my-pamphlet ──
+function Product2Slide() {
+  return (
+    <CaseLayout color={PU} tag="自社プロダクト" title="my-pamphlet" client="Digital Pamphlet — デジタルパンフレット"
+      desc="ページめくり機能付きインタラクティブデジタルパンフレット。react-pageflipによる本物の冊子感で、会社情報を魅力的に伝える営業ツール。"
+      tech={['React 19', 'react-pageflip', 'Tailwind CSS', 'Vite', 'TypeScript']}>
+      <MockBrowser url="pamphlet.meece.io" barBg="#0D1B3E" contentBg="#1a2035">
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', gap: '3px' }}>
+          <div style={{ width: '20px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ color: '#94A3B8', fontSize: '14px' }}>‹</div>
+          </div>
+          <div style={{ display: 'flex', height: '100%', gap: '0', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+            {/* Left page */}
+            <div style={{ width: '130px', background: WHITE, padding: '12px', display: 'flex', flexDirection: 'column', borderRight: '1px solid #E2E8F0' }}>
+              <div style={{ background: `linear-gradient(135deg, #0D1B3E, #1D6FE8)`, borderRadius: '6px', padding: '10px', marginBottom: '8px' }}>
+                <div style={{ fontSize: '9px', fontWeight: 700, color: WHITE }}>Meece株式会社</div>
+                <div style={{ fontSize: '7px', color: '#00FBFF' }}>DIGITAL CREATIVE FIRM</div>
+              </div>
+              <div style={{ fontSize: '8px', fontWeight: 700, color: DARK, marginBottom: '4px' }}>MISSION</div>
+              <div style={{ fontSize: '7px', color: GRAY, lineHeight: 1.6 }}>「ITの歯車」として、まだ見ぬ感動の続きを創り出す。</div>
+              <div style={{ marginTop: '8px', fontSize: '8px', fontWeight: 700, color: DARK, marginBottom: '4px' }}>SERVICES</div>
+              {['受託開発', 'AI研究開発', 'ITコンサル'].map((s, i) => <div key={i} style={{ fontSize: '7px', color: GRAY, padding: '2px 0', borderBottom: '1px solid #F0F0F0' }}>{s}</div>)}
+            </div>
+            {/* Right page */}
+            <div style={{ width: '130px', background: '#F8FAFF', padding: '12px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '8px', fontWeight: 700, color: DARK, marginBottom: '8px' }}>AI開発ラボ</div>
+              <div style={{ background: `linear-gradient(135deg, ${PU}18, ${PK}18)`, borderRadius: '6px', padding: '8px', marginBottom: '8px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: PU }}>2週間</div>
+                <div style={{ fontSize: '7px', color: GRAY }}>でPOC開発</div>
+              </div>
+              <div style={{ fontSize: '8px', fontWeight: 700, color: DARK, marginBottom: '6px' }}>CONTACT</div>
+              <div style={{ fontSize: '7px', color: GRAY, lineHeight: 1.8 }}>東京都千代田区<br />丸の内1-8-3<br />03-5288-5125</div>
+              <div style={{ marginTop: 'auto', textAlign: 'center', fontSize: '7px', color: LGRAY }}>p. 4</div>
+            </div>
+          </div>
+          <div style={{ width: '20px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ color: '#94A3B8', fontSize: '14px' }}>›</div>
+          </div>
+        </div>
+      </MockBrowser>
+    </CaseLayout>
+  );
+}
+
+// ── 自社プロダクト3：PresentHub ──
+function Product3Slide() {
+  return (
+    <CaseLayout color={PK} tag="自社プロダクト" title="PresentHub" client="Presentation Platform — プレゼン管理基盤"
+      desc="Reactコンポーネントとしてスライドを作成・管理するプレゼンプラットフォーム。フォルダ管理・スター機能・キーボードナビゲーション・Supabase永続化を搭載。"
+      tech={['React', 'TypeScript', 'Supabase', 'Framer Motion', 'Tailwind CSS']}>
+      <MockBrowser url="presenthub.meece.io" barBg="#E8ECF0" contentBg="#F8FAFF">
+        <div style={{ display: 'flex', height: '100%' }}>
+          <div style={{ width: '120px', background: WHITE, borderRight: `1px solid ${BORD}`, padding: '10px', flexShrink: 0 }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: DARK, marginBottom: '10px' }}>PresentHub</div>
+            <div style={{ fontSize: '8px', color: LGRAY, marginBottom: '6px' }}>フォルダ</div>
+            {['📁 プロジェクト', '📁 マーケティング', '📁 アーカイブ', '⭐ スター済み'].map((f, i) => (
+              <div key={i} style={{ fontSize: '8px', color: i === 0 ? BLUE : GRAY, padding: '4px 6px', borderRadius: '4px', background: i === 0 ? `${BLUE}10` : 'transparent', marginBottom: '2px' }}>{f}</div>
+            ))}
+          </div>
+          <div style={{ flex: 1, padding: '10px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexShrink: 0 }}>
+              <span style={{ fontSize: '9px', fontWeight: 700, color: DARK }}>すべてのスライド</span>
+              <div style={{ background: PK, borderRadius: '4px', padding: '3px 8px', fontSize: '8px', color: WHITE }}>+ 追加</div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              {[
+                { title: 'Meece会社紹介', g: `linear-gradient(135deg, ${PU}, ${PK})` },
+                { title: '事業計画 2026', g: `linear-gradient(135deg, ${BLUE}, ${CYAN})` },
+                { title: 'AI開発ラボ紹介', g: `linear-gradient(135deg, ${PK}, #F5A623)` },
+                { title: 'サービス提案書', g: `linear-gradient(135deg, #0D1B3E, ${PU})` },
+              ].map((c, i) => (
+                <div key={i} style={{ borderRadius: '6px', overflow: 'hidden', boxShadow: SHAD }}>
+                  <div style={{ height: '40px', background: c.g }} />
+                  <div style={{ background: WHITE, padding: '4px 6px' }}>
+                    <div style={{ fontSize: '8px', fontWeight: 600, color: DARK }}>{c.title}</div>
+                    <div style={{ fontSize: '7px', color: LGRAY }}>Claude</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </MockBrowser>
+    </CaseLayout>
+  );
+}
+
+function WhyChooseUsSlide() {
+  const reasons = [
+    { title: '「綺麗事」で終わらせない', sub: '現場主義のコンサルティング', desc: '予算・KPI・現実に即した戦略立案。理想論ではなく、実際に「動く」システムのみを提案します。', c: CYAN,
+      Icon: () => <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="10" stroke={CYAN} strokeWidth="2"/><circle cx="22" cy="22" r="6" stroke={CYAN} strokeWidth="2" opacity="0.5"/><circle cx="22" cy="22" r="2.5" fill={CYAN}/><path d="M22 10V14M22 30V34M10 22H14M30 22H34" stroke={CYAN} strokeWidth="2" strokeLinecap="round"/></svg> },
+    { title: '「速さ」と「品質」の両立', sub: '妥協なき開発', desc: 'AI駆動開発と熟練エンジニアの融合で、スピードと品質を同時に実現します。', c: PU,
+      Icon: () => <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><path d="M25 8L13 24H22L18 36L31 20H22L25 8Z" fill={PU} stroke={PU} strokeWidth="1.5" strokeLinejoin="round"/></svg> },
+    { title: '「自走」するまで、支え抜く', sub: '組織のDX支援', desc: '納品で終わりではなく、お客様が自走できるまで伴走。教育・移管・保守まで一貫支援。', c: PK,
+      Icon: () => <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><path d="M8 24L14 18L20 22L24 20L32 16" stroke={PK} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 22L24 26L30 22L36 24" stroke={PK} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="20" cy="22" r="2" fill={PK}/></svg> },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(CYAN, PK)}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{lbl('WHY MEECE')}<h2 style={{ fontSize: '30px', fontWeight: 700, margin: '0 0 24px 0' }}>選ばれる理由</h2></motion.div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', flex: 1 }}>
+        {reasons.map((r, i) => (
+          <motion.div key={i} initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.12 }}
+            style={{ background: WHITE, borderRadius: '16px', padding: '28px 24px', boxShadow: SHAD, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: r.c }} />
+            <div style={{ marginBottom: '18px', marginTop: '8px' }}><r.Icon /></div>
+            <div style={{ fontSize: '17px', fontWeight: 700, marginBottom: '6px', lineHeight: 1.4 }}>{r.title}</div>
+            <div style={{ fontSize: '10px', color: r.c, letterSpacing: '1px', marginBottom: '14px', fontWeight: 600 }}>{r.sub}</div>
+            <div style={{ fontSize: '13px', color: GRAY, lineHeight: 1.9 }}>{r.desc}</div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HistorySlide() {
+  const events = [
+    { year: '2022', m: '8月', title: 'Meece株式会社 設立', desc: 'SES事業を柱として技術力を市場へ提供開始。', c: BLUE },
+    { year: '2023', m: '', title: '受託開発・コンサルティング事業 拡大', desc: '戦略策定から実装までの一気通貫体制を構築。', c: CYAN },
+    { year: '2024', m: '', title: 'AI研究開発部門 立ち上げ', desc: '生成AI・LLM技術の専門チームを発足。', c: PU },
+    { year: '2026', m: '1月', title: '公式サイト フルリニューアル', desc: 'DIGITAL CREATIVE FIRMへとビジョンを刷新。', c: PK },
+    { year: '2026', m: '4月', title: 'AI開発ラボ・PresentHub 公開', desc: '自社プロダクト始動。新サービス展開を本格化。', c: '#F5A623' },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: BG, color: DARK, display: 'flex', flexDirection: 'column', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(BLUE, '#F5A623')}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>{lbl('HISTORY')}<h2 style={{ fontSize: '30px', fontWeight: 700, margin: '0 0 28px 0' }}>沿革</h2></motion.div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-around', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: '80px', top: '8px', bottom: '8px', width: '2px', background: `linear-gradient(180deg, ${BLUE}, ${CYAN}, ${PU}, ${PK}, #F5A623)` }} />
+        {events.map((e, i) => (
+          <motion.div key={i} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.09 }}
+            style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+            <div style={{ width: '68px', textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: e.c }}>{e.year}</div>
+              <div style={{ fontSize: '11px', color: LGRAY }}>{e.m}</div>
+            </div>
+            <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: e.c, flexShrink: 0, zIndex: 1, boxShadow: `0 0 10px ${e.c}88` }} />
+            <div style={{ background: WHITE, borderRadius: '10px', padding: '14px 20px', flex: 1, boxShadow: SHAD }}>
+              <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '3px' }}>{e.title}</div>
+              <div style={{ fontSize: '12px', color: GRAY }}>{e.desc}</div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ContactSlide() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${WHITE} 0%, #EEF3FF 100%)`, color: DARK, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 60px', boxSizing: 'border-box', fontFamily: 'sans-serif', overflow: 'hidden', position: 'relative' }}>
+      {topBar(CYAN, PK)}
+      <div style={{ position: 'absolute', top: '-80px', left: '-80px', width: '300px', height: '300px', borderRadius: '50%', background: `radial-gradient(circle, ${CYAN}12, transparent 70%)` }} />
+      <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '280px', height: '280px', borderRadius: '50%', background: `radial-gradient(circle, ${PK}10, transparent 70%)` }} />
+      <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: 'center', zIndex: 1, width: '100%', maxWidth: '680px' }}>
+        {lbl('CONTACT', BLUE)}
+        <h2 style={{ fontSize: '36px', fontWeight: 700, margin: '0 0 10px 0' }}>お問い合わせ</h2>
+        <p style={{ color: GRAY, fontSize: '15px', margin: '0 0 36px 0' }}>まずはお気軽にご相談ください。</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+          <div style={{ background: WHITE, borderRadius: '14px', padding: '24px', textAlign: 'left', boxShadow: SHAD, borderTop: `3px solid ${CYAN}` }}>
+            <div style={{ fontSize: '10px', color: CYAN, letterSpacing: '3px', marginBottom: '10px', fontWeight: 700 }}>PHONE</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, marginBottom: '4px' }}>03-5288-5125</div>
+            <div style={{ fontSize: '12px', color: LGRAY }}>平日 9:00〜18:00</div>
+          </div>
+          <div style={{ background: WHITE, borderRadius: '14px', padding: '24px', textAlign: 'left', boxShadow: SHAD, borderTop: `3px solid ${PU}` }}>
+            <div style={{ fontSize: '10px', color: PU, letterSpacing: '3px', marginBottom: '10px', fontWeight: 700 }}>LOCATION</div>
+            <div style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.7 }}>東京都千代田区丸の内1-8-3<br />丸の内トラストタワー本館 20階</div>
+            <div style={{ fontSize: '11px', color: LGRAY, marginTop: '4px' }}>JR東京駅 日本橋口より徒歩1分</div>
+          </div>
+        </div>
+        <div style={{ display: 'inline-block', background: `linear-gradient(135deg, ${CYAN}, ${BLUE}, ${PU})`, borderRadius: '999px', padding: '3px' }}>
+          <div style={{ background: WHITE, borderRadius: '999px', padding: '14px 48px' }}>
+            <span style={{ ...gt(BLUE, PU), fontSize: '18px', fontWeight: 700 }}>meece.io</span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+render([
+  <TitleSlide key="1" />,
+  <CompanyOverviewSlide key="2" />,
+  <NameOriginSlide key="3" />,
+  <CEOMessageSlide key="4" />,
+  <MissionSlide key="5" />,
+  <ServicesSlide key="6" />,
+  <AILabOverviewSlide key="7" />,
+  <AILabPlansSlide key="8" />,
+  <SupportPhaseSlide key="9" />,
+  <Case1Slide key="10" />,
+  <Case2Slide key="11" />,
+  <Case3Slide key="12" />,
+  <Product1Slide key="13" />,
+  <Product2Slide key="14" />,
+  <Product3Slide key="15" />,
+  <WhyChooseUsSlide key="16" />,
+  <HistorySlide key="17" />,
+  <ContactSlide key="18" />,
+]);
