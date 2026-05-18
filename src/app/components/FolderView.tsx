@@ -13,6 +13,7 @@ import { PresentationViewer } from './PresentationViewer';
 import { DynamicPresentationViewer } from './DynamicPresentationViewer';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
 import { EditTsxDialog } from './EditTsxDialog';
+import { SlidePreviewThumbnail } from './SlidePreviewThumbnail';
 import { presentationRegistry } from '../../presentations/registry';
 import { DRAG_TYPE, DragItem } from '../dnd';
 
@@ -192,6 +193,7 @@ function FolderCard({ folder, viewMode, onNavigate, onPermissionClick }: FolderC
 // ─────────────────────────────────────────────
 interface FileCardProps {
   file: FileItem;
+  code?: string;
   viewMode: 'grid' | 'list';
   onView: (id: string) => void;
   onMove: (file: FileItem) => void;
@@ -201,7 +203,7 @@ interface FileCardProps {
   onDelete: (file: FileItem) => void;
 }
 
-function FileCard({ file, viewMode, onView, onMove, onEdit, onPermissionClick, onToggleStar, onDelete }: FileCardProps) {
+function FileCard({ file, code, viewMode, onView, onMove, onEdit, onPermissionClick, onToggleStar, onDelete }: FileCardProps) {
   const [openMenu, setOpenMenu] = useState(false);
 
   const [{ isDragging }, drag, dragPreview] = useDrag<DragItem, void, { isDragging: boolean }>({
@@ -218,10 +220,15 @@ function FileCard({ file, viewMode, onView, onMove, onEdit, onPermissionClick, o
         className={`group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] cursor-pointer border border-violet-100 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
       >
         <div ref={drag} className="h-48 relative" style={
-          file.thumbnail.startsWith('http') || file.thumbnail.startsWith('blob')
-            ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-            : { background: file.thumbnail }
+          file.isDynamic && code
+            ? {}
+            : file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
+              ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+              : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' }
         }>
+          {file.isDynamic && code && (
+            <SlidePreviewThumbnail code={code} className="absolute inset-0" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <FileText className="w-12 h-12 text-white" />
           </div>
@@ -283,11 +290,17 @@ function FileCard({ file, viewMode, onView, onMove, onEdit, onPermissionClick, o
       onClick={() => onView(file.id)}
       className={`flex items-center gap-4 p-5 hover:bg-violet-50 transition-colors cursor-pointer border-b border-violet-50 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
     >
-      <div ref={drag} className="w-20 h-14 rounded-lg flex-shrink-0 cursor-grab active:cursor-grabbing" style={
-        file.thumbnail.startsWith('http') || file.thumbnail.startsWith('blob')
-          ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-          : { background: file.thumbnail }
-      } />
+      <div ref={drag} className="w-20 h-14 rounded-lg flex-shrink-0 cursor-grab active:cursor-grabbing overflow-hidden" style={
+        file.isDynamic && code
+          ? {}
+          : file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
+            ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' }
+      }>
+        {file.isDynamic && code && (
+          <SlidePreviewThumbnail code={code} className="w-full h-full" />
+        )}
+      </div>
       <div className="flex-1 min-w-0">
         <h3 className="mb-1 text-gray-800 truncate">{file.name}</h3>
         <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -468,6 +481,7 @@ export function FolderView({ onPermissionClick }: FolderViewProps) {
           ))}
           {files.map(file => (
             <FileCard key={file.id} file={file} viewMode="grid"
+              code={file.isDynamic ? (dynamicCodeMap[file.id] ?? undefined) : undefined}
               onView={setViewingFileId} onMove={setMovingFile} onEdit={setEditingFile}
               onPermissionClick={onPermissionClick} onToggleStar={toggleStar}
               onDelete={handleDeleteFile} />
@@ -481,6 +495,7 @@ export function FolderView({ onPermissionClick }: FolderViewProps) {
           ))}
           {files.map(file => (
             <FileCard key={file.id} file={file} viewMode="list"
+              code={file.isDynamic ? (dynamicCodeMap[file.id] ?? undefined) : undefined}
               onView={setViewingFileId} onMove={setMovingFile} onEdit={setEditingFile}
               onPermissionClick={onPermissionClick} onToggleStar={toggleStar}
               onDelete={handleDeleteFile} />

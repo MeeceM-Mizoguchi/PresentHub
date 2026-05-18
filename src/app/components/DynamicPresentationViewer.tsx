@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, ReactElement } from 'react';
-import React from 'react';
 import { X, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
-import { motion } from 'motion/react';
+import { compileCode } from '../utils/compileCode';
 
 interface DynamicPresentationViewerProps {
   title: string;
@@ -9,79 +8,6 @@ interface DynamicPresentationViewerProps {
   onClose: () => void;
 }
 
-async function compileCode(code: string): Promise<ReactElement[]> {
-  const { transform } = await import('@babel/standalone');
-
-  // Strip import statements
-  const cleaned = code
-    .replace(/^import\s+type\s+.+$/gm, '')
-    .replace(/^import\s+.+$/gm, '')
-    .trim();
-
-  // Step 1: strip TypeScript types + compile JSX → plain JS
-  // (no module transform plugin needed)
-  let intermediate: string;
-  try {
-    intermediate = transform(cleaned, {
-      filename: 'presentation.tsx',
-      presets: [
-        ['typescript', { allExtensions: true, isTSX: true }],
-        ['react', { runtime: 'classic' }],
-      ],
-    }).code ?? '';
-  } catch (e) {
-    throw new Error(`コンパイルエラー: ${(e as Error).message}`);
-  }
-
-  // Step 2: replace export declarations with __capture.xxx = ...
-  // (Babel has already stripped type annotations, so regex is safe)
-  const capturable = intermediate
-    .replace(/export\s+const\s+(\w+)\s*=/g, '__capture.$1 =')
-    .replace(/export\s+default\s+/g, '__capture.__default = ')
-    .replace(/export\s+\{[^}]*\}/g, '')
-    .replace(/export\s+function\s+(\w+)/g, 'function $1')
-    .replace(/export\s+class\s+(\w+)/g, 'class $1');
-
-  const capture: Record<string, unknown> = {};
-  const capturedSlides: ReactElement[] = [];
-
-  const scope: Record<string, unknown> = {
-    React,
-    motion,
-    useState: React.useState,
-    useEffect: React.useEffect,
-    useRef: React.useRef,
-    useCallback: React.useCallback,
-    render: (slides: ReactElement[]) => capturedSlides.push(...slides),
-    __capture: capture,
-  };
-
-  try {
-    // eslint-disable-next-line no-new-func
-    new Function(...Object.keys(scope), capturable)(...Object.values(scope));
-  } catch (e) {
-    throw new Error(`実行エラー: ${(e as Error).message}`);
-  }
-
-  // Format 1: render([...]) was called
-  if (capturedSlides.length > 0) return capturedSlides;
-
-  // Format 2: export const xxx = { slides: [...], meta: {...} }
-  for (const value of Object.values(capture)) {
-    if (
-      value &&
-      typeof value === 'object' &&
-      'slides' in (value as object) &&
-      Array.isArray((value as { slides: unknown }).slides)
-    ) {
-      return (value as { slides: ReactElement[] }).slides;
-    }
-  }
-
-  throw new Error(
-    'スライドが見つかりません。\nexport const xxx = { slides: [...] } か render([...]) で終わるコードを貼り付けてください。'
-  );
-}
 
 export function DynamicPresentationViewer({ title, code, onClose }: DynamicPresentationViewerProps) {
   const [slides, setSlides] = useState<ReactElement[]>([]);
