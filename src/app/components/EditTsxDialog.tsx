@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Code2, Eye, Save, Loader2, Image, Check, Copy } from 'lucide-react';
+import { X, Code2, Eye, Save, Loader2, Image, Check, Copy, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { toast } from '../lib/toast';
 import { FileItem } from '../types';
@@ -123,6 +123,7 @@ export function EditTsxDialog({ file, onClose }: EditTsxDialogProps) {
       <DynamicPresentationViewer
         title={title || file.name}
         code={code}
+        id={file.id}
         onClose={() => setShowPreview(false)}
       />
     );
@@ -218,6 +219,17 @@ export function EditTsxDialog({ file, onClose }: EditTsxDialogProps) {
                   >
                     {copiedUrl ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
                     {copiedUrl ? 'コピーしました' : '画像URLをコピー'}
+                  </button>
+                )}
+
+                {/* Reset to gradient */}
+                {!DEFAULT_GRADIENTS.includes(thumbnail) && (
+                  <button
+                    onClick={() => setThumbnail(DEFAULT_GRADIENTS[0])}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-red-200 rounded-lg text-red-500 hover:bg-red-50 transition-all"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    グラデーションに戻す
                   </button>
                 )}
               </div>

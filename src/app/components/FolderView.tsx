@@ -518,6 +518,7 @@ export function FolderView({ onPermissionClick }: FolderViewProps) {
         <DynamicPresentationViewer
           title={viewingFile.name}
           code={viewingDynamicCode}
+          id={viewingFile.id}
           onClose={() => setViewingFileId(null)}
         />
       )}
