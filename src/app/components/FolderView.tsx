@@ -217,7 +217,11 @@ function FileCard({ file, viewMode, onView, onMove, onEdit, onPermissionClick, o
         onClick={() => onView(file.id)}
         className={`group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] cursor-pointer border border-violet-100 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
       >
-        <div ref={drag} className="h-48 relative" style={{ background: file.thumbnail }}>
+        <div ref={drag} className="h-48 relative" style={
+          file.thumbnail.startsWith('http') || file.thumbnail.startsWith('blob')
+            ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : { background: file.thumbnail }
+        }>
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <FileText className="w-12 h-12 text-white" />
           </div>
@@ -279,7 +283,11 @@ function FileCard({ file, viewMode, onView, onMove, onEdit, onPermissionClick, o
       onClick={() => onView(file.id)}
       className={`flex items-center gap-4 p-5 hover:bg-violet-50 transition-colors cursor-pointer border-b border-violet-50 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
     >
-      <div ref={drag} className="w-20 h-14 rounded-lg flex-shrink-0 cursor-grab active:cursor-grabbing" style={{ background: file.thumbnail }} />
+      <div ref={drag} className="w-20 h-14 rounded-lg flex-shrink-0 cursor-grab active:cursor-grabbing" style={
+        file.thumbnail.startsWith('http') || file.thumbnail.startsWith('blob')
+          ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+          : { background: file.thumbnail }
+      } />
       <div className="flex-1 min-w-0">
         <h3 className="mb-1 text-gray-800 truncate">{file.name}</h3>
         <div className="flex items-center gap-4 text-sm text-gray-500">
