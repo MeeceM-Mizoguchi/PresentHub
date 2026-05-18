@@ -35,7 +35,7 @@ export function EditTsxDialog({ file, onClose }: EditTsxDialogProps) {
 
   // meta state (dynamic only)
   const [title, setTitle] = useState(file.name);
-  const [thumbnail, setThumbnail] = useState(file.thumbnail ?? DEFAULT_GRADIENTS[0]);
+  const [thumbnail, setThumbnail] = useState(file.thumbnail || DEFAULT_GRADIENTS[0]);
   const [uploading, setUploading] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

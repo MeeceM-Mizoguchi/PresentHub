@@ -15,6 +15,14 @@ export interface SlideImage {
 function loadImages(): SlideImage[] {
   try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '[]'); } catch { return []; }
 }
+
+function fileToDataUrl(file: File | Blob): Promise<string> {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(file);
+  });
+}
 function saveImages(imgs: SlideImage[]) {
   localStorage.setItem(LS_KEY, JSON.stringify(imgs));
 }
@@ -39,15 +47,10 @@ export function ImageAssetManager() {
       let url: string;
       if (isSupabaseConfigured) {
         const uploaded = await uploadAsset(file);
-        if (!uploaded) return;
-        url = uploaded;
+        // Fall back to data URL if bucket doesn't exist or upload fails
+        url = uploaded ?? await fileToDataUrl(file);
       } else {
-        // Fallback: data URL (local only, not persistent across devices)
-        url = await new Promise<string>(resolve => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
+        url = await fileToDataUrl(file);
       }
       const entry: SlideImage = {
         id: `img-${Date.now()}`,
@@ -87,14 +90,9 @@ export function ImageAssetManager() {
       let url: string;
       if (isSupabaseConfigured) {
         const uploaded = await uploadAsset(file);
-        if (!uploaded) return;
-        url = uploaded;
+        url = uploaded ?? await fileToDataUrl(blob);
       } else {
-        url = await new Promise<string>(resolve => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
+        url = await fileToDataUrl(blob);
       }
       const entry: SlideImage = {
         id: `img-${Date.now()}`,
