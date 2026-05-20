@@ -3,7 +3,7 @@ import { useDrop } from 'react-dnd';
 import {
   LayoutDashboard, FolderOpen, Folder, FileText,
   Settings, LogOut, ChevronRight, ChevronDown, User, Users, UserPlus,
-  FolderPlus, Trash2,
+  FolderPlus, Trash2, Pencil,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -86,11 +86,13 @@ type ContextMenuState = {
 } | null;
 
 export function Sidebar({ currentView, onViewChange, onAddFolder }: SidebarProps) {
-  const { items, setCurrentFolder, currentFolderId, deleteFolder } = useApp();
+  const { items, setCurrentFolder, currentFolderId, deleteFolder, renameFolder } = useApp();
   const { profile, isAdmin, signOut } = useAuth();
   const { confirm } = useConfirm();
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
+  const [renamingFolder, setRenamingFolder] = useState<{ id: string; name: string } | null>(null);
+  const [renameVal, setRenameVal] = useState('');
 
   useEffect(() => {
     const close = () => setContextMenu(null);
@@ -124,6 +126,23 @@ export function Sidebar({ currentView, onViewChange, onAddFolder }: SidebarProps
     const x = e.clientX + 192 > window.innerWidth ? e.clientX - 192 : e.clientX;
     const y = e.clientY + 148 > window.innerHeight ? e.clientY - 148 : e.clientY;
     setContextMenu({ x, y, folderId: item.id, folderName: item.name });
+  };
+
+  const handleRenameFolder = () => {
+    if (!contextMenu) return;
+    setRenamingFolder({ id: contextMenu.folderId, name: contextMenu.folderName });
+    setRenameVal(contextMenu.folderName);
+    setContextMenu(null);
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!renamingFolder) return;
+    const trimmed = renameVal.trim();
+    if (trimmed && trimmed !== renamingFolder.name) {
+      await renameFolder(renamingFolder.id, trimmed);
+      toast.rename('フォルダ名を変更しました');
+    }
+    setRenamingFolder(null);
   };
 
   const handleDeleteFolder = async () => {
@@ -262,6 +281,37 @@ export function Sidebar({ currentView, onViewChange, onAddFolder }: SidebarProps
         </div>
       </div>
 
+      {/* Rename Dialog */}
+      {renamingFolder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setRenamingFolder(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-80" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-800 mb-4">フォルダ名を変更</h3>
+            <input
+              type="text"
+              value={renameVal}
+              onChange={e => setRenameVal(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') setRenamingFolder(null); }}
+              className="w-full border border-violet-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 mb-4"
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setRenamingFolder(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleRenameSubmit}
+                className="px-4 py-2 text-sm bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Context Menu */}
       {contextMenu && (
         <div
@@ -278,6 +328,13 @@ export function Sidebar({ currentView, onViewChange, onAddFolder }: SidebarProps
           >
             <FolderPlus className="w-4 h-4 text-violet-500" />
             フォルダ新規作成
+          </button>
+          <button
+            onClick={handleRenameFolder}
+            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+          >
+            <Pencil className="w-4 h-4 text-violet-500" />
+            名前を変更
           </button>
           <div className="border-t border-gray-100 my-1" />
           <button

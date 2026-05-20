@@ -3,7 +3,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import {
   FileText, Calendar, User, Grid3x3, List, Star, MoreVertical,
   ChevronRight, Home, Folder as FolderIcon, UserPlus, FolderInput,
-  Pencil, Trash2,
+  Pencil, Trash2, Plus,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { FolderItem, FileItem } from '../types';
@@ -217,9 +217,14 @@ function FileCard({ file, viewMode, onView, onMove, onPermissionClick, onToggleS
     collect: m => ({ isDragging: m.isDragging() }),
   });
 
-  const thumbnailStyle: React.CSSProperties = file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
-    ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' };
+  const registryEntry = presentationRegistry.find(p => p.meta.id === file.id);
+  const firstSlide = registryEntry?.slides?.[0];
+
+  const thumbnailStyle: React.CSSProperties = firstSlide
+    ? { background: '#000' }
+    : file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
+      ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+      : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' };
 
   const menuItems = (
     <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-10 py-1"
@@ -247,7 +252,14 @@ function FileCard({ file, viewMode, onView, onMove, onPermissionClick, onToggleS
         onClick={() => { if (!isRenaming) onView(file.id); }}
         className={`group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] cursor-pointer border border-violet-100 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
       >
-        <div ref={drag} className="h-48 relative" style={thumbnailStyle}>
+        <div ref={drag} className="h-48 relative overflow-hidden" style={thumbnailStyle}>
+          {firstSlide && (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div style={{ width: 'calc(100% / 0.267)', height: '720px', transform: 'scale(0.267)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}>
+                {firstSlide}
+              </div>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <FileText className="w-12 h-12 text-white" />
           </div>
@@ -300,7 +312,15 @@ function FileCard({ file, viewMode, onView, onMove, onPermissionClick, onToggleS
       onClick={() => { if (!isRenaming) onView(file.id); }}
       className={`flex items-center gap-4 p-5 hover:bg-violet-50 transition-colors cursor-pointer border-b border-violet-50 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
     >
-      <div ref={drag} className="w-20 h-14 rounded-lg flex-shrink-0 cursor-grab active:cursor-grabbing overflow-hidden" style={thumbnailStyle} />
+      <div ref={drag} className="w-20 h-14 rounded-lg flex-shrink-0 cursor-grab active:cursor-grabbing overflow-hidden relative" style={thumbnailStyle}>
+        {firstSlide && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div style={{ width: 'calc(100% / 0.0778)', height: '720px', transform: 'scale(0.0778)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}>
+              {firstSlide}
+            </div>
+          </div>
+        )}
+      </div>
       <div className="flex-1 min-w-0">
         {isRenaming ? (
           <input
@@ -390,9 +410,10 @@ function BreadcrumbDropTarget({ targetId, label, icon, isActive, onClick }: Brea
 // ─────────────────────────────────────────────
 interface FolderViewProps {
   onPermissionClick: (itemId: string) => void;
+  onCreateFolder?: () => void;
 }
 
-export function FolderView({ onPermissionClick }: FolderViewProps) {
+export function FolderView({ onPermissionClick, onCreateFolder }: FolderViewProps) {
   const { items, currentFolderId, setCurrentFolder, getCurrentFolderPath, toggleStar } = useApp();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [viewingFileId, setViewingFileId] = useState<string | null>(null);
@@ -433,7 +454,16 @@ export function FolderView({ onPermissionClick }: FolderViewProps) {
       </div>
 
       {/* View Controls */}
-      <div className="mb-6 flex items-center justify-end">
+      <div className="mb-6 flex items-center justify-between">
+        {onCreateFolder && (
+          <button
+            onClick={onCreateFolder}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-200 text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            フォルダを作成
+          </button>
+        )}
         <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-violet-100">
           <button onClick={() => setViewMode('grid')}
             className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-gradient-to-r from-violet-500 to-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>

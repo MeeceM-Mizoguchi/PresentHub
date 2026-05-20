@@ -18,6 +18,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  updateProfile: (updates: Partial<Pick<UserProfile, 'name'>>) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,12 +89,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const updateProfile = async (updates: Partial<Pick<UserProfile, 'name'>>) => {
+    if (!user) return 'Not authenticated';
+    const { error } = await supabase.from('user_profiles').update(updates).eq('id', user.id);
+    if (error) return error.message;
+    setProfile(prev => prev ? { ...prev, ...updates } : null);
+    return null;
+  };
+
   return (
     <AuthContext.Provider value={{
       user, profile, session,
       isAdmin: profile?.role === 'admin',
       isLoading,
-      signIn, signOut, resetPassword,
+      signIn, signOut, resetPassword, updateProfile,
     }}>
       {children}
     </AuthContext.Provider>

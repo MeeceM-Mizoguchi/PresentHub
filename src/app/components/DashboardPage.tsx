@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Plus,
   Search,
@@ -14,31 +14,30 @@ import {
   UserPlus,
   FolderInput,
   Loader2,
-  FolderPlus,
   Pencil,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { FolderView } from './FolderView';
 import { SharedManagementPage } from './SharedManagementPage';
 import { CreateFolderDialog } from './CreateFolderDialog';
-import { CreatePresentationDialog, type PresentationCreationData } from './CreatePresentationDialog';
 import { PermissionDialog } from './PermissionDialog';
 import { PresentationViewer } from './PresentationViewer';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
 import { AdminRequestsPage } from './AdminRequestsPage';
+import { AccountPage } from './AccountPage';
 import { useApp } from '../context/AppContext';
+import { useDeployDetection } from '../hooks/useDeployDetection';
 import { FileItem } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
 import { toast } from '../lib/toast';
 
 export function DashboardPage() {
+  useDeployDetection();
   const { items, currentFolderId, addFolder, addSharedUser, setCurrentFolder, isLoading, toggleStar, updateStaticTitle } = useApp();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<string>('dashboard');
   const [showCreateFolder, setShowCreateFolder] = useState(false);
-  const [showCreatePresentation, setShowCreatePresentation] = useState(false);
-  const [showNewMenu, setShowNewMenu] = useState(false);
   const [permissionItemId, setPermissionItemId] = useState<string | null>(null);
   const [viewingFileId, setViewingFileId] = useState<string | null>(null);
   const [movingFile, setMovingFile] = useState<FileItem | null>(null);
@@ -46,17 +45,6 @@ export function DashboardPage() {
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'starred' | 'recent'>('all');
-  const newMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (newMenuRef.current && !newMenuRef.current.contains(e.target as Node)) {
-        setShowNewMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   const allFiles = items.filter(item => item.type === 'file') as FileItem[];
   const filteredFiles = allFiles
@@ -83,46 +71,6 @@ export function DashboardPage() {
       sharedWith,
     });
     toast.create('フォルダを作成しました');
-  };
-
-  const handleCreatePresentation = async (data: PresentationCreationData) => {
-    const newPresentationId = `custom-${Date.now()}`;
-    const presentation = {
-      meta: {
-        id: newPresentationId,
-        title: data.title,
-        description: data.description,
-        thumbnail: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        author: 'Custom',
-        createdAt: new Date().toISOString().split('T')[0],
-      },
-      slides: [
-        <div key="custom" className="w-full h-full bg-white p-8 overflow-auto">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-4">{data.title}</h1>
-            <div className="mb-6 space-y-4">
-              {data.images.map((img, idx) => (
-                <img key={idx} src={img.url} alt={img.name} className="max-w-full h-auto rounded-lg shadow-md" />
-              ))}
-            </div>
-            <div className="prose max-w-none">
-              <p className="text-gray-700 whitespace-pre-wrap">{data.description}</p>
-            </div>
-            <div className="mt-8 p-4 bg-gray-100 rounded-lg">
-              <iframe
-                srcDoc={data.code}
-                className="w-full h-[600px] rounded-lg border-0"
-                sandbox="allow-scripts allow-same-origin"
-                title="Custom Presentation"
-              />
-            </div>
-          </div>
-        </div>,
-      ],
-    };
-    (presentationRegistry as any).push(presentation);
-    setViewingFileId(newPresentationId);
-    toast.success(`${data.title} を作成しました`);
   };
 
   const handleInviteUser = (name: string, email: string) => {
@@ -367,19 +315,28 @@ export function DashboardPage() {
             className="w-full pl-12 pr-4 py-3 bg-white border-2 border-violet-100 rounded-xl outline-none focus:border-violet-400 transition-colors"
           />
         </div>
-        <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-violet-100">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-gradient-to-r from-violet-500 to-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            onClick={() => setShowCreateFolder(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-200 text-sm"
           >
-            <Grid3x3 className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
+            フォルダを作成
           </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-gradient-to-r from-violet-500 to-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-          >
-            <List className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-violet-100">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-gradient-to-r from-violet-500 to-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Grid3x3 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-gradient-to-r from-violet-500 to-pink-500 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -447,29 +404,6 @@ export function DashboardPage() {
               {currentView === 'admin-requests' && 'アカウント申請'}
             </h1>
             <div className="flex items-center gap-3">
-              <div className="relative" ref={newMenuRef}>
-                <button
-                  onClick={() => setShowNewMenu(v => !v)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
-                >
-                  <Plus className="w-4 h-4" />
-                  新規作成
-                </button>
-                {showNewMenu && (
-                  <div className="absolute right-0 top-12 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-20">
-                    <button
-                      onClick={() => { setShowCreateFolder(true); setShowNewMenu(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-                    >
-                      <FolderPlus className="w-4 h-4 text-violet-500" />
-                      フォルダを作成
-                    </button>
-                  </div>
-                )}
-              </div>
-              <button className="p-2 hover:bg-violet-100 rounded-lg transition-colors">
-                <User className="w-5 h-5 text-gray-600" />
-              </button>
             </div>
           </div>
         </header>
@@ -477,15 +411,19 @@ export function DashboardPage() {
         <main className="flex-1 overflow-y-auto px-6 py-8">
           {currentView === 'dashboard' && renderDashboard()}
           {currentView === 'folder' && (
-            <FolderView onPermissionClick={(id) => setPermissionItemId(id)} />
+            <FolderView
+              onPermissionClick={(id) => setPermissionItemId(id)}
+              onCreateFolder={() => setShowCreateFolder(true)}
+            />
           )}
           {currentView === 'shared' && (
             <SharedManagementPage onInvite={handleInviteUser} />
           )}
           {currentView === 'admin-requests' && <AdminRequestsPage />}
-          {(currentView === 'settings' || currentView === 'account') && (
+          {currentView === 'account' && <AccountPage />}
+          {currentView === 'settings' && (
             <div className="text-center py-12">
-              <p className="text-gray-500">{currentView === 'settings' ? '設定' : 'アカウント'}画面（開発中）</p>
+              <p className="text-gray-500">設定画面（開発中）</p>
             </div>
           )}
         </main>
@@ -496,12 +434,6 @@ export function DashboardPage() {
           onClose={() => setShowCreateFolder(false)}
           onCreate={handleCreateFolder}
           initialParentId={currentFolderId}
-        />
-      )}
-      {showCreatePresentation && (
-        <CreatePresentationDialog
-          onClose={() => setShowCreatePresentation(false)}
-          onCreate={handleCreatePresentation}
         />
       )}
       {permissionItemId && (
