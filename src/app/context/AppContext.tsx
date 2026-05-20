@@ -100,10 +100,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async function load() {
       try {
         console.log('[Auth] Checking session...');
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('[Auth] Session:', session
-          ? `OK (expires ${new Date((session.expires_at ?? 0) * 1000).toISOString()})`
-          : 'null — no session');
+
+        // getSession() internally waits for an ongoing JWT refresh.
+        // If the Supabase auth endpoint is unresponsive, it hangs forever.
+        // 5-second limit: if it hangs, the refresh is stuck — clear local
+        // session and redirect to /login so the user gets a fresh token.
+        const sessionRace = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<null>(resolve => setTimeout(() => resolve(null), 5_000)),
+        ]);
+
+        if (!sessionRace) {
+          console.warn('[Auth] getSession() timed out — JWT refresh stuck, re-logging in');
+          await supabase.auth.signOut({ scope: 'local' });
+          window.location.replace('/login');
+          return;
+        }
+
+        const { data: { session }, error: sessionErr } = sessionRace;
+        if (sessionErr || !session) {
+          console.warn('[Auth] No valid session:', sessionErr?.message ?? 'null');
+          return;
+        }
+        console.log('[Auth] Session OK, expires', new Date((session.expires_at ?? 0) * 1000).toISOString());
 
         console.log('[Supabase] Starting data fetch...');
         const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
