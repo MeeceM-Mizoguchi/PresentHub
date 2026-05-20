@@ -9,9 +9,20 @@ export const isSupabaseConfigured =
   !!supabaseAnonKey &&
   supabaseAnonKey !== 'your-anon-key-here';
 
+// All Supabase network calls (including auth token refresh) get a hard 10-second
+// timeout. Without this, a slow auth endpoint causes getSession() to hang
+// forever, blocking every data query that internally calls getSession().
+const fetchWithTimeout: typeof fetch = (url, options) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+};
+
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
+  supabaseAnonKey || 'placeholder',
+  { global: { fetch: fetchWithTimeout } }
 );
 
 export interface DbFolder {

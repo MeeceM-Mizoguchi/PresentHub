@@ -87,44 +87,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     slowTimerRef.current = setTimeout(() => setIsSlowLoading(true), 8000);
 
+    // 35s hard timeout: covers auth token refresh retries (10s × up to 3 attempts)
+    // plus the actual data query. The fetchWithTimeout in supabase.ts ensures each
+    // individual request aborts in 10s, so this should naturally resolve before 35s.
     const hardTimeoutId = setTimeout(() => {
       if (cancelled) return;
       cancelled = true;
-      console.error('[Supabase] Hard timeout — giving up after 30s');
+      console.error('[Supabase] Hard timeout after 35s');
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
       setIsSlowLoading(false);
       setIsLoading(false);
       setLoadError(true);
-    }, 30_000);
+    }, 35_000);
 
     async function load() {
       try {
-        console.log('[Auth] Checking session...');
-
-        // getSession() internally waits for an ongoing JWT refresh.
-        // If the Supabase auth endpoint is unresponsive, it hangs forever.
-        // 5-second limit: if it hangs, the refresh is stuck — clear local
-        // session and redirect to /login so the user gets a fresh token.
-        const sessionRace = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<null>(resolve => setTimeout(() => resolve(null), 5_000)),
-        ]);
-
-        if (!sessionRace) {
-          console.warn('[Auth] getSession() timed out — JWT refresh stuck, re-logging in');
-          await supabase.auth.signOut({ scope: 'local' });
-          window.location.replace('/login');
-          return;
-        }
-
-        const { data: { session }, error: sessionErr } = sessionRace;
-        if (sessionErr || !session) {
-          console.warn('[Auth] No valid session:', sessionErr?.message ?? 'null');
-          return;
-        }
-        console.log('[Auth] Session OK, expires', new Date((session.expires_at ?? 0) * 1000).toISOString());
-
-        console.log('[Supabase] Starting data fetch...');
         const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
           supabase.from('folders').select('*').order('created_at'),
           supabase.from('presentation_meta').select('*'),
@@ -142,7 +119,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
         }
         setFiles(buildFileItems(metaMap, loadTitleOverrides()));
-        console.log('[Supabase] Fetch complete.');
       } catch (err) {
         if (cancelled) return;
         console.error('[Supabase] Error:', err);
