@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { Item, FolderItem, FileItem, SharedUser } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
@@ -37,6 +37,9 @@ interface AppContextType {
   sharedUsers: SharedUser[];
   currentFolderId: string | null;
   isLoading: boolean;
+  isSlowLoading: boolean;
+  loadError: boolean;
+  retryLoad: () => void;
   addFolder: (folder: FolderItem) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
   renameFolder: (id: string, name: string) => Promise<void>;
@@ -65,56 +68,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sharedUsers, setSharedUsers] = useState<SharedUser[]>(DEFAULT_SHARED_USERS);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSlowLoading, setIsSlowLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadTrigger, setLoadTrigger] = useState(0);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const retryLoad = useCallback(() => {
+    setLoadError(false);
+    setLoadTrigger(c => c + 1);
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) { setIsLoading(false); return; }
 
-    async function fetchFromSupabase(timeoutMs: number) {
-      const timer = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('load timeout')), timeoutMs)
-      );
-      return Promise.race([
-        Promise.all([
-          supabase.from('folders').select('*').order('created_at'),
-          supabase.from('presentation_meta').select('*'),
-        ]),
-        timer,
-      ]);
-    }
+    setIsLoading(true);
+    setLoadError(false);
+    slowTimerRef.current = setTimeout(() => setIsSlowLoading(true), 8000);
+
+    let cancelled = false;
 
     async function load() {
-      setIsLoading(true);
-      // 1回目: 10秒。失敗時はSupabaseのスリープ復帰を待って再試行
-      const attempts = [10000, 25000];
-      for (let i = 0; i < attempts.length; i++) {
-        try {
-          const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] =
-            await fetchFromSupabase(attempts[i]);
-          if (fErr) throw fErr;
-          if (mErr) throw mErr;
-          if (dbFolders) {
-            setFolders(dbFolders.map(f => ({
-              id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
-            })));
-          }
-          const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
-          if (dbMeta) {
-            for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
-          }
-          setFiles(buildFileItems(metaMap, loadTitleOverrides()));
-          break; // 成功したらループ終了
-        } catch (err) {
-          if (i < attempts.length - 1) {
-            console.warn(`Supabase load attempt ${i + 1} failed, retrying...`, err);
-          } else {
-            console.error('Supabase load error (all attempts failed):', err);
-          }
+      try {
+        await Promise.race([
+          (async () => {
+            const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
+              supabase.from('folders').select('*').order('created_at'),
+              supabase.from('presentation_meta').select('*'),
+            ]);
+            if (cancelled) return;
+            if (fErr) throw fErr;
+            if (mErr) throw mErr;
+            if (dbFolders) {
+              setFolders(dbFolders.map(f => ({
+                id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
+              })));
+            }
+            const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
+            if (dbMeta) {
+              for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
+            }
+            setFiles(buildFileItems(metaMap, loadTitleOverrides()));
+          })(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('load timeout')), 60_000)),
+        ]);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Supabase load error:', err);
+          setLoadError(true);
+        }
+      } finally {
+        if (!cancelled) {
+          if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+          setIsSlowLoading(false);
+          setIsLoading(false);
         }
       }
-      setIsLoading(false);
     }
     load();
-  }, []);
+
+    return () => {
+      cancelled = true;
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    };
+  }, [loadTrigger]);
 
   const items: Item[] = [...folders, ...files];
 
@@ -246,7 +262,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      items, sharedUsers, currentFolderId, isLoading,
+      items, sharedUsers, currentFolderId, isLoading, isSlowLoading, loadError, retryLoad,
       addFolder, deleteFolder, renameFolder, moveItemToFolder, moveToFolder, toggleStar,
       updateItem, deleteItem, setCurrentFolder,
       addSharedUser, updateSharedUser, deleteSharedUser,

@@ -15,6 +15,7 @@ import {
   FolderInput,
   Loader2,
   Pencil,
+  RefreshCw,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { FolderView } from './FolderView';
@@ -33,7 +34,7 @@ import { toast } from '../lib/toast';
 
 export function DashboardPage() {
   useDeployDetection();
-  const { items, currentFolderId, addFolder, addSharedUser, setCurrentFolder, isLoading, toggleStar, updateStaticTitle } = useApp();
+  const { items, currentFolderId, addFolder, addSharedUser, setCurrentFolder, isLoading, isSlowLoading, loadError, retryLoad, toggleStar, updateStaticTitle } = useApp();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<string>('dashboard');
@@ -367,10 +368,33 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Loading state */}
+      {/* Loading / error state */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+          {isSlowLoading && (
+            <div className="text-center">
+              <p className="text-sm text-gray-500">サーバーに接続しています...</p>
+              <p className="text-xs text-gray-400 mt-1">初回起動時は1分ほどかかる場合があります</p>
+            </div>
+          )}
+        </div>
+      ) : loadError ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
+            <RefreshCw className="w-8 h-8 text-red-400" />
+          </div>
+          <div className="text-center">
+            <p className="text-gray-700 font-medium">サーバーへの接続がタイムアウトしました</p>
+            <p className="text-sm text-gray-500 mt-1">ネットワーク接続を確認してから再試行してください</p>
+          </div>
+          <button
+            onClick={retryLoad}
+            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            再試行
+          </button>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
