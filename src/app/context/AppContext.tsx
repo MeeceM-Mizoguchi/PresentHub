@@ -72,6 +72,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState(false);
   const [loadTrigger, setLoadTrigger] = useState(0);
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const retryLoad = useCallback(() => {
     setLoadError(false);
@@ -81,16 +82,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured) { setIsLoading(false); return; }
 
+    // Cancel any previous hanging requests before starting fresh
+    abortControllerRef.current?.abort();
+
     setIsLoading(true);
     setLoadError(false);
+    let cancelled = false;
     slowTimerRef.current = setTimeout(() => setIsSlowLoading(true), 8000);
 
-    let cancelled = false;
-
-    async function fetchData() {
+    // Each attempt gets its own AbortController so we can cancel timed-out
+    // requests immediately, freeing browser TCP connections (limit: 6/host).
+    async function doFetch(signal: AbortSignal): Promise<void> {
+      console.log('[Supabase] Starting fetch attempt...');
       const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
-        supabase.from('folders').select('*').order('created_at'),
-        supabase.from('presentation_meta').select('*'),
+        supabase.from('folders').select('*').order('created_at').abortSignal(signal),
+        supabase.from('presentation_meta').select('*').abortSignal(signal),
       ]);
       if (cancelled) return;
       if (fErr) throw fErr;
@@ -105,33 +111,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
         for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
       }
       setFiles(buildFileItems(metaMap, loadTitleOverrides()));
+      console.log('[Supabase] Fetch complete.');
     }
 
-    // Supabase free tier sleeps after inactivity and can take 60-90s to wake.
-    // Retry once automatically before surfacing the error to the user.
     async function load() {
       for (let attempt = 0; attempt < 2; attempt++) {
+        if (cancelled) return;
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
         try {
           await Promise.race([
-            fetchData(),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('load timeout')), 90_000)),
+            doFetch(controller.signal),
+            new Promise<never>((_, reject) => {
+              timeoutId = setTimeout(() => {
+                controller.abort();
+                reject(new Error('load timeout'));
+              }, 60_000);
+            }),
           ]);
+          if (timeoutId) clearTimeout(timeoutId);
           return; // success
         } catch (err) {
+          if (timeoutId) clearTimeout(timeoutId);
           if (cancelled) return;
           if (attempt === 0) {
-            console.warn('Supabase load attempt 1 timed out, retrying...');
+            console.warn('[Supabase] Attempt 1 failed, retrying...', err);
             continue;
           }
-          console.error('Supabase load error:', err);
+          console.error('[Supabase] Load failed after 2 attempts:', err);
           setLoadError(true);
         }
       }
     }
-    load();
+
+    load().finally(() => {
+      if (!cancelled) {
+        if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+        setIsSlowLoading(false);
+        setIsLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;
+      abortControllerRef.current?.abort();
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     };
   }, [loadTrigger]);
