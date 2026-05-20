@@ -68,35 +68,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isSupabaseConfigured) { setIsLoading(false); return; }
+
+    async function fetchFromSupabase(timeoutMs: number) {
+      const timer = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('load timeout')), timeoutMs)
+      );
+      return Promise.race([
+        Promise.all([
+          supabase.from('folders').select('*').order('created_at'),
+          supabase.from('presentation_meta').select('*'),
+        ]),
+        timer,
+      ]);
+    }
+
     async function load() {
       setIsLoading(true);
-      const TIMEOUT_MS = 8000;
-      try {
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('load timeout')), TIMEOUT_MS)
-        );
-        const [{ data: dbFolders }, { data: dbMeta }] = await Promise.race([
-          Promise.all([
-            supabase.from('folders').select('*').order('created_at'),
-            supabase.from('presentation_meta').select('*'),
-          ]),
-          timeoutPromise,
-        ]);
-        if (dbFolders) {
-          setFolders(dbFolders.map(f => ({
-            id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
-          })));
+      // 1回目: 10秒。失敗時はSupabaseのスリープ復帰を待って再試行
+      const attempts = [10000, 25000];
+      for (let i = 0; i < attempts.length; i++) {
+        try {
+          const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] =
+            await fetchFromSupabase(attempts[i]);
+          if (fErr) throw fErr;
+          if (mErr) throw mErr;
+          if (dbFolders) {
+            setFolders(dbFolders.map(f => ({
+              id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
+            })));
+          }
+          const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
+          if (dbMeta) {
+            for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
+          }
+          setFiles(buildFileItems(metaMap, loadTitleOverrides()));
+          break; // 成功したらループ終了
+        } catch (err) {
+          if (i < attempts.length - 1) {
+            console.warn(`Supabase load attempt ${i + 1} failed, retrying...`, err);
+          } else {
+            console.error('Supabase load error (all attempts failed):', err);
+          }
         }
-        const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
-        if (dbMeta) {
-          for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
-        }
-        setFiles(buildFileItems(metaMap, loadTitleOverrides()));
-      } catch (err) {
-        console.error('Supabase load error:', err);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     }
     load();
   }, []);
@@ -120,7 +135,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addFolder = async (folder: FolderItem) => {
     setFolders(prev => [...prev, folder]);
     if (isSupabaseConfigured) {
-      await supabase.from('folders').insert({ id: folder.id, name: folder.name, parent_id: folder.parentId });
+      const { error } = await supabase.from('folders').insert({ id: folder.id, name: folder.name, parent_id: folder.parentId });
+      if (error) {
+        console.error('addFolder error:', error);
+        setFolders(prev => prev.filter(f => f.id !== folder.id)); // ロールバック
+        throw error;
+      }
     }
   };
 
@@ -152,14 +172,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const moveItemToFolder = async (itemId: string, itemType: 'file' | 'folder', newParentId: string | null) => {
     if (itemType === 'folder') {
+      const prev_parent = folders.find(f => f.id === itemId)?.parentId;
       setFolders(prev => prev.map(f => f.id === itemId ? { ...f, parentId: newParentId } : f));
       if (isSupabaseConfigured) {
-        await supabase.from('folders').update({ parent_id: newParentId }).eq('id', itemId);
+        const { error } = await supabase.from('folders').update({ parent_id: newParentId }).eq('id', itemId);
+        if (error) {
+          console.error('moveFolder error:', error);
+          setFolders(prev => prev.map(f => f.id === itemId ? { ...f, parentId: prev_parent ?? null } : f));
+        }
       }
     } else {
+      const prev_parent = files.find(f => f.id === itemId)?.parentId;
       setFiles(prev => prev.map(f => f.id === itemId ? { ...f, parentId: newParentId } : f));
       if (isSupabaseConfigured) {
-        await supabase.from('presentation_meta').upsert({ id: itemId, folder_id: newParentId });
+        const { error } = await supabase.from('presentation_meta').upsert({ id: itemId, folder_id: newParentId });
+        if (error) {
+          console.error('moveFile error:', error);
+          setFiles(prev => prev.map(f => f.id === itemId ? { ...f, parentId: prev_parent ?? null } : f));
+        }
       }
     }
   };

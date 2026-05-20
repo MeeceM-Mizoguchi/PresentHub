@@ -64,14 +64,18 @@ export function DashboardPage() {
     : null;
 
   const handleCreateFolder = async (name: string, sharedWith: string[], parentId: string | null) => {
-    await addFolder({
-      id: `folder-${Date.now()}`,
-      name,
-      type: 'folder',
-      parentId,
-      sharedWith,
-    });
-    toast.create('フォルダを作成しました');
+    try {
+      await addFolder({
+        id: `folder-${Date.now()}`,
+        name,
+        type: 'folder',
+        parentId,
+        sharedWith,
+      });
+      toast.create('フォルダを作成しました');
+    } catch {
+      toast.error('フォルダの保存に失敗しました。再度お試しください。');
+    }
   };
 
   const handleInviteUser = (name: string, email: string) => {
