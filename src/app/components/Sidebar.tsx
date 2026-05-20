@@ -16,6 +16,7 @@ interface SidebarProps {
   currentView: string;
   onViewChange: (view: string) => void;
   onAddFolder: (parentFolderId: string | null) => void;
+  onFileClick?: (fileId: string) => void;
 }
 
 interface SidebarFolderRowProps {
@@ -85,7 +86,7 @@ type ContextMenuState = {
   folderName: string;
 } | null;
 
-export function Sidebar({ currentView, onViewChange, onAddFolder }: SidebarProps) {
+export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }: SidebarProps) {
   const { items, setCurrentFolder, currentFolderId, deleteFolder, renameFolder } = useApp();
   const { profile, isAdmin, signOut } = useAuth();
   const { confirm } = useConfirm();
@@ -181,6 +182,7 @@ export function Sidebar({ currentView, onViewChange, onAddFolder }: SidebarProps
             onToggle={(e) => toggleFolder(e, item.id)}
             onClick={() => {
               if (item.type === 'folder') handleFolderClick(item.id);
+              else if (item.type === 'file') onFileClick?.(item.id);
             }}
             onContextMenu={(e) => handleContextMenu(e, item)}
           />

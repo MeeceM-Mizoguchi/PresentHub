@@ -29,9 +29,27 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
     .from('user_profiles')
     .select('*')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
     .then(({ data }) => data as UserProfile | null);
   return Promise.race([query, timeout]);
+}
+
+async function ensureProfile(user: import('@supabase/supabase-js').User): Promise<UserProfile | null> {
+  let profile = await fetchProfile(user.id);
+  if (!profile) {
+    await supabase.from('user_profiles').upsert({
+      id: user.id,
+      email: user.email ?? '',
+      name: (user.user_metadata?.name as string) ?? '',
+      role: 'user',
+    }, { onConflict: 'id' });
+    profile = await fetchProfile(user.id);
+  }
+  // email が空の場合は auth user の email で補完
+  if (profile && !profile.email && user.email) {
+    profile = { ...profile, email: user.email };
+  }
+  return profile;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -54,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         const seq = ++fetchSeq;
         try {
-          const p = await fetchProfile(session.user.id);
+          const p = await ensureProfile(session.user);
           if (seq === fetchSeq) setProfile(p);
         } catch {
           if (seq === fetchSeq) setProfile(null);
@@ -91,9 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (updates: Partial<Pick<UserProfile, 'name'>>) => {
     if (!user) return 'Not authenticated';
-    const { error } = await supabase.from('user_profiles').update(updates).eq('id', user.id);
+    const current = profile ?? { id: user.id, email: user.email ?? '', name: '', role: 'user' as const };
+    const { error } = await supabase.from('user_profiles').upsert(
+      { ...current, ...updates },
+      { onConflict: 'id' }
+    );
     if (error) return error.message;
-    setProfile(prev => prev ? { ...prev, ...updates } : null);
+    setProfile(prev => prev ? { ...prev, ...updates } : { ...current, ...updates });
     return null;
   };
 

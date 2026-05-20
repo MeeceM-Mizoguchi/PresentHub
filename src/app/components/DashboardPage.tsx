@@ -38,6 +38,7 @@ export function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<string>('dashboard');
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [createFolderParentId, setCreateFolderParentId] = useState<string | null>(null);
   const [permissionItemId, setPermissionItemId] = useState<string | null>(null);
   const [viewingFileId, setViewingFileId] = useState<string | null>(null);
   const [movingFile, setMovingFile] = useState<FileItem | null>(null);
@@ -389,7 +390,8 @@ export function DashboardPage() {
       <Sidebar
         currentView={currentView}
         onViewChange={handleViewChange}
-        onAddFolder={(parentId) => setShowCreateFolder(true)}
+        onAddFolder={(parentId) => { setCreateFolderParentId(parentId); setShowCreateFolder(true); }}
+        onFileClick={(fileId) => { setViewingFileId(fileId); }}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -431,9 +433,9 @@ export function DashboardPage() {
 
       {showCreateFolder && (
         <CreateFolderDialog
-          onClose={() => setShowCreateFolder(false)}
+          onClose={() => { setShowCreateFolder(false); setCreateFolderParentId(null); }}
           onCreate={handleCreateFolder}
-          initialParentId={currentFolderId}
+          initialParentId={createFolderParentId ?? currentFolderId}
         />
       )}
       {permissionItemId && (

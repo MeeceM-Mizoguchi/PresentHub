@@ -3,13 +3,6 @@ import { Item, FolderItem, FileItem, SharedUser } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
-const DEFAULT_FOLDERS: FolderItem[] = [
-  { id: 'folder-1', name: 'プロジェクト', type: 'folder', parentId: null, sharedWith: [] },
-  { id: 'folder-2', name: 'Q1 2024', type: 'folder', parentId: 'folder-1', sharedWith: [] },
-  { id: 'folder-3', name: 'マーケティング', type: 'folder', parentId: 'folder-1', sharedWith: [] },
-  { id: 'folder-4', name: 'アーカイブ', type: 'folder', parentId: null, sharedWith: [] },
-];
-
 const DEFAULT_SHARED_USERS: SharedUser[] = [];
 
 const LS_TITLE_OVERRIDES_KEY = 'presenthub_title_overrides';
@@ -65,22 +58,29 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [folders, setFolders] = useState<FolderItem[]>(DEFAULT_FOLDERS);
+  const [folders, setFolders] = useState<FolderItem[]>([]);
   const [files, setFiles] = useState<FileItem[]>(() =>
     buildFileItems({}, loadTitleOverrides())
   );
   const [sharedUsers, setSharedUsers] = useState<SharedUser[]>(DEFAULT_SHARED_USERS);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) { setIsLoading(false); return; }
     async function load() {
       setIsLoading(true);
+      const TIMEOUT_MS = 8000;
       try {
-        const [{ data: dbFolders }, { data: dbMeta }] = await Promise.all([
-          supabase.from('folders').select('*').order('created_at'),
-          supabase.from('presentation_meta').select('*'),
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('load timeout')), TIMEOUT_MS)
+        );
+        const [{ data: dbFolders }, { data: dbMeta }] = await Promise.race([
+          Promise.all([
+            supabase.from('folders').select('*').order('created_at'),
+            supabase.from('presentation_meta').select('*'),
+          ]),
+          timeoutPromise,
         ]);
         if (dbFolders) {
           setFolders(dbFolders.map(f => ({

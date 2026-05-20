@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from '../lib/toast';
 
 export function AccountPage() {
-  const { profile, updateProfile } = useAuth();
+  const { profile, user, updateProfile } = useAuth();
+  const displayEmail = profile?.email || user?.email || '—';
   const [isEditing, setIsEditing] = useState(false);
   const [nameVal, setNameVal] = useState(profile?.name ?? '');
   const [isSaving, setIsSaving] = useState(false);
@@ -37,7 +38,7 @@ export function AccountPage() {
             {profile?.name ? profile.name[0].toUpperCase() : <User className="w-10 h-10" />}
           </div>
           <div className="text-white font-semibold text-lg">{profile?.name || '—'}</div>
-          <div className="text-white/70 text-sm">{profile?.email || ''}</div>
+          <div className="text-white/70 text-sm">{displayEmail}</div>
         </div>
 
         {/* Fields */}
@@ -96,7 +97,7 @@ export function AccountPage() {
             </label>
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <Mail className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-800">{profile?.email || '—'}</span>
+              <span className="text-gray-800">{displayEmail}</span>
             </div>
           </div>
 

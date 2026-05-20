@@ -34,14 +34,18 @@ CREATE TABLE IF NOT EXISTS public.account_requests (
 );
 
 CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.user_profiles WHERE id = auth.uid() AND role = 'admin'
   );
 $$;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO public.user_profiles (id, email, name, role)
   VALUES (
@@ -54,6 +58,10 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -68,25 +76,33 @@ ALTER TABLE public.account_requests  ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "folders_all"       ON public.folders;
 DROP POLICY IF EXISTS "meta_all"          ON public.presentation_meta;
 DROP POLICY IF EXISTS "profiles_select"   ON public.user_profiles;
+DROP POLICY IF EXISTS "profiles_insert"   ON public.user_profiles;
 DROP POLICY IF EXISTS "profiles_update"   ON public.user_profiles;
 DROP POLICY IF EXISTS "requests_insert"   ON public.account_requests;
 DROP POLICY IF EXISTS "requests_select"   ON public.account_requests;
 DROP POLICY IF EXISTS "requests_update"   ON public.account_requests;
 
-CREATE POLICY "folders_all" ON public.folders
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "folders_select" ON public.folders FOR SELECT TO authenticated USING (true);
+CREATE POLICY "folders_insert" ON public.folders FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "folders_update" ON public.folders FOR UPDATE TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "folders_delete" ON public.folders FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);
 
-CREATE POLICY "meta_all" ON public.presentation_meta
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "meta_select" ON public.presentation_meta FOR SELECT TO authenticated USING (true);
+CREATE POLICY "meta_insert" ON public.presentation_meta FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "meta_update" ON public.presentation_meta FOR UPDATE TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "meta_delete" ON public.presentation_meta FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "profiles_select" ON public.user_profiles
   FOR SELECT TO authenticated USING (id = auth.uid() OR public.is_admin());
 
+CREATE POLICY "profiles_insert" ON public.user_profiles
+  FOR INSERT TO authenticated WITH CHECK (id = auth.uid() OR public.is_admin());
+
 CREATE POLICY "profiles_update" ON public.user_profiles
-  FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+  FOR UPDATE TO authenticated USING (id = auth.uid() OR public.is_admin()) WITH CHECK (id = auth.uid() OR public.is_admin());
 
 CREATE POLICY "requests_insert" ON public.account_requests
-  FOR INSERT WITH CHECK (true);
+  FOR INSERT WITH CHECK (email IS NOT NULL AND name IS NOT NULL);
 
 CREATE POLICY "requests_select" ON public.account_requests
   FOR SELECT TO authenticated USING (public.is_admin());
@@ -117,9 +133,9 @@ DROP POLICY IF EXISTS "comments_update" ON public.slide_comments;
 DROP POLICY IF EXISTS "comments_delete" ON public.slide_comments;
 
 CREATE POLICY "comments_select" ON public.slide_comments FOR SELECT TO authenticated USING (true);
-CREATE POLICY "comments_insert" ON public.slide_comments FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "comments_update" ON public.slide_comments FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "comments_delete" ON public.slide_comments FOR DELETE TO authenticated USING (true);
+CREATE POLICY "comments_insert" ON public.slide_comments FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "comments_update" ON public.slide_comments FOR UPDATE TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "comments_delete" ON public.slide_comments FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);
 
 -- author カラム追加（既存テーブルへの追記）
 ALTER TABLE public.slide_comments
@@ -144,5 +160,5 @@ DROP POLICY IF EXISTS "replies_insert" ON public.slide_comment_replies;
 DROP POLICY IF EXISTS "replies_delete" ON public.slide_comment_replies;
 
 CREATE POLICY "replies_select" ON public.slide_comment_replies FOR SELECT TO authenticated USING (true);
-CREATE POLICY "replies_insert" ON public.slide_comment_replies FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "replies_delete" ON public.slide_comment_replies FOR DELETE TO authenticated USING (true);
+CREATE POLICY "replies_insert" ON public.slide_comment_replies FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "replies_delete" ON public.slide_comment_replies FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);
