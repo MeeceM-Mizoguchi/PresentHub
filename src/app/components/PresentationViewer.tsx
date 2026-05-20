@@ -1,16 +1,44 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight } from 'lucide-react';
 import type { PresentationEntry } from '../../presentations/registry';
-import {
-  isSupabaseConfigured,
-  fetchSlideCommentsWithReplies,
-  insertSlideComment,
-  updateSlideComment,
-  deleteSlideComment,
-  insertCommentReply,
-  deleteCommentReply,
-  getCurrentUserName,
-} from '../../lib/supabase';
+import { isSupabaseConfigured } from '../../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+
+const REST_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const REST_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+async function commentRest<T = undefined>(
+  path: string,
+  token: string,
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  body?: object
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      'apikey': REST_KEY,
+      'Accept': 'application/json',
+    };
+    if (body) headers['Content-Type'] = 'application/json';
+    if (method === 'POST' || method === 'PATCH') headers['Prefer'] = 'return=minimal';
+    const res = await fetch(`${REST_URL}/rest/v1/${path}`, {
+      method, headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => String(res.status));
+      console.error(`[comment REST] ${method} ${path} → ${res.status}:`, msg);
+      throw new Error(`REST ${res.status}`);
+    }
+    if (method === 'GET') return res.json() as Promise<T>;
+    return undefined as T;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 interface CommentReply {
   id: string;
@@ -53,6 +81,9 @@ interface PresentationViewerProps {
 }
 
 export function PresentationViewer({ presentation, onClose, titleOverride }: PresentationViewerProps) {
+  const { session, profile } = useAuth();
+  const accessToken = session?.access_token ?? '';
+
   const viewerRef = useRef<HTMLDivElement>(null);
   const slideAreaRef = useRef<HTMLDivElement>(null);
 
@@ -66,8 +97,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const [isOverSlide, setIsOverSlide] = useState(false);
   const [slideScale, setSlideScale] = useState<number | null>(null);
 
-  // Current user
-  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
+  // Current user derived from AuthContext (no getSession() call)
+  const currentUser = profile ? { id: profile.id, name: profile.name || '外部ユーザー' } : null;
 
   // Comment state
   const [isCommentMode, setIsCommentMode] = useState(false);
@@ -86,35 +117,58 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const next = useCallback(() => setCurrent(s => Math.min(total - 1, s + 1)), [total]);
 
   useEffect(() => {
-    getCurrentUserName().then(u => setCurrentUser(u));
-  }, []);
-
-  useEffect(() => {
     setPendingPos(null);
     setActiveCommentId(null);
     setNewCommentText('');
     setEditingId(null);
     setReplyingToId(null);
+    // Clear immediately to prevent previous slide's comments from showing during load
+    setComments([]);
 
-    if (isSupabaseConfigured) {
-      fetchSlideCommentsWithReplies(presId, current).then(rows => {
-        if (rows.length > 0) {
-          const mapped: SlideComment[] = rows.map(r => ({
-            id: r.id, text: r.text, timestamp: r.timestamp,
-            x: r.x, y: r.y, resolved: r.resolved,
-            authorName: r.author_name,
-            replies: r.replies.map(rp => ({ id: rp.id, text: rp.text, timestamp: rp.timestamp, authorName: rp.author_name })),
-          }));
-          setComments(mapped);
-          saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: mapped });
-        } else {
-          setComments(loadAllComments()[`${presId}_${current}`] ?? []);
-        }
-      });
-    } else {
+    if (!isSupabaseConfigured || !accessToken) {
       setComments(loadAllComments()[`${presId}_${current}`] ?? []);
+      return;
     }
-  }, [presId, current]);
+
+    let cancelled = false;
+    (async () => {
+      try {
+        type CommentRow = { id: string; text: string; timestamp: string; x: number; y: number; resolved: boolean; author_name: string };
+        type ReplyRow = { id: string; comment_id: string; text: string; timestamp: string; author_name: string };
+
+        const rows = await commentRest<CommentRow[]>(
+          `slide_comments?presentation_id=eq.${presId}&slide_index=eq.${current}&order=created_at.asc`,
+          accessToken, 'GET'
+        );
+        if (cancelled) return;
+
+        let replyRows: ReplyRow[] = [];
+        if (rows.length > 0) {
+          const ids = rows.map(r => r.id).join(',');
+          replyRows = await commentRest<ReplyRow[]>(
+            `slide_comment_replies?comment_id=in.(${ids})&order=created_at.asc`,
+            accessToken, 'GET'
+          );
+          if (cancelled) return;
+        }
+
+        const mapped: SlideComment[] = rows.map(r => ({
+          id: r.id, text: r.text, timestamp: r.timestamp,
+          x: r.x, y: r.y, resolved: r.resolved,
+          authorName: r.author_name,
+          replies: replyRows
+            .filter(rp => rp.comment_id === r.id)
+            .map(rp => ({ id: rp.id, text: rp.text, timestamp: rp.timestamp, authorName: rp.author_name })),
+        }));
+        setComments(mapped);
+        saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: mapped });
+      } catch {
+        if (!cancelled) setComments(loadAllComments()[`${presId}_${current}`] ?? []);
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presId, current, accessToken]);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
@@ -203,38 +257,55 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     const newList = [...comments, comment];
     setComments(newList);
     saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
-    insertSlideComment({ ...comment, presentation_id: presId, slide_index: current, author_id: authorId, author_name: authorName });
+    if (isSupabaseConfigured && accessToken) {
+      commentRest(`slide_comments`, accessToken, 'POST', {
+        id: comment.id, presentation_id: presId, slide_index: current,
+        text: comment.text, x: comment.x, y: comment.y,
+        resolved: false, timestamp: comment.timestamp,
+        author_id: authorId, author_name: authorName,
+      }).catch(e => console.error('[comment] insert failed:', e));
+    }
     setPendingPos(null);
     setNewCommentText('');
     setActiveCommentId(comment.id);
     setShowPanel(true);
-  }, [newCommentText, pendingPos, presId, current, comments, authorName, authorId]);
+  }, [newCommentText, pendingPos, presId, current, comments, authorName, authorId, accessToken]);
 
   const deleteComment = useCallback((commentId: string) => {
     const newList = comments.filter(c => c.id !== commentId);
     setComments(newList);
     saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
-    deleteSlideComment(commentId);
+    if (isSupabaseConfigured && accessToken) {
+      commentRest(`slide_comments?id=eq.${commentId}`, accessToken, 'DELETE')
+        .catch(e => console.error('[comment] delete failed:', e));
+    }
     setActiveCommentId(null);
     if (editingId === commentId) setEditingId(null);
-  }, [presId, current, comments, editingId]);
+  }, [presId, current, comments, editingId, accessToken]);
 
   const resolveComment = useCallback((commentId: string) => {
     const newList = comments.map(c => c.id === commentId ? { ...c, resolved: !c.resolved } : c);
     setComments(newList);
     saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
-    updateSlideComment(commentId, { resolved: newList.find(c => c.id === commentId)?.resolved ?? false });
-  }, [presId, current, comments]);
+    const resolved = newList.find(c => c.id === commentId)?.resolved ?? false;
+    if (isSupabaseConfigured && accessToken) {
+      commentRest(`slide_comments?id=eq.${commentId}`, accessToken, 'PATCH', { resolved })
+        .catch(e => console.error('[comment] resolve failed:', e));
+    }
+  }, [presId, current, comments, accessToken]);
 
   const saveEdit = useCallback(() => {
     if (!editingId || !editText.trim()) return;
     const newList = comments.map(c => c.id === editingId ? { ...c, text: editText.trim() } : c);
     setComments(newList);
     saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
-    updateSlideComment(editingId, { text: editText.trim() });
+    if (isSupabaseConfigured && accessToken) {
+      commentRest(`slide_comments?id=eq.${editingId}`, accessToken, 'PATCH', { text: editText.trim() })
+        .catch(e => console.error('[comment] edit failed:', e));
+    }
     setEditingId(null);
     setEditText('');
-  }, [editingId, editText, presId, current, comments]);
+  }, [editingId, editText, presId, current, comments, accessToken]);
 
   const addReply = useCallback(() => {
     if (!replyingToId || !replyText.trim()) return;
@@ -247,17 +318,26 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     const newList = comments.map(c => c.id === replyingToId ? { ...c, replies: [...c.replies, reply] } : c);
     setComments(newList);
     saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
-    insertCommentReply({ ...reply, comment_id: replyingToId, author_id: authorId, author_name: authorName });
+    if (isSupabaseConfigured && accessToken) {
+      commentRest(`slide_comment_replies`, accessToken, 'POST', {
+        id: reply.id, comment_id: replyingToId,
+        text: reply.text, timestamp: reply.timestamp,
+        author_id: authorId, author_name: authorName,
+      }).catch(e => console.error('[comment] reply insert failed:', e));
+    }
     setReplyingToId(null);
     setReplyText('');
-  }, [replyingToId, replyText, presId, current, comments, authorName, authorId]);
+  }, [replyingToId, replyText, presId, current, comments, authorName, authorId, accessToken]);
 
   const deleteReply = useCallback((commentId: string, replyId: string) => {
     const newList = comments.map(c => c.id === commentId ? { ...c, replies: c.replies.filter(r => r.id !== replyId) } : c);
     setComments(newList);
     saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
-    deleteCommentReply(replyId);
-  }, [presId, current, comments]);
+    if (isSupabaseConfigured && accessToken) {
+      commentRest(`slide_comment_replies?id=eq.${replyId}`, accessToken, 'DELETE')
+        .catch(e => console.error('[comment] reply delete failed:', e));
+    }
+  }, [presId, current, comments, accessToken]);
 
   const showLaser = isLaser && isOverSlide;
   const S = slideScale ?? 0;

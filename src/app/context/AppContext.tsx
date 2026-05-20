@@ -41,17 +41,20 @@ async function restMutate(
   token: string,
   method: 'POST' | 'PATCH' | 'DELETE',
   body?: Record<string, unknown>,
-  prefer = 'return=minimal'
+  prefer?: string
 ): Promise<void> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10_000);
   try {
+    const extra: Record<string, string> = {};
+    if (body !== undefined) extra['Content-Type'] = 'application/json';
+    // DELETE needs no Prefer header; POST/PATCH default to return=minimal
+    const resolvedPrefer = prefer ?? (method !== 'DELETE' ? 'return=minimal' : undefined);
+    if (resolvedPrefer) extra['Prefer'] = resolvedPrefer;
+
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
       method,
-      headers: makeRestHeaders(token, {
-        'Content-Type': 'application/json',
-        'Prefer': prefer,
-      }),
+      headers: makeRestHeaders(token, extra),
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
