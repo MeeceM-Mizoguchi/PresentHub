@@ -2,6 +2,9 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -23,34 +26,91 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchProfile(userId: string): Promise<UserProfile | null> {
-  const timeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 5000));
-  const query = supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle()
-    .then(({ data }) => data as UserProfile | null);
-  return Promise.race([query, timeout]);
+// ── Direct REST helpers (bypass supabase.from() → getSession() → JS lock) ──
+
+function isJwtExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // 30s buffer to avoid edge-case expiry during in-flight requests
+    return payload.exp * 1000 < Date.now() + 30_000;
+  } catch { return true; }
 }
 
-async function ensureProfile(user: import('@supabase/supabase-js').User): Promise<UserProfile | null> {
-  let profile = await fetchProfile(user.id);
+async function refreshTokenDirect(refreshToken: string): Promise<{ access_token: string; refresh_token: string } | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.access_token
+      ? { access_token: data.access_token, refresh_token: data.refresh_token ?? refreshToken }
+      : null;
+  } catch { return null; } finally { clearTimeout(timer); }
+}
+
+async function fetchProfileDirect(userId: string, accessToken: string): Promise<UserProfile | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${userId}&select=*`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'Accept': 'application/json',
+        },
+        signal: controller.signal,
+      }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json() as UserProfile[];
+    return rows[0] ?? null;
+  } catch { return null; } finally { clearTimeout(timer); }
+}
+
+async function upsertProfileDirect(profile: Omit<UserProfile, 'role'> & { role: string }, accessToken: string): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/user_profiles`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal',
+      },
+      body: JSON.stringify(profile),
+      signal: controller.signal,
+    });
+  } catch { /* ignore */ } finally { clearTimeout(timer); }
+}
+
+async function ensureProfileDirect(user: User, accessToken: string): Promise<UserProfile | null> {
+  let profile = await fetchProfileDirect(user.id, accessToken);
   if (!profile) {
-    await supabase.from('user_profiles').upsert({
+    await upsertProfileDirect({
       id: user.id,
       email: user.email ?? '',
       name: (user.user_metadata?.name as string) ?? '',
       role: 'user',
-    }, { onConflict: 'id' });
-    profile = await fetchProfile(user.id);
+    }, accessToken);
+    profile = await fetchProfileDirect(user.id, accessToken);
   }
-  // email が空の場合は auth user の email で補完
   if (profile && !profile.email && user.email) {
     profile = { ...profile, email: user.email };
   }
   return profile;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -59,20 +119,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // fetchSeq ensures that only the result of the latest profile fetch is applied.
-    // Without this, a slow/failed re-fetch (e.g. on TOKEN_REFRESHED) would overwrite
-    // a correctly-loaded profile with null.
     let fetchSeq = 0;
+    let manualRefreshInProgress = false;
 
-    // onAuthStateChange fires immediately with INITIAL_SESSION, so getSession() is not needed.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // INITIAL_SESSION with an expired token: bypass the JS lock by refreshing directly.
+      // Without this, supabase-js retries token refresh through a cross-tab lock that can
+      // hang for 30s+, ultimately firing SIGNED_OUT and redirecting to the login page.
+      if (event === 'INITIAL_SESSION' && session && isJwtExpired(session.access_token) && !manualRefreshInProgress) {
+        manualRefreshInProgress = true;
+        const tokens = await refreshTokenDirect(session.refresh_token);
+        manualRefreshInProgress = false;
+        if (tokens) {
+          // setSession fires TOKEN_REFRESHED, re-entering this handler with a valid session.
+          await supabase.auth.setSession(tokens);
+          return;
+        }
+        // Manual refresh failed; fall through and let Supabase handle the error path.
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         const seq = ++fetchSeq;
         try {
-          const p = await ensureProfile(session.user);
+          // Use direct REST fetch to avoid supabase.from() → getSession() → lock chain.
+          const p = await ensureProfileDirect(session.user, session.access_token);
           if (seq === fetchSeq) setProfile(p);
         } catch {
           if (seq === fetchSeq) setProfile(null);
@@ -108,14 +181,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = async (updates: Partial<Pick<UserProfile, 'name'>>) => {
-    if (!user) return 'Not authenticated';
+    if (!user || !session) return 'Not authenticated';
     const current = profile ?? { id: user.id, email: user.email ?? '', name: '', role: 'user' as const };
-    const { error } = await supabase.from('user_profiles').upsert(
-      { ...current, ...updates },
-      { onConflict: 'id' }
-    );
-    if (error) return error.message;
-    setProfile(prev => prev ? { ...prev, ...updates } : { ...current, ...updates });
+    const merged = { ...current, ...updates };
+    await upsertProfileDirect(merged, session.access_token);
+    setProfile(prev => prev ? { ...prev, ...updates } : merged);
     return null;
   };
 
