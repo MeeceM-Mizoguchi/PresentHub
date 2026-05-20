@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 declare const __BUILD_TIME__: string;
@@ -18,6 +19,7 @@ async function fetchDeployedBuildTime(): Promise<string | null> {
 
 export function useDeployDetection() {
   const { signOut } = useAuth();
+  const location = useLocation();
   const detectedRef = useRef(false);
 
   const checkAndLogout = async () => {
@@ -32,7 +34,6 @@ export function useDeployDetection() {
   };
 
   useEffect(() => {
-    // Check on mount and on focus
     checkAndLogout();
     window.addEventListener('focus', checkAndLogout);
     const timer = setInterval(checkAndLogout, CHECK_INTERVAL_MS);
@@ -41,4 +42,10 @@ export function useDeployDetection() {
       clearInterval(timer);
     };
   }, []);
+
+  // 画面遷移時にもチェック
+  useEffect(() => {
+    checkAndLogout();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 }

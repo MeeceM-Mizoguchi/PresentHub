@@ -11,6 +11,7 @@ import { LoginPage } from './components/LoginPage';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { RequestAccessPage } from './components/RequestAccessPage';
 import { DashboardPage } from './components/DashboardPage';
+import { useDeployDetection } from './hooks/useDeployDetection';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -29,6 +30,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
 function AppRoutes() {
   const { user } = useAuth();
+  useDeployDetection();
 
   return (
     <Routes>

@@ -409,7 +409,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   // ── Comment overlay ───────────────────────────────────────────────────
   const commentOverlay = (
     <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible', zIndex: 2 }}>
-      {comments.map((c, idx) => (
+      {comments.filter(c => !c.resolved).map((c, idx) => (
         <div key={c.id} style={{ position: 'absolute', left: `${c.x}%`, top: `${c.y}%`, transform: `translate(-50%, -50%) scale(${counterScale})`, transformOrigin: 'center center', pointerEvents: 'auto', zIndex: 3 }}>
           <button
             onClick={(e) => { e.stopPropagation(); setActiveCommentId(c.id === activeCommentId ? null : c.id); setPendingPos(null); setShowPanel(true); }}
