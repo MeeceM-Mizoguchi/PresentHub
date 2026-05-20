@@ -14,14 +14,8 @@ export interface PresentationEntry {
   slides: ReactElement[];
 }
 
-import { demoPresentation } from './demo';
 import { meeceIntroPresentation } from './meece-intro';
 
-/**
- * Registry of all presentations.
- * When Claude creates a new presentation, import it here and add to this array.
- */
 export const presentationRegistry: PresentationEntry[] = [
-  demoPresentation,
   meeceIntroPresentation,
 ];

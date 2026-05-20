@@ -12,10 +12,23 @@ const DEFAULT_FOLDERS: FolderItem[] = [
 
 const DEFAULT_SHARED_USERS: SharedUser[] = [];
 
-function buildFileItems(metaMap: Record<string, { folderId: string | null; starred: boolean }>): FileItem[] {
+const LS_TITLE_OVERRIDES_KEY = 'presenthub_title_overrides';
+
+function loadTitleOverrides(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(LS_TITLE_OVERRIDES_KEY) ?? '{}'); } catch { return {}; }
+}
+
+function saveTitleOverrides(data: Record<string, string>) {
+  localStorage.setItem(LS_TITLE_OVERRIDES_KEY, JSON.stringify(data));
+}
+
+function buildFileItems(
+  metaMap: Record<string, { folderId: string | null; starred: boolean }>,
+  titleOverrides: Record<string, string> = {}
+): FileItem[] {
   return presentationRegistry.map(entry => ({
     id: entry.meta.id,
-    name: entry.meta.title,
+    name: titleOverrides[entry.meta.id] ?? entry.meta.title,
     type: 'file' as const,
     parentId: metaMap[entry.meta.id]?.folderId ?? null,
     thumbnail: entry.meta.thumbnail,
@@ -31,7 +44,6 @@ interface AppContextType {
   sharedUsers: SharedUser[];
   currentFolderId: string | null;
   isLoading: boolean;
-  dynamicCodeMap: Record<string, string>;
   addFolder: (folder: FolderItem) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
   renameFolder: (id: string, name: string) => Promise<void>;
@@ -47,58 +59,19 @@ interface AppContextType {
   getItemsByParent: (parentId: string | null) => Item[];
   getCurrentFolderPath: () => FolderItem[];
   isDescendantOf: (ancestorId: string, candidateId: string) => boolean;
-  addDynamicPresentation: (entry: { title: string; thumbnail: string; author: string; code: string; parentId?: string | null }) => void;
-  updateDynamicCode: (id: string, code: string) => void;
-  updateDynamicMeta: (id: string, updates: { title?: string; thumbnail?: string }) => void;
+  updateStaticTitle: (id: string, title: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const LS_KEY = 'presenthub_dynamic_slides';
-
-interface DynamicEntry {
-  id: string;
-  title: string;
-  thumbnail: string;
-  author: string;
-  code: string;
-  createdAt: string;
-  parentId: string | null;
-  starred: boolean;
-}
-
-function loadDynamicEntries(): DynamicEntry[] {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-}
-
-function saveDynamicEntries(entries: DynamicEntry[]) {
-  localStorage.setItem(LS_KEY, JSON.stringify(entries));
-}
-
-function dynamicEntryToFileItem(e: DynamicEntry): FileItem {
-  return {
-    id: e.id, name: e.title, type: 'file', parentId: e.parentId,
-    thumbnail: e.thumbnail, lastModified: e.createdAt, author: e.author,
-    starred: e.starred, sharedWith: [], isDynamic: true,
-  };
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<FolderItem[]>(DEFAULT_FOLDERS);
-  const [files, setFiles] = useState<FileItem[]>(() => {
-    const dynamic = loadDynamicEntries().map(dynamicEntryToFileItem);
-    return [...buildFileItems({}), ...dynamic];
-  });
+  const [files, setFiles] = useState<FileItem[]>(() =>
+    buildFileItems({}, loadTitleOverrides())
+  );
   const [sharedUsers, setSharedUsers] = useState<SharedUser[]>(DEFAULT_SHARED_USERS);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
-  const [dynamicCodeMap, setDynamicCodeMap] = useState<Record<string, string>>(() =>
-    Object.fromEntries(loadDynamicEntries().map(e => [e.id, e.code]))
-  );
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -118,7 +91,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (dbMeta) {
           for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
         }
-        setFiles([...buildFileItems(metaMap), ...loadDynamicEntries().map(dynamicEntryToFileItem)]);
+        setFiles(buildFileItems(metaMap, loadTitleOverrides()));
       } catch (err) {
         console.error('Supabase load error:', err);
       } finally {
@@ -130,7 +103,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const items: Item[] = [...folders, ...files];
 
-  // Returns true if candidateId is inside ancestorId (at any depth)
   const isDescendantOf = useCallback((ancestorId: string, candidateId: string): boolean => {
     const visited = new Set<string>();
     let currentId: string | null = candidateId;
@@ -162,20 +134,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     const folderIdsToDelete = collectDescendants(id);
-
-    // Clean up dynamic presentations in those folders
-    const dynamicToDelete = files
-      .filter(f => f.isDynamic && f.parentId !== null && folderIdsToDelete.includes(f.parentId))
-      .map(f => f.id);
-    if (dynamicToDelete.length > 0) {
-      saveDynamicEntries(loadDynamicEntries().filter(e => !dynamicToDelete.includes(e.id)));
-      setDynamicCodeMap(prev => {
-        const next = { ...prev };
-        for (const did of dynamicToDelete) delete next[did];
-        return next;
-      });
-    }
-
     setFolders(prev => prev.filter(f => !folderIdsToDelete.includes(f.id)));
     setFiles(prev => prev.filter(f => f.parentId === null || !folderIdsToDelete.includes(f.parentId)));
 
@@ -206,7 +164,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Alias kept for backward compatibility
   const moveToFolder = async (fileId: string, folderId: string | null) => {
     await moveItemToFolder(fileId, 'file', folderId);
   };
@@ -228,48 +185,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteItem = (id: string) => {
-    // Clean up localStorage if this is a dynamic presentation
-    const target = files.find(f => f.id === id);
-    if (target?.isDynamic) {
-      saveDynamicEntries(loadDynamicEntries().filter(e => e.id !== id));
-      setDynamicCodeMap(prev => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-    }
     setFolders(prev => prev.filter(f => f.id !== id));
     setFiles(prev => prev.filter(f => f.id !== id));
   };
 
-  const addDynamicPresentation = ({ title, thumbnail, author, code, parentId = null }: { title: string; thumbnail: string; author: string; code: string; parentId?: string | null }) => {
-    const entry: DynamicEntry = {
-      id: `dynamic-${Date.now()}`,
-      title, thumbnail, author, code,
-      createdAt: new Date().toISOString().split('T')[0],
-      parentId,
-      starred: false,
-    };
-    const existing = loadDynamicEntries();
-    saveDynamicEntries([...existing, entry]);
-    setFiles(prev => [...prev, dynamicEntryToFileItem(entry)]);
-    setDynamicCodeMap(prev => ({ ...prev, [entry.id]: code }));
-  };
-
-  const updateDynamicCode = (id: string, code: string) => {
-    const updated = loadDynamicEntries().map(e => e.id === id ? { ...e, code } : e);
-    saveDynamicEntries(updated);
-    setDynamicCodeMap(prev => ({ ...prev, [id]: code }));
-  };
-
-  const updateDynamicMeta = (id: string, updates: { title?: string; thumbnail?: string }) => {
-    const updated = loadDynamicEntries().map(e => e.id === id ? { ...e, ...updates } : e);
-    saveDynamicEntries(updated);
-    setFiles(prev => prev.map(f => f.id === id ? {
-      ...f,
-      ...(updates.title ? { name: updates.title } : {}),
-      ...(updates.thumbnail ? { thumbnail: updates.thumbnail } : {}),
-    } : f));
+  const updateStaticTitle = (id: string, title: string) => {
+    const overrides = loadTitleOverrides();
+    saveTitleOverrides({ ...overrides, [id]: title });
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, name: title } : f));
   };
 
   const setCurrentFolder = (folderId: string | null) => setCurrentFolderId(folderId);
@@ -293,12 +216,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      items, sharedUsers, currentFolderId, isLoading, dynamicCodeMap,
+      items, sharedUsers, currentFolderId, isLoading,
       addFolder, deleteFolder, renameFolder, moveItemToFolder, moveToFolder, toggleStar,
       updateItem, deleteItem, setCurrentFolder,
       addSharedUser, updateSharedUser, deleteSharedUser,
       getItemsByParent, getCurrentFolderPath, isDescendantOf,
-      addDynamicPresentation, updateDynamicCode, updateDynamicMeta,
+      updateStaticTitle,
     }}>
       {children}
     </AppContext.Provider>

@@ -15,41 +15,37 @@ import {
   FolderInput,
   Loader2,
   FolderPlus,
-  Code2,
-  Trash2,
+  Pencil,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { FolderView } from './FolderView';
 import { SharedManagementPage } from './SharedManagementPage';
 import { CreateFolderDialog } from './CreateFolderDialog';
+import { CreatePresentationDialog, type PresentationCreationData } from './CreatePresentationDialog';
 import { PermissionDialog } from './PermissionDialog';
 import { PresentationViewer } from './PresentationViewer';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
-import { AddSlideDialog } from './AddSlideDialog';
-import { EditTsxDialog } from './EditTsxDialog';
-import { DynamicPresentationViewer } from './DynamicPresentationViewer';
 import { AdminRequestsPage } from './AdminRequestsPage';
 import { useApp } from '../context/AppContext';
-import { useConfirm } from './ConfirmDialog';
-import { toast } from '../lib/toast';
 import { FileItem } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
+import { toast } from '../lib/toast';
 
 export function DashboardPage() {
-  const { items, currentFolderId, addFolder, addSharedUser, setCurrentFolder, isLoading, toggleStar, dynamicCodeMap, deleteItem } = useApp();
-  const { confirm } = useConfirm();
+  const { items, currentFolderId, addFolder, addSharedUser, setCurrentFolder, isLoading, toggleStar, updateStaticTitle } = useApp();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<string>('dashboard');
   const [showCreateFolder, setShowCreateFolder] = useState(false);
-  const [showAddSlide, setShowAddSlide] = useState(false);
+  const [showCreatePresentation, setShowCreatePresentation] = useState(false);
   const [showNewMenu, setShowNewMenu] = useState(false);
   const [permissionItemId, setPermissionItemId] = useState<string | null>(null);
   const [viewingFileId, setViewingFileId] = useState<string | null>(null);
   const [movingFile, setMovingFile] = useState<FileItem | null>(null);
-  const [editingFile, setEditingFile] = useState<FileItem | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [dialogParentId, setDialogParentId] = useState<string | null | undefined>(undefined);
+  const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState('');
+  const [filterMode, setFilterMode] = useState<'all' | 'starred' | 'recent'>('all');
   const newMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,15 +59,20 @@ export function DashboardPage() {
   }, []);
 
   const allFiles = items.filter(item => item.type === 'file') as FileItem[];
-  const filteredFiles = allFiles.filter(file =>
-    file.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredFiles = allFiles
+    .filter(file => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(file => filterMode === 'starred' ? !!file.starred : true)
+    .sort((a, b) => {
+      if (filterMode === 'recent') {
+        return new Date(b.lastModified || '').getTime() - new Date(a.lastModified || '').getTime();
+      }
+      return 0;
+    });
 
   const viewingFile = viewingFileId ? allFiles.find(f => f.id === viewingFileId) ?? null : null;
   const viewingPresentation = viewingFileId
     ? presentationRegistry.find(p => p.meta.id === viewingFileId) ?? null
     : null;
-  const viewingDynamicCode = viewingFile?.isDynamic ? (dynamicCodeMap[viewingFileId!] ?? null) : null;
 
   const handleCreateFolder = async (name: string, sharedWith: string[], parentId: string | null) => {
     await addFolder({
@@ -82,6 +83,46 @@ export function DashboardPage() {
       sharedWith,
     });
     toast.create('フォルダを作成しました');
+  };
+
+  const handleCreatePresentation = async (data: PresentationCreationData) => {
+    const newPresentationId = `custom-${Date.now()}`;
+    const presentation = {
+      meta: {
+        id: newPresentationId,
+        title: data.title,
+        description: data.description,
+        thumbnail: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        author: 'Custom',
+        createdAt: new Date().toISOString().split('T')[0],
+      },
+      slides: [
+        <div key="custom" className="w-full h-full bg-white p-8 overflow-auto">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold mb-4">{data.title}</h1>
+            <div className="mb-6 space-y-4">
+              {data.images.map((img, idx) => (
+                <img key={idx} src={img.url} alt={img.name} className="max-w-full h-auto rounded-lg shadow-md" />
+              ))}
+            </div>
+            <div className="prose max-w-none">
+              <p className="text-gray-700 whitespace-pre-wrap">{data.description}</p>
+            </div>
+            <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+              <iframe
+                srcDoc={data.code}
+                className="w-full h-[600px] rounded-lg border-0"
+                sandbox="allow-scripts allow-same-origin"
+                title="Custom Presentation"
+              />
+            </div>
+          </div>
+        </div>,
+      ],
+    };
+    (presentationRegistry as any).push(presentation);
+    setViewingFileId(newPresentationId);
+    toast.success(`${data.title} を作成しました`);
   };
 
   const handleInviteUser = (name: string, email: string) => {
@@ -113,13 +154,29 @@ export function DashboardPage() {
     setOpenMenuId(prev => prev === fileId ? null : fileId);
   };
 
-  const renderFileCard = (file: FileItem) => (
+  const renderFileCard = (file: FileItem) => {
+    const registryEntry = presentationRegistry.find(p => p.meta.id === file.id);
+    const firstSlide = registryEntry?.slides?.[0];
+    return (
     <div
       key={file.id}
       onClick={() => handleCardClick(file)}
       className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer border border-violet-100 relative"
     >
-      <div className="h-48 relative" style={{ background: file.thumbnail }}>
+      <div className="h-48 relative overflow-hidden" style={
+        firstSlide
+          ? { background: '#000' }
+          : file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
+            ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' }
+      }>
+        {firstSlide && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div style={{ width: 'calc(100% / 0.267)', height: '720px', transform: 'scale(0.267)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}>
+              {firstSlide}
+            </div>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <FileText className="w-12 h-12 text-white" />
         </div>
@@ -148,6 +205,12 @@ export function DashboardPage() {
                 onClick={e => e.stopPropagation()}
               >
                 <button
+                  onClick={() => { setRenamingFileId(file.id); setRenameVal(file.name); setOpenMenuId(null); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+                >
+                  <Pencil className="w-4 h-4 text-violet-500" />名前を変更
+                </button>
+                <button
                   onClick={() => { toggleStar(file.id); setOpenMenuId(null); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
                 >
@@ -158,25 +221,7 @@ export function DashboardPage() {
                   onClick={() => { setMovingFile(file); setOpenMenuId(null); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
                 >
-                  <FolderInput className="w-4 h-4 text-violet-500" />
-                  フォルダに移動
-                </button>
-                <button
-                  onClick={() => { setEditingFile(file); setOpenMenuId(null); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-                >
-                  <Code2 className="w-4 h-4 text-violet-500" />
-                  TSXを編集
-                </button>
-                <button
-                  onClick={async () => {
-                    setOpenMenuId(null);
-                    const ok = await confirm({ title: 'ファイルを削除', message: `「${file.name}」を削除しますか？`, confirmLabel: '削除する', variant: 'danger' });
-                    if (ok) { deleteItem(file.id); toast.delete('削除しました'); }
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />削除
+                  <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
                 </button>
               </div>
             )}
@@ -184,7 +229,19 @@ export function DashboardPage() {
         </div>
       </div>
       <div className="p-5">
-        <h3 className="mb-2 text-gray-800">{file.name}</h3>
+        {renamingFileId === file.id ? (
+          <input
+            autoFocus
+            value={renameVal}
+            onChange={e => setRenameVal(e.target.value)}
+            onBlur={() => { const t = renameVal.trim(); if (t && t !== file.name) updateStaticTitle(file.id, t); setRenamingFileId(null); }}
+            onKeyDown={e => { if (e.key === 'Enter') { const t = renameVal.trim(); if (t && t !== file.name) updateStaticTitle(file.id, t); setRenamingFileId(null); } if (e.key === 'Escape') setRenamingFileId(null); }}
+            onClick={e => e.stopPropagation()}
+            className="w-full text-gray-800 border-b-2 border-violet-400 outline-none bg-transparent mb-2 font-semibold"
+          />
+        ) : (
+          <h3 className="mb-2 text-gray-800">{file.name}</h3>
+        )}
         <div className="flex items-center justify-between text-sm text-gray-500">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4" />
@@ -197,17 +254,47 @@ export function DashboardPage() {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
-  const renderFileRow = (file: FileItem) => (
+  const renderFileRow = (file: FileItem) => {
+    const registryEntry = presentationRegistry.find(p => p.meta.id === file.id);
+    const firstSlide = registryEntry?.slides?.[0];
+    return (
     <div
       key={file.id}
       onClick={() => handleCardClick(file)}
       className="p-5 hover:bg-violet-50 transition-colors cursor-pointer flex items-center gap-4"
     >
-      <div className="w-20 h-14 rounded-lg flex-shrink-0" style={{ background: file.thumbnail }} />
+      <div className="w-20 h-14 rounded-lg flex-shrink-0 overflow-hidden relative" style={
+        firstSlide
+          ? { background: '#000' }
+          : file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
+            ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' }
+      }>
+        {firstSlide && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div style={{ width: 'calc(100% / 0.0778)', height: '720px', transform: 'scale(0.0778)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}>
+              {firstSlide}
+            </div>
+          </div>
+        )}
+      </div>
       <div className="flex-1 min-w-0">
-        <h3 className="mb-1 text-gray-800 truncate">{file.name}</h3>
+        {renamingFileId === file.id ? (
+          <input
+            autoFocus
+            value={renameVal}
+            onChange={e => setRenameVal(e.target.value)}
+            onBlur={() => { const t = renameVal.trim(); if (t && t !== file.name) updateStaticTitle(file.id, t); setRenamingFileId(null); }}
+            onKeyDown={e => { if (e.key === 'Enter') { const t = renameVal.trim(); if (t && t !== file.name) updateStaticTitle(file.id, t); setRenamingFileId(null); } if (e.key === 'Escape') setRenamingFileId(null); }}
+            onClick={e => e.stopPropagation()}
+            className="w-full text-gray-800 border-b-2 border-violet-400 outline-none bg-transparent mb-1 font-semibold"
+          />
+        ) : (
+          <h3 className="mb-1 text-gray-800 truncate">{file.name}</h3>
+        )}
         <div className="flex items-center gap-4 text-sm text-gray-500">
           <div className="flex items-center gap-1">
             <User className="w-4 h-4" />
@@ -240,6 +327,12 @@ export function DashboardPage() {
               onClick={e => e.stopPropagation()}
             >
               <button
+                onClick={() => { setRenamingFileId(file.id); setRenameVal(file.name); setOpenMenuId(null); }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+              >
+                <Pencil className="w-4 h-4 text-violet-500" />名前を変更
+              </button>
+              <button
                 onClick={() => { toggleStar(file.id); setOpenMenuId(null); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
               >
@@ -250,32 +343,15 @@ export function DashboardPage() {
                 onClick={() => { setMovingFile(file); setOpenMenuId(null); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
               >
-                <FolderInput className="w-4 h-4 text-violet-500" />
-                フォルダに移動
-              </button>
-              <button
-                onClick={() => { setEditingFile(file); setOpenMenuId(null); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-              >
-                <Code2 className="w-4 h-4 text-violet-500" />
-                TSXを編集
-              </button>
-              <button
-                onClick={async () => {
-                    setOpenMenuId(null);
-                    const ok = await confirm({ title: 'ファイルを削除', message: `「${file.name}」を削除しますか？`, confirmLabel: '削除する', variant: 'danger' });
-                    if (ok) { deleteItem(file.id); toast.delete('削除しました'); }
-                  }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />削除
+                <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
               </button>
             </div>
           )}
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderDashboard = () => (
     <>
@@ -309,18 +385,24 @@ export function DashboardPage() {
 
       {/* Quick Filters */}
       <div className="mb-6 flex gap-3 overflow-x-auto pb-2">
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-violet-200 text-violet-600 rounded-lg hover:bg-violet-50 transition-colors whitespace-nowrap">
-          <Star className="w-4 h-4" />
-          お気に入り
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-violet-100 text-gray-600 rounded-lg hover:bg-violet-50 transition-colors whitespace-nowrap">
-          <Clock className="w-4 h-4" />
-          最近使用
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-violet-100 text-gray-600 rounded-lg hover:bg-violet-50 transition-colors whitespace-nowrap">
-          <FolderOpen className="w-4 h-4" />
-          すべて
-        </button>
+        {([
+          { key: 'starred', label: 'お気に入り', icon: Star },
+          { key: 'recent',  label: '最近使用',   icon: Clock },
+          { key: 'all',     label: 'すべて',      icon: FolderOpen },
+        ] as const).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setFilterMode(key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors whitespace-nowrap ${
+              filterMode === key
+                ? 'bg-violet-500 border-violet-500 text-white'
+                : 'bg-white border-violet-100 text-gray-600 hover:bg-violet-50'
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Loading state */}
@@ -350,8 +432,7 @@ export function DashboardPage() {
       <Sidebar
         currentView={currentView}
         onViewChange={handleViewChange}
-        onAddFolder={(parentId) => { setDialogParentId(parentId); setShowCreateFolder(true); }}
-        onAddSlide={(parentId) => { setDialogParentId(parentId); setShowAddSlide(true); }}
+        onAddFolder={(parentId) => setShowCreateFolder(true)}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -383,13 +464,6 @@ export function DashboardPage() {
                       <FolderPlus className="w-4 h-4 text-violet-500" />
                       フォルダを作成
                     </button>
-                    <button
-                      onClick={() => { setShowAddSlide(true); setShowNewMenu(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-                    >
-                      <Code2 className="w-4 h-4 text-pink-500" />
-                      スライドをコードで追加
-                    </button>
                   </div>
                 )}
               </div>
@@ -419,27 +493,24 @@ export function DashboardPage() {
 
       {showCreateFolder && (
         <CreateFolderDialog
-          onClose={() => { setShowCreateFolder(false); setDialogParentId(undefined); }}
+          onClose={() => setShowCreateFolder(false)}
           onCreate={handleCreateFolder}
-          initialParentId={dialogParentId}
+          initialParentId={currentFolderId}
         />
       )}
-      {showAddSlide && (
-        <AddSlideDialog
-          onClose={() => { setShowAddSlide(false); setDialogParentId(undefined); }}
-          initialParentId={dialogParentId}
+      {showCreatePresentation && (
+        <CreatePresentationDialog
+          onClose={() => setShowCreatePresentation(false)}
+          onCreate={handleCreatePresentation}
         />
       )}
       {permissionItemId && (
         <PermissionDialog itemId={permissionItemId} onClose={() => setPermissionItemId(null)} />
       )}
       {viewingPresentation && (
-        <PresentationViewer presentation={viewingPresentation} onClose={() => setViewingFileId(null)} />
-      )}
-      {viewingDynamicCode && viewingFile && (
-        <DynamicPresentationViewer
-          title={viewingFile.name}
-          code={viewingDynamicCode}
+        <PresentationViewer
+          presentation={viewingPresentation}
+          titleOverride={viewingFile?.name}
           onClose={() => setViewingFileId(null)}
         />
       )}
@@ -449,9 +520,6 @@ export function DashboardPage() {
           currentFolderId={movingFile.parentId}
           onClose={() => setMovingFile(null)}
         />
-      )}
-      {editingFile && (
-        <EditTsxDialog file={editingFile} onClose={() => setEditingFile(null)} />
       )}
     </div>
   );

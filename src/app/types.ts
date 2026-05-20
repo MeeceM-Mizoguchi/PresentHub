@@ -19,7 +19,6 @@ export interface FileItem {
   author: string;
   starred: boolean;
   sharedWith: string[]; // SharedUser IDs
-  isDynamic?: true; // present when slide code is stored at runtime (not in registry)
 }
 
 export interface FolderItem {

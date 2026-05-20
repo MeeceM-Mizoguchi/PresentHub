@@ -3,7 +3,7 @@ import { useDrop } from 'react-dnd';
 import {
   LayoutDashboard, FolderOpen, Folder, FileText,
   Settings, LogOut, ChevronRight, ChevronDown, User, Users, UserPlus,
-  FolderPlus, FilePlus, Trash2,
+  FolderPlus, Trash2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -16,7 +16,6 @@ interface SidebarProps {
   currentView: string;
   onViewChange: (view: string) => void;
   onAddFolder: (parentFolderId: string | null) => void;
-  onAddSlide: (parentFolderId: string | null) => void;
 }
 
 interface SidebarFolderRowProps {
@@ -86,7 +85,7 @@ type ContextMenuState = {
   folderName: string;
 } | null;
 
-export function Sidebar({ currentView, onViewChange, onAddFolder, onAddSlide }: SidebarProps) {
+export function Sidebar({ currentView, onViewChange, onAddFolder }: SidebarProps) {
   const { items, setCurrentFolder, currentFolderId, deleteFolder } = useApp();
   const { profile, isAdmin, signOut } = useAuth();
   const { confirm } = useConfirm();
@@ -273,13 +272,6 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onAddSlide }: 
           <div className="px-4 py-1.5 text-xs text-gray-400 truncate border-b border-gray-100 mb-1">
             {contextMenu.folderName}
           </div>
-          <button
-            onClick={() => { onAddSlide(contextMenu.folderId); setContextMenu(null); }}
-            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-          >
-            <FilePlus className="w-4 h-4 text-violet-500" />
-            プレゼン新規追加
-          </button>
           <button
             onClick={() => { onAddFolder(contextMenu.folderId); setContextMenu(null); }}
             className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"

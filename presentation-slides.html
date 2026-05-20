@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presentation Slides</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: 'Inter', system-ui, sans-serif; background: #0b1220; color: #0f172a; }
+    body { display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .viewer { width: 1280px; height: 720px; position: relative; overflow: hidden; border-radius: 32px; background: #f8fafc; box-shadow: 0 40px 120px rgba(0,0,0,0.25); }
+    .slide { position: absolute; inset: 0; opacity: 0; transform: translateX(80px); transition: opacity .35s ease, transform .35s ease; overflow: hidden; }
+    .slide.active { opacity: 1; transform: translateX(0); }
+    .slide.hidden-left { transform: translateX(-80px); }
+    .slide-screen { width: 100%; height: 100%; position: relative; }
+    .nav-button { position: absolute; top: 50%; width: 64px; height: 64px; margin-top: -32px; border: 0; border-radius: 999px; background: rgba(15,23,42,0.72); color: #fff; cursor: pointer; display: grid; place-items: center; font-size: 30px; z-index: 20; transition: background .2s ease; }
+    .nav-button:hover { background: rgba(15,23,42,0.9); }
+    .nav-prev { left: 16px; }
+    .nav-next { right: 16px; }
+    .indicator-bar { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; gap: 10px; z-index: 20; }
+    .indicator-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(15,23,42,0.2); cursor: pointer; transition: background .2s ease, transform .2s ease; }
+    .indicator-dot.active { background: #2563eb; transform: scale(1.2); }
+    .slide1, .slide2, .slide3, .slide4, .slide5, .slide6, .slide7, .slide8, .slide9, .slide10, .slide11, .slide12 { width: 100%; height: 100%; }
+    .slide-content { width: 100%; height: 100%; padding: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+    .column { display: flex; flex-direction: column; justify-content: center; gap: 24px; }
+    .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 32px; padding: 32px; box-shadow: 0 24px 60px rgba(15,23,42,.06); }
+    .hero-title { font-size: 56px; line-height: 1.03; margin: 0; letter-spacing: -0.04em; }
+    .hero-text { font-size: 18px; line-height: 1.75; color: rgba(15,23,42,0.75); margin: 0; max-width: 560px; }
+    .badge-pill { display: inline-flex; padding: 12px 20px; border-radius: 999px; background: rgba(34,211,238,.14); color: #0f172a; font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+    .cta-buttons { display: flex; flex-wrap: wrap; gap: 16px; }
+    .button { border: 0; border-radius: 999px; padding: 16px 28px; font-weight: 700; cursor: pointer; }
+    .button.primary { background: #22d3ee; color: #0f172a; }
+    .button.secondary { background: rgba(15,23,42,.08); color: #0f172a; border: 1px solid rgba(15,23,42,.12); }
+    .visual-box { width: 100%; min-height: 520px; border-radius: 40px; background: linear-gradient(180deg,#0f172a,#111827 80%); border: 1px solid rgba(248,250,252,.08); padding: 32px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+    .visual-box::before { content: ''; position: absolute; inset: 32px 32px 130px; border-radius: 32px; background: radial-gradient(circle at top right, rgba(34,211,238,.24), transparent 35%); pointer-events: none; }
+    .visual-badge { display: inline-flex; padding: 10px 16px; border-radius: 999px; background: rgba(34,211,238,.16); color: #a5f3fc; font-size: 13px; font-weight: 700; }
+    .visual-hero h2 { margin: 0; font-size: 34px; line-height: 1.1; color: #e2e8f0; }
+    .visual-hero p { margin: 0; color: rgba(226,232,240,.8); line-height: 1.7; }
+    .visual-pills { display:flex; gap:12px; flex-wrap:wrap; }
+    .visual-pill { padding:10px 16px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); color:#cbd5e1; font-size:13px; }
+    .feature-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .feature-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 28px; padding: 32px; box-shadow: 0 20px 50px rgba(15,23,42,.06); }
+    .feature-card h3 { margin: 0 0 14px; font-size: 22px; color: #0f172a; }
+    .feature-card p { margin: 0; color: #475569; font-size: 15px; line-height: 1.75; }
+    .case-layout { display:grid; grid-template-columns: 420px 1fr; gap: 32px; width: 100%; height: 100%; }
+    .case-left { background:#0f172a; color:#f8fafc; border-radius:40px; padding:60px 44px; display:flex; flex-direction:column; justify-content:center; gap:28px; }
+    .case-left h2 { margin:0; font-size: 32px; line-height:1.1; }
+    .case-left p { margin:0; color: rgba(248,250,252,.72); line-height:1.8; font-size:14px; }
+    .case-left .info { background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:28px; padding:28px; }
+    .case-left .info p { margin:0; color:#cbd5e1; line-height:1.75; font-size:14px; }
+    .timeline { display:flex; flex-direction:column; gap:30px; }
+    .timeline-item { display:flex; gap:24px; position:relative; }
+    .timeline-item::before { content:''; position:absolute; left:16px; top:28px; bottom:-10px; width:1px; background:#e2e8f0; }
+    .timeline-item:last-child::before { display:none; }
+    .timeline-index { width:36px; height:36px; border-radius:50%; background:#22d3ee; color:#0f172a; display:flex; align-items:center; justify-content:center; font-weight:800; flex-shrink:0; }
+    .timeline-content { padding-left:12px; }
+    .timeline-content h3 { margin:0 0 12px; font-size:20px; color:#0f172a; }
+    .timeline-content p { margin:0 0 16px; color:#475569; line-height:1.8; font-size:14px; }
+    .timeline-note { background:#f8fafc; border-left:4px solid #22d3ee; border-radius:22px; padding:22px; color:#0f172a; }
+    .timeline-result { background:#ecfdf5; border:1px solid #bbf7d0; border-radius:22px; padding:22px; color:#134e4a; }
+    .case-right { background:#ffffff; padding:56px 48px; border-radius:40px; display:flex; flex-direction:column; gap:26px; }
+    .case-right .step { position:relative; }
+    .case-right .step .step-inner { margin-left: 0; }
+    .dashboard-grid { display:grid; grid-template-columns: 1fr 0.92fr; gap:28px; height:100%; }
+    .dashboard-panel { display:flex; flex-direction:column; gap:20px; }
+    .dashboard-metrics { display:grid; grid-template-columns: repeat(2, 1fr); gap:20px; }
+    .kpi-card { border-radius:28px; padding:24px; background:#f8fafc; border:1px solid #e2e8f0; }
+    .kpi-card strong { display:block; margin-bottom:10px; font-size:18px; color:#0f172a; }
+    .kpi-card p { margin:0; color:#475569; line-height:1.7; }
+    .alert-panel { border-radius:32px; padding:28px; background:#ffffff; border:1px solid #e2e8f0; }
+    .alert-panel h3 { margin:0 0 16px; font-size:22px; color:#0f172a; }
+    .alert-item { display:flex; gap:16px; padding:20px; border-radius:24px; background:#ffffff; border:1px solid #e2e8f0; align-items:flex-start; }
+    .alert-dot { width:12px; height:12px; border-radius:50%; margin-top:6px; flex-shrink:0; }
+    .alert-text strong { display:block; margin-bottom:6px; font-size:14px; color:#0f172a; }
+    .alert-text p { margin:0; color:#475569; line-height:1.7; font-size:14px; }
+    .workflow-grid { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+    .workflow-step { background:#f8fafc; border-radius:24px; padding:22px; }
+    .workflow-step h3 { margin:0 0 10px; font-size:16px; color:#1e293b; }
+    .workflow-step p { margin:0; color:#475569; font-size:14px; line-height:1.75; }
+    .form-panel { display:grid; gap:18px; }
+    .form-panel label { display:flex; flex-direction:column; gap:8px; font-size:13px; color:#475569; }
+    .form-panel input, .form-panel select { border:1px solid #cbd5e1; border-radius:16px; padding:14px 16px; background:#f8fafc; color:#0f172a; font-size:14px; }
+    .form-panel button { border:none; border-radius:16px; padding:16px 20px; background:#4f46e5; color:#fff; font-weight:700; cursor:pointer; }
+    .quality-box { margin-top:28px; padding:24px; background:#eef2ff; border:1px solid #dbeafe; border-radius:24px; }
+    .quality-box p { margin:0; line-height:1.8; color:#475569; }
+    .call-grid { display:grid; grid-template-columns: 1.1fr .9fr; gap:28px; height:100%; }
+    .call-card { border-radius:24px; padding:24px; background:#ffffff; border:1px solid #dbeafe; }
+    .call-card h3 { margin:0 0 14px; font-size:18px; color:#0f172a; }
+    .call-card p { margin:0; color:#475569; line-height:1.75; }
+    .call-status { display:grid; gap:14px; }
+    .call-status .item { display:flex; align-items:center; gap:14px; padding:18px; border-radius:20px; background:#eef2ff; }
+    .call-status strong { font-size:14px; color:#0f172a; }
+    .call-status span { font-size:12px; color:#475569; }
+    .alert-box-panel { position:absolute; top:32px; right:32px; width:310px; background:#fff1f2; border:1px solid #fecdd3; border-radius:28px; padding:22px; box-shadow:0 20px 50px rgba(251,113,133,.12); }
+    .alert-box-panel h3 { margin:0 0 10px; font-size:17px; color:#b91c1c; }
+    .alert-box-panel p { margin:0; color:#92400e; font-size:13px; line-height:1.7; }
+    .match-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; height:100%; }
+    .match-panel { border-radius:32px; background:#ffffff; border:1px solid #e2e8f0; padding:32px; display:flex; flex-direction:column; gap:20px; }
+    .match-panel select { width:100%; padding:16px 18px; border-radius:18px; border:1px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-size:14px; }
+    .match-list { display:grid; gap:16px; }
+    .tenant-item { border-radius:24px; padding:22px; background:#eff6ff; border:1px solid #dbeafe; display:grid; grid-template-columns:1fr auto; gap:16px; }
+    .tenant-item strong { font-size:15px; color:#0f172a; display:block; margin-bottom:8px; }
+    .tenant-item span { font-size:13px; color:#475569; line-height:1.6; }
+    .tenant-tag { display:inline-flex; padding:10px 14px; border-radius:999px; background:#dbeafe; color:#1e40af; font-size:12px; }
+    .list-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; height:100%; }
+    .summary-card { border-radius:32px; padding:28px; background:#ffffff; border:1px solid #e2e8f0; display:flex; flex-direction:column; gap:18px; }
+    .summary-card h3 { margin:0; font-size:20px; color:#0f172a; }
+    .summary-card p { margin:0; color:#475569; line-height:1.75; }
+    .button-group { display:flex; gap:12px; flex-wrap:wrap; }
+    .button-group button { border:none; border-radius:18px; padding:14px 20px; background:#2563eb; color:#ffffff; font-weight:700; cursor:pointer; }
+    .flip-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; height:100%; }
+    .flip-card { border-radius:32px; background:#111827; padding:32px; display:flex; flex-direction:column; justify-between; color:#e2e8f0; box-shadow:0 30px 80px rgba(0,0,0,.2); }
+    .flip-card h3 { margin:0 0 18px; font-size:24px; }
+    .flip-card p { margin:0; line-height:1.8; color:#cbd5e1; }
+    .flip-grid .tile { border-radius:24px; background:#151b36; padding:20px; }
+    .flip-grid .tile h4 { margin:0 0 12px; font-size:16px; color:#f8fafc; }
+    .flip-grid .tile p { margin:0; color:#94a3b8; font-size:13px; line-height:1.8; }
+    .stack-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:22px; height:100%; }
+    .stack-card { border-radius:24px; padding:24px; background:#eff6ff; border:1px solid #dbeafe; }
+    .stack-card h3 { margin:0 0 12px; font-size:18px; color:#0f172a; }
+    .stack-card p { margin:0; color:#475569; line-height:1.75; }
+    .diagram-panel { background:#ffffff; border:1px solid #e2e8f0; border-radius:32px; padding:32px; display:flex; flex-direction:column; gap:18px; justify-content:center; }
+    .diagram-node { display:flex; align-items:center; gap:14px; }
+    .diagram-node .dot { width:16px; height:16px; border-radius:50%; background:#2563eb; }
+    .diagram-node span { font-size:15px; color:#0f172a; }
+    .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:36px; height:100%; }
+    .summary-panel { padding:42px; border-radius:40px; background:linear-gradient(135deg,#2563eb,#0f172a); box-shadow:0 30px 80px rgba(0,0,0,.3); color:#f8fafc; }
+    .summary-panel h2 { margin:0 0 18px; font-size:44px; line-height:1.05; }
+    .summary-panel p { margin:0; line-height:1.8; font-size:16px; }
+    .pill-row { display:flex; flex-wrap:wrap; gap:14px; margin-top:28px; }
+    .pill-row span { padding:14px 18px; border-radius:999px; background:rgba(255,255,255,.12); color:#f8fafc; font-size:13px; font-weight:700; }
+    .next-panel { background:#ffffff; border:1px solid #374151; border-radius:32px; padding:38px; }
+    .next-panel h3 { margin:0 0 16px; font-size:28px; color:#0f172a; }
+    .next-panel p { margin:0 0 14px; color:#475569; line-height:1.8; font-size:15px; }
+    .next-panel ul { list-style:none; margin:24px 0 0; padding:0; display:grid; gap:16px; }
+    .next-panel li { display:flex; align-items:flex-start; gap:14px; }
+    .next-panel li::before { content:''; width:12px; height:12px; border-radius:50%; background:#2563eb; margin-top:6px; flex-shrink:0; }
+  </style>
+</head>
+<body>
+  <div class="viewer" aria-label="Presentation viewer">
+    <button class="nav-button nav-prev" aria-label="Previous slide">?</button>
+    <button class="nav-button nav-next" aria-label="Next slide">?</button>
+    <div class="slide slide1 active" data-index="0">
+      <div class="slide-content">
+        <div class="column">
+          <span class="badge-pill">企業紹介プレゼン</span>
+          <h1 class="hero-title">AIと現場をつなぐ<br>次世代DXソリューション</h1>
+          <p class="hero-text">実装済みの業務アプリケーションと提案資料を活用し、AI開発・業務改善・顧客接点を一気通貫で提案します。</p>
+          <div class="cta-buttons">
+            <button class="button primary">導入事例を見る</button>
+            <button class="button secondary">技術スタックを見る</button>
+          </div>
+        </div>
+        <div class="visual-box">
+          <span class="visual-badge">AI活用×DX支援</span>
+          <div class="visual-hero">
+            <h2>業務改革を<br>スピード実装で加速</h2>
+            <p>現場課題の可視化から、B2B管理画面、通話・マッチング・提案書まで、実装済みプロダクトで支援。</p>
+          </div>
+          <div class="visual-pills">
+            <span class="visual-pill">実績重視</span>
+            <span class="visual-pill">フルスクラッチ対応</span>
+            <span class="visual-pill">AI高速開発</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide2" data-index="1">
+      <div class="slide-content">
+        <div class="column">
+          <span class="badge-pill">価値提案</span>
+          <h2 class="hero-title" style="font-size:44px;">事業構造を見える化し、AI開発を高速化</h2>
+          <p class="hero-text">戦略的なDX提案の入口として、3つの強みを整理。現場起点の業務可視化とカスタム実装で、安心して導入できます。</p>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card"><h3>事業可視化</h3><p>現状の業務と財務を整理し、投資余力を明確化。開発の優先順位を数値で導き出します。</p></div>
+          <div class="feature-card"><h3>AI高速プロトタイプ</h3><p>AIを活用したMVP開発で、従来より短期間・低コストに価値を検証します。</p></div>
+          <div class="feature-card"><h3>カスタム実装の安心感</h3><p>フルスクラッチ設計を前提に、既存業務にフィットする安定運用設計を提供します。</p></div>
+          <div class="feature-card"><h3>実績重視の支援</h3><p>単なるIT導入ではなく、成果を重視した支援を設計。現場で使い続けられる仕組みづくりを目指します。</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide3" data-index="2">
+      <div class="slide-content">
+        <div class="case-left">
+          <span class="badge-pill" style="background:rgba(56,189,248,.2);color:#cffafe;">成功事例 01</span>
+          <h2>老舗50年のお菓子屋さん</h2>
+          <p>IT未導入・属人化・停滞状態から、財務と業務を可視化し、AI駆動型の低コスト開発で新しい基盤を構築しました。</p>
+          <div class="info"><p><strong>課題</strong><br>在庫管理はエクセル中心で、知見が属人化。IT化が遅れ、業務が停滞している状態でした。</p></div>
+        </div>
+        <div class="case-right">
+          <div class="timeline">
+            <div class="timeline-item"><div class="timeline-index">1</div><div class="timeline-content"><h3>財務の「解剖」と投資余力の算出</h3><p>売上・負債・現預金の推移を可視化し、安心して投資できる予算を明確化しました。</p><div class="timeline-note"><strong>ハイライト</strong><br>来期の収益見込みから安全に回せる投資予算を定義。</div></div></div>
+            <div class="timeline-item"><div class="timeline-index">2</div><div class="timeline-content"><h3>IT資産の「棚卸し」と優先順位策定</h3><p>必要なIT化を洗い出し、最も影響力が高い案件を優先しました。</p><div class="timeline-note"><strong>ハイライト</strong><br>50年の独自ロジックは既存SaaSでは対応困難。独自システムを選定。</div></div></div>
+            <div class="timeline-item"><div class="timeline-index">3</div><div class="timeline-content"><h3>AI実装による「超高速・低コスト」開発</h3><p>AI駆動型開発で開発コストを削減し、余剰資産内でプロジェクトを完結。</p><div class="timeline-result"><strong>成果</strong><br>開発コストは従来の約40%削減、データに基づく経営判断を実現。</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide4" data-index="3">
+      <div class="slide-content">
+        <div class="case-left" style="background:linear-gradient(135deg,#3182ce 0%,#005bac 100%);">
+          <span class="badge-pill" style="background:rgba(255,255,255,.15);color:#ffffff;">成功事例 02</span>
+          <h2>急成長を目指すベンチャー企業</h2>
+          <p>調達資金が限られる中で、最速で価値を示すプロダクト設計と検証フェーズを支援しました。</p>
+          <div class="info"><p><strong>課題</strong><br>PMFの証明を最速で行う必要があるため、開発リソースを抑えた戦略が求められていました。</p></div>
+        </div>
+        <div class="case-right">
+          <div class="timeline">
+            <div class="timeline-item"><div class="timeline-index" style="background:#fff;color:#0f172a;border:2px solid #3182ce;">1</div><div class="timeline-content"><h3>戦略の「削ぎ落とし」とKPI設計</h3><p>壮大なビジョンから、最初に証明すべき価値を絞り込み、投資の歯止めを設計しました。</p><div class="timeline-note">マーケティング連動のKPI設計で、開発コストを無駄にしない構造を作成。</div></div></div>
+            <div class="timeline-item"><div class="timeline-index" style="background:#fff;color:#0f172a;border:2px solid #3182ce;">2</div><div class="timeline-content"><h3>AI実装プロトタイプによる市場検証</h3><p>プロトタイプを数週間で公開し、ユーザー反応をデータ化して本当に必要な機能を見極めました。</p><div class="timeline-note">公開プロトタイプから得た実データをもとに、機能の優先順位を決定。</div></div></div>
+            <div class="timeline-item"><div class="timeline-index" style="background:#fff;color:#0f172a;border:2px solid #3182ce;">3</div><div class="timeline-content"><h3>アジャイルによる継続的エンハンス</h3><p>市場の声を反映しながら機能を追加し、無駄な開発を抑えつつトラクションを形成します。</p><div class="timeline-result">現在の状況：検証結果に基づき必要機能のみを追加し、浮いた資金をマーケティングへ回しています。</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide5" data-index="4">
+      <div class="slide-content">
+        <div class="column">
+          <div>
+            <h2 class="hero-title" style="font-size:42px;">経営ダッシュボード</h2>
+            <p class="hero-text">現場で使えるKPIとリスクアラートで、意思決定を高速化します。</p>
+          </div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="dashboard-panel">
+            <div class="kpi-card"><strong>総商品数</strong><p>256件<br>楽天 180件 / Amazon 76件</p></div>
+            <div class="kpi-card"><strong>低在庫商品</strong><p>12件<br>欠品 4件を含む</p></div>
+            <div class="kpi-card"><strong>過剰在庫商品</strong><p>8件<br>在庫90個超</p></div>
+            <div class="kpi-card"><strong>承認待ち価格</strong><p>6件<br>価格承認で収益改善</p></div>
+          </div>
+          <div class="alert-panel">
+            <h3>未解決アラート</h3>
+            <div class="alert-item"><div class="alert-dot" style="background:#dc2626;"></div><div class="alert-text"><strong>欠品中</strong><p>商品Aが在庫0で欠品中。早急な補充が必要です。</p></div></div>
+            <div class="alert-item"><div class="alert-dot" style="background:#f59e0b;"></div><div class="alert-text"><strong>補充検討</strong><p>商品Bが残り5個で追加発注不可。欠品リスクがあります。</p></div></div>
+            <div class="alert-item"><div class="alert-dot" style="background:#2563eb;"></div><div class="alert-text"><strong>過剰在庫</strong><p>商品Cが在庫120個。セール施策で在庫消化を推奨します。</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide6" data-index="5">
+      <div class="slide-content">
+        <div class="panel">
+          <h2 style="margin:0 0 18px;font-size:40px;">承認ワークフローと運用管理</h2>
+          <p style="margin:0 0 28px;color:#475569;max-width:620px;">価格承認・データ管理・ユーザー管理を統合した画面設計。権限と承認プロセスを安定的に回す仕組みを表現します。</p>
+          <div class="workflow-grid">
+            <div class="workflow-step"><h3>承認依頼</h3><p>価格変更や見積を登録し、ワークフローで承認申請を開始します。</p></div>
+            <div class="workflow-step"><h3>データ審査</h3><p>申請内容を管理者が確認し、正確性と整合性をチェックします。</p></div>
+            <div class="workflow-step"><h3>最終承認</h3><p>承認済み案件はダッシュボードへ反映され、明確な履歴として残ります。</p></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="form-panel">
+            <label>承認対象<select><option>商品A 価格変更</option><option>プロモーション費</option><option>仕入先契約</option></select></label>
+            <label>申請ステータス<input type="text" value="承認待ち" readonly /></label>
+            <label>担当者<input type="text" value="田中 太郎" readonly /></label>
+            <button>承認履歴を表示</button>
+          </div>
+          <div class="quality-box"><p>認証付きの運用基盤で、承認ルールとユーザー権限を正しく設計。IT投資のROIを安定化します。</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide7" data-index="6">
+      <div class="slide-content">
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;"><div><h2 style="margin:0 0 8px;font-size:40px;">顧客通話管理</h2><p style="margin:0;color:#475569;">通話URL発行から着信対応までを一画面で運用できます。</p></div><span class="badge-pill" style="background:#0f172a;color:#f8fafc;">WebRTCオペレーター</span></div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;"><div class="call-card"><h3>通話URL発行</h3><p>発行したURLをコピーして顧客に共有し、簡単に通話を開始。</p></div><div class="call-card"><h3>履歴とタスク</h3><p>過去通話と優先タスクを一覧で確認し、対応漏れを防止。</p></div></div>
+          <div class="call-status"><div class="item"><strong>通話履歴</strong><span>顧客ID 8a1b2c - 10:32</span></div><div class="item"><strong>優先タスク</strong><span>新規顧客登録 / フォロー</span></div><div class="item"><strong>URL発行済み</strong><span>https://app.example.com/call/...</span></div></div>
+        </div>
+        <div class="panel" style="position:relative;">
+          <div class="call-card" style="margin-bottom:22px;"><h3>着信ポップアップ</h3><p style="margin:0;color:#475569;line-height:1.75;">着信時に即座に応答。顧客対応を漏れなくキャッチします。</p></div>
+          <div class="alert-box-panel"><h3>Incoming Web Call...</h3><p>顧客から着信がありました。クリックして応答すると通話モードに切り替わります。</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide8" data-index="7">
+      <div class="slide-content">
+        <div class="match-panel">
+          <h2 style="margin:0 0 18px;font-size:40px;">テナントマッチング</h2>
+          <p style="margin:0 0 24px;color:#475569;max-width:620px;">物件とテナントの条件を組み合わせ、候補リストを生成。二重打診を防止し効率的に配信します。</p>
+          <div class="match-grid"><div class="match-panel"><label>対象物件<select><option>物件A - 東京</option><option>物件B - 大阪</option><option>物件C - 名古屋</option></select></label><label>業種<select><option>すべて</option><option>飲食</option><option>小売</option><option>サービス</option></select></label></div><div class="match-panel"><label>市区町村<select><option>すべて</option><option>千代田区</option><option>中央区</option><option>港区</option></select></label><label>面積フィルター<select><option>指定なし</option><option>50㎡以上</option><option>100㎡以上</option></select></label></div></div>
+          <button class="button" style="width:100%;">候補テナントを表示</button>
+        </div>
+        <div class="match-panel">
+          <h3 style="margin:0 0 16px;font-size:28px;">候補テナント一覧</h3>
+          <div class="tenant-item"><div><strong>テナントA</strong><span>業種: 飲食<br>希望面積: 80㎡<br>エリア: 東京</span></div><div class="tenant-tag">未打診</div></div>
+          <div class="tenant-item"><div><strong>テナントB</strong><span>業種: 小売<br>希望面積: 120㎡<br>エリア: 東京</span></div><div class="tenant-tag">未打診</div></div>
+          <div class="tenant-item"><div><strong>テナントC</strong><span>業種: サービス<br>希望面積: 60㎡<br>エリア: 東京</span></div><div class="tenant-tag" style="background:#fde68a;color:#92400e;">注意</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide9" data-index="8">
+      <div class="slide-content">
+        <div class="column">
+          <div><h2 class="hero-title" style="font-size:42px;">名刺・顧客管理</h2><p class="hero-text">顧客接点をストックし、次の商談へつなぐ名刺管理画面を表現します。</p></div>
+          <button class="button" style="width:240px;">新規登録</button>
+        </div>
+        <div class="list-grid">
+          <div class="summary-card"><h3>田中 太郎</h3><p class="details">株式会社Example<br>営業部長<br>電話: 03-1234-5678<br>Mail: tanaka@example.com</p><div class="button-group"><button style="background:#0f172a;">編集</button><button style="background:#94a3b8;">削除</button></div></div>
+          <div class="summary-card"><h3>山田 花子</h3><p class="details">合同会社Meece<br>プロジェクトマネージャー<br>電話: 080-1234-5678<br>Mail: yamada@example.com</p><div class="button-group"><button style="background:#0f172a;">編集</button><button style="background:#94a3b8;">削除</button></div></div>
+          <div class="summary-card"><h3>佐藤 一郎</h3><p class="details">ABC商事<br>購買担当<br>電話: 090-9876-5432<br>Mail: sato@example.com</p><div class="button-group"><button style="background:#0f172a;">編集</button><button style="background:#94a3b8;">削除</button></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide10" data-index="9">
+      <div class="slide-content">
+        <div class="flip-grid">
+          <div class="flip-card"><h3>提案書ビューア</h3><p>ページめくり表現と印刷対応を備えた冊子型提案書。UI設計により、デジタルと紙の両方で使える資料を実現します。</p><div class="mini"><div class="tile"><h4>カバーページ</h4><p>企業ビジョンを象徴する表紙デザイン。</p></div><div class="tile"><h4>コンテンツ構成</h4><p>会社紹介、サービス、ビジョン、提案、問い合わせを順序立てて掲載。</p></div></div></div>
+          <div class="flip-card"><h3>冊子型UI</h3><p>両面のページを見開きで表示し、印刷時にも美しく見える紙面を想定したレイアウトです。</p><div class="mini"><div class="tile"><h4>印刷対応</h4><p>PDF出力や印刷時に色や余白を保持。</p></div><div class="tile"><h4>ページ遷移</h4><p>めくり操作やページ選択でスムーズに閲覧できます。</p></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide11" data-index="10">
+      <div class="slide-content">
+        <div class="stack-grid">
+          <div class="stack-card"><h3>Web</h3><p>React + TypeScript + Viteで開発。高速なSPAとUI表現を実現。</p></div>
+          <div class="stack-card"><h3>データ</h3><p>Supabaseによる認証・DB連携を採用し、B2B基盤に必要な安全性と拡張性を担保。</p></div>
+          <div class="stack-card"><h3>UI</h3><p>Tailwind / lucide-react / カスタムCSSで視認性の高いダッシュボードを構築。</p></div>
+          <div class="stack-card"><h3>通話</h3><p>WebRTC・Peer接続で通話URL発行とソフトフォン運用を実現。</p></div>
+        </div>
+        <div class="diagram-panel">
+          <div class="diagram-node"><span class="dot"></span><span>業務アプリケーション</span></div>
+          <div class="diagram-node"><span class="dot"></span><span>コールセンター管理</span></div>
+          <div class="diagram-node"><span class="dot"></span><span>マッチング/提案</span></div>
+          <div class="diagram-node"><span class="dot"></span><span>データ連携基盤</span></div>
+          <div class="diagram-node"><span class="dot"></span><span>印刷・PDF出力</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="slide slide12" data-index="11">
+      <div class="slide-content">
+        <div class="summary-panel">
+          <h2>まとめと次の一歩</h2>
+          <p>既存プロダクトを活用して、DX提案を高速化。B2B業務管理、通話運用、マッチング、提案資料の一気通貫をアピールします。</p>
+          <div class="pill-row"><span>実装済み</span><span>業務連携</span><span>AI高速開発</span><span>顧客接点強化</span></div>
+        </div>
+        <div class="next-panel">
+          <h3>次の打ち手</h3>
+          <p>実際の画面キャプチャを差し込み、事業課題ごとにキーメッセージを強調します。</p>
+          <ul><li>画面キャプチャを左、説明を右で構成</li><li>既存コード基盤を「開発済み資産」として提示</li><li>ターゲット別提案ストーリーを整理</li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="indicator-bar"></div>
+  </div>
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const prevButton = document.querySelector('.nav-prev');
+    const nextButton = document.querySelector('.nav-next');
+    const indicatorBar = document.querySelector('.indicator-bar');
+    let currentIndex = 0;
+    const indicators = slides.map((slide, index) => {
+      const dot = document.createElement('button');
+      dot.className = 'indicator-dot';
+      dot.type = 'button';
+      dot.setAttribute('aria-label', `Slide ${index + 1}`);
+      if (index === 0) dot.classList.add('active');
+      dot.addEventListener('click', () => goToSlide(index));
+      indicatorBar.appendChild(dot);
+      return dot;
+    });
+    function setSlide(index) {
+      slides.forEach((slide, idx) => {
+        slide.classList.toggle('active', idx === index);
+      });
+      indicators.forEach((dot, idx) => dot.classList.toggle('active', idx === index));
+      currentIndex = index;
+    }
+    function goToSlide(index) {
+      const normalized = (index + slides.length) % slides.length;
+      setSlide(normalized);
+    }
+    prevButton.addEventListener('click', () => goToSlide(currentIndex - 1));
+    nextButton.addEventListener('click', () => goToSlide(currentIndex + 1));
+    document.body.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        goToSlide(currentIndex + 1);
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        goToSlide(currentIndex - 1);
+      }
+    });
+    document.querySelectorAll('.slide-content, .viewer').forEach(el => {
+      el.addEventListener('click', (event) => {
+        if (event.target.closest('.nav-button')) return;
+        const clickX = event.clientX;
+        const midpoint = window.innerWidth / 2;
+        if (clickX > midpoint) {
+          goToSlide(currentIndex + 1);
+        } else {
+          goToSlide(currentIndex - 1);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

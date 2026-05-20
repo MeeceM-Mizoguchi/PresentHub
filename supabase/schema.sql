@@ -93,3 +93,56 @@ CREATE POLICY "requests_select" ON public.account_requests
 
 CREATE POLICY "requests_update" ON public.account_requests
   FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- ── スライドコメント ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.slide_comments (
+  id               TEXT        PRIMARY KEY,
+  presentation_id  TEXT        NOT NULL,
+  slide_index      INTEGER     NOT NULL,
+  text             TEXT        NOT NULL,
+  x                FLOAT       NOT NULL,
+  y                FLOAT       NOT NULL,
+  resolved         BOOLEAN     NOT NULL DEFAULT FALSE,
+  timestamp        TEXT        NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS slide_comments_lookup ON public.slide_comments (presentation_id, slide_index);
+
+ALTER TABLE public.slide_comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "comments_select" ON public.slide_comments;
+DROP POLICY IF EXISTS "comments_insert" ON public.slide_comments;
+DROP POLICY IF EXISTS "comments_update" ON public.slide_comments;
+DROP POLICY IF EXISTS "comments_delete" ON public.slide_comments;
+
+CREATE POLICY "comments_select" ON public.slide_comments FOR SELECT TO authenticated USING (true);
+CREATE POLICY "comments_insert" ON public.slide_comments FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "comments_update" ON public.slide_comments FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "comments_delete" ON public.slide_comments FOR DELETE TO authenticated USING (true);
+
+-- author カラム追加（既存テーブルへの追記）
+ALTER TABLE public.slide_comments
+  ADD COLUMN IF NOT EXISTS author_id   UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS author_name TEXT NOT NULL DEFAULT '外部ユーザー';
+
+-- ── コメント返信 ───────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.slide_comment_replies (
+  id          TEXT        PRIMARY KEY,
+  comment_id  TEXT        NOT NULL REFERENCES public.slide_comments(id) ON DELETE CASCADE,
+  text        TEXT        NOT NULL,
+  author_id   UUID        REFERENCES auth.users(id) ON DELETE SET NULL,
+  author_name TEXT        NOT NULL DEFAULT '外部ユーザー',
+  timestamp   TEXT        NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.slide_comment_replies ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "replies_select" ON public.slide_comment_replies;
+DROP POLICY IF EXISTS "replies_insert" ON public.slide_comment_replies;
+DROP POLICY IF EXISTS "replies_delete" ON public.slide_comment_replies;
+
+CREATE POLICY "replies_select" ON public.slide_comment_replies FOR SELECT TO authenticated USING (true);
+CREATE POLICY "replies_insert" ON public.slide_comment_replies FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "replies_delete" ON public.slide_comment_replies FOR DELETE TO authenticated USING (true);

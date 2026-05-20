@@ -3,17 +3,12 @@ import { useDrag, useDrop } from 'react-dnd';
 import {
   FileText, Calendar, User, Grid3x3, List, Star, MoreVertical,
   ChevronRight, Home, Folder as FolderIcon, UserPlus, FolderInput,
-  Pencil, Trash2, Code2,
+  Pencil, Trash2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useConfirm } from './ConfirmDialog';
-import { toast } from '../lib/toast';
 import { FolderItem, FileItem } from '../types';
 import { PresentationViewer } from './PresentationViewer';
-import { DynamicPresentationViewer } from './DynamicPresentationViewer';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
-import { EditTsxDialog } from './EditTsxDialog';
-import { SlidePreviewThumbnail } from './SlidePreviewThumbnail';
 import { presentationRegistry } from '../../presentations/registry';
 import { DRAG_TYPE, DragItem } from '../dnd';
 
@@ -193,18 +188,28 @@ function FolderCard({ folder, viewMode, onNavigate, onPermissionClick }: FolderC
 // ─────────────────────────────────────────────
 interface FileCardProps {
   file: FileItem;
-  code?: string;
   viewMode: 'grid' | 'list';
   onView: (id: string) => void;
   onMove: (file: FileItem) => void;
-  onEdit: (file: FileItem) => void;
   onPermissionClick: (id: string) => void;
   onToggleStar: (id: string) => void;
-  onDelete: (file: FileItem) => void;
 }
 
-function FileCard({ file, code, viewMode, onView, onMove, onEdit, onPermissionClick, onToggleStar, onDelete }: FileCardProps) {
+function FileCard({ file, viewMode, onView, onMove, onPermissionClick, onToggleStar }: FileCardProps) {
+  const { updateStaticTitle } = useApp();
   const [openMenu, setOpenMenu] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameVal, setRenameVal] = useState(file.name);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (isRenaming) renameInputRef.current?.focus(); }, [isRenaming]);
+
+  const handleRenameSubmit = () => {
+    const trimmed = renameVal.trim();
+    if (trimmed && trimmed !== file.name) updateStaticTitle(file.id, trimmed);
+    else setRenameVal(file.name);
+    setIsRenaming(false);
+  };
 
   const [{ isDragging }, drag, dragPreview] = useDrag<DragItem, void, { isDragging: boolean }>({
     type: DRAG_TYPE,
@@ -212,23 +217,37 @@ function FileCard({ file, code, viewMode, onView, onMove, onEdit, onPermissionCl
     collect: m => ({ isDragging: m.isDragging() }),
   });
 
+  const thumbnailStyle: React.CSSProperties = file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
+    ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' };
+
+  const menuItems = (
+    <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-10 py-1"
+      onClick={e => e.stopPropagation()}>
+      <button onClick={() => { setIsRenaming(true); setRenameVal(file.name); setOpenMenu(false); }}
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
+        <Pencil className="w-4 h-4 text-violet-500" />名前を変更
+      </button>
+      <button onClick={() => { onToggleStar(file.id); setOpenMenu(false); }}
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
+        <Star className="w-4 h-4 text-yellow-500" />
+        {file.starred ? 'お気に入り解除' : 'お気に入り'}
+      </button>
+      <button onClick={() => { onMove(file); setOpenMenu(false); }}
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
+        <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
+      </button>
+    </div>
+  );
+
   if (viewMode === 'grid') {
     return (
       <div
         ref={dragPreview}
-        onClick={() => onView(file.id)}
+        onClick={() => { if (!isRenaming) onView(file.id); }}
         className={`group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] cursor-pointer border border-violet-100 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
       >
-        <div ref={drag} className="h-48 relative" style={
-          file.isDynamic && code
-            ? {}
-            : file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
-              ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' }
-        }>
-          {file.isDynamic && code && (
-            <SlidePreviewThumbnail code={code} className="absolute inset-0" />
-          )}
+        <div ref={drag} className="h-48 relative" style={thumbnailStyle}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <FileText className="w-12 h-12 text-white" />
           </div>
@@ -247,33 +266,24 @@ function FileCard({ file, code, viewMode, onView, onMove, onEdit, onPermissionCl
                 className="bg-white/90 backdrop-blur-sm p-2 rounded-full hover:bg-white transition-colors opacity-0 group-hover:opacity-100">
                 <MoreVertical className="w-4 h-4 text-gray-600" />
               </button>
-              {openMenu && (
-                <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-10 py-1"
-                  onClick={e => e.stopPropagation()}>
-                  <button onClick={() => { onToggleStar(file.id); setOpenMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
-                    <Star className="w-4 h-4 text-yellow-500" />
-                    {file.starred ? 'お気に入り解除' : 'お気に入り'}
-                  </button>
-                  <button onClick={() => { onMove(file); setOpenMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
-                    <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
-                  </button>
-                  <button onClick={() => { onEdit(file); setOpenMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
-                    <Code2 className="w-4 h-4 text-violet-500" />TSXを編集
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); onDelete(file); setOpenMenu(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                    <Trash2 className="w-4 h-4" />削除
-                  </button>
-                </div>
-              )}
+              {openMenu && menuItems}
             </div>
           </div>
         </div>
         <div className="p-5">
-          <h3 className="mb-2 text-gray-800">{file.name}</h3>
+          {isRenaming ? (
+            <input
+              ref={renameInputRef}
+              value={renameVal}
+              onChange={e => setRenameVal(e.target.value)}
+              onBlur={handleRenameSubmit}
+              onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') { setRenameVal(file.name); setIsRenaming(false); } }}
+              onClick={e => e.stopPropagation()}
+              className="w-full text-gray-800 border-b-2 border-violet-400 outline-none bg-transparent mb-2 font-semibold"
+            />
+          ) : (
+            <h3 className="mb-2 text-gray-800">{file.name}</h3>
+          )}
           <div className="flex items-center justify-between text-sm text-gray-500">
             <div className="flex items-center gap-2"><User className="w-4 h-4" /><span>{file.author}</span></div>
             <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /><span>{file.lastModified}</span></div>
@@ -287,22 +297,24 @@ function FileCard({ file, code, viewMode, onView, onMove, onEdit, onPermissionCl
   return (
     <div
       ref={dragPreview}
-      onClick={() => onView(file.id)}
+      onClick={() => { if (!isRenaming) onView(file.id); }}
       className={`flex items-center gap-4 p-5 hover:bg-violet-50 transition-colors cursor-pointer border-b border-violet-50 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
     >
-      <div ref={drag} className="w-20 h-14 rounded-lg flex-shrink-0 cursor-grab active:cursor-grabbing overflow-hidden" style={
-        file.isDynamic && code
-          ? {}
-          : file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
-            ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-            : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' }
-      }>
-        {file.isDynamic && code && (
-          <SlidePreviewThumbnail code={code} className="w-full h-full" />
-        )}
-      </div>
+      <div ref={drag} className="w-20 h-14 rounded-lg flex-shrink-0 cursor-grab active:cursor-grabbing overflow-hidden" style={thumbnailStyle} />
       <div className="flex-1 min-w-0">
-        <h3 className="mb-1 text-gray-800 truncate">{file.name}</h3>
+        {isRenaming ? (
+          <input
+            ref={renameInputRef}
+            value={renameVal}
+            onChange={e => setRenameVal(e.target.value)}
+            onBlur={handleRenameSubmit}
+            onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') { setRenameVal(file.name); setIsRenaming(false); } }}
+            onClick={e => e.stopPropagation()}
+            className="w-full text-gray-800 border-b-2 border-violet-400 outline-none bg-transparent mb-1 font-semibold"
+          />
+        ) : (
+          <h3 className="mb-1 text-gray-800 truncate">{file.name}</h3>
+        )}
         <div className="flex items-center gap-4 text-sm text-gray-500">
           <div className="flex items-center gap-1"><User className="w-4 h-4" /><span>{file.author}</span></div>
           <div className="flex items-center gap-1"><Calendar className="w-4 h-4" /><span>{file.lastModified}</span></div>
@@ -319,28 +331,7 @@ function FileCard({ file, code, viewMode, onView, onMove, onEdit, onPermissionCl
             className="p-2 hover:bg-violet-100 rounded-lg transition-colors">
             <MoreVertical className="w-5 h-5 text-gray-600" />
           </button>
-          {openMenu && (
-            <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-10 py-1"
-              onClick={e => e.stopPropagation()}>
-              <button onClick={() => { onToggleStar(file.id); setOpenMenu(false); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
-                <Star className="w-4 h-4 text-yellow-500" />
-                {file.starred ? 'お気に入り解除' : 'お気に入り'}
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); onMove(file); setOpenMenu(false); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
-                <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
-              </button>
-              <button onClick={() => { onEdit(file); setOpenMenu(false); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
-                <Code2 className="w-4 h-4 text-violet-500" />TSXを編集
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); onDelete(file); setOpenMenu(false); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                <Trash2 className="w-4 h-4" />削除
-              </button>
-            </div>
-          )}
+          {openMenu && menuItems}
         </div>
       </div>
     </div>
@@ -402,11 +393,10 @@ interface FolderViewProps {
 }
 
 export function FolderView({ onPermissionClick }: FolderViewProps) {
-  const { items, currentFolderId, setCurrentFolder, getCurrentFolderPath, toggleStar, deleteItem, dynamicCodeMap } = useApp();
+  const { items, currentFolderId, setCurrentFolder, getCurrentFolderPath, toggleStar } = useApp();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [viewingFileId, setViewingFileId] = useState<string | null>(null);
   const [movingFile, setMovingFile] = useState<FileItem | null>(null);
-  const [editingFile, setEditingFile] = useState<FileItem | null>(null);
 
   const currentItems = items.filter(item => item.parentId === currentFolderId);
   const files = currentItems.filter(item => item.type === 'file') as FileItem[];
@@ -417,22 +407,6 @@ export function FolderView({ onPermissionClick }: FolderViewProps) {
   const viewingPresentation = viewingFileId
     ? presentationRegistry.find(p => p.meta.id === viewingFileId) ?? null
     : null;
-  const viewingDynamicCode = viewingFile?.isDynamic ? (dynamicCodeMap[viewingFileId!] ?? null) : null;
-
-  const { confirm } = useConfirm();
-
-  const handleDeleteFile = async (file: FileItem) => {
-    const ok = await confirm({
-      title: 'ファイルを削除',
-      message: `「${file.name}」を削除しますか？`,
-      confirmLabel: '削除する',
-      variant: 'danger',
-    });
-    if (ok) {
-      deleteItem(file.id);
-      toast.delete('削除しました');
-    }
-  };
 
   return (
     <div onClick={() => {}}>
@@ -481,10 +455,8 @@ export function FolderView({ onPermissionClick }: FolderViewProps) {
           ))}
           {files.map(file => (
             <FileCard key={file.id} file={file} viewMode="grid"
-              code={file.isDynamic ? (dynamicCodeMap[file.id] ?? undefined) : undefined}
-              onView={setViewingFileId} onMove={setMovingFile} onEdit={setEditingFile}
-              onPermissionClick={onPermissionClick} onToggleStar={toggleStar}
-              onDelete={handleDeleteFile} />
+              onView={setViewingFileId} onMove={setMovingFile}
+              onPermissionClick={onPermissionClick} onToggleStar={toggleStar} />
           ))}
         </div>
       ) : (
@@ -495,10 +467,8 @@ export function FolderView({ onPermissionClick }: FolderViewProps) {
           ))}
           {files.map(file => (
             <FileCard key={file.id} file={file} viewMode="list"
-              code={file.isDynamic ? (dynamicCodeMap[file.id] ?? undefined) : undefined}
-              onView={setViewingFileId} onMove={setMovingFile} onEdit={setEditingFile}
-              onPermissionClick={onPermissionClick} onToggleStar={toggleStar}
-              onDelete={handleDeleteFile} />
+              onView={setViewingFileId} onMove={setMovingFile}
+              onPermissionClick={onPermissionClick} onToggleStar={toggleStar} />
           ))}
         </div>
       )}
@@ -512,21 +482,14 @@ export function FolderView({ onPermissionClick }: FolderViewProps) {
       )}
 
       {viewingPresentation && (
-        <PresentationViewer presentation={viewingPresentation} onClose={() => setViewingFileId(null)} />
-      )}
-      {viewingDynamicCode && viewingFile && (
-        <DynamicPresentationViewer
-          title={viewingFile.name}
-          code={viewingDynamicCode}
-          id={viewingFile.id}
+        <PresentationViewer
+          presentation={viewingPresentation}
+          titleOverride={viewingFile?.name}
           onClose={() => setViewingFileId(null)}
         />
       )}
       {movingFile && (
         <MoveToFolderDialog fileId={movingFile.id} currentFolderId={movingFile.parentId} onClose={() => setMovingFile(null)} />
-      )}
-      {editingFile && (
-        <EditTsxDialog file={editingFile} onClose={() => setEditingFile(null)} />
       )}
     </div>
   );
