@@ -58,6 +58,10 @@ interface SlideComment {
   replies: CommentReply[];
 }
 
+interface SlideCommentFull extends SlideComment {
+  slideIndex: number;
+}
+
 type PanelFilter = 'all' | 'open' | 'resolved';
 
 const COMMENT_KEY = 'presenthub_slide_comments';
@@ -100,11 +104,15 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   // Current user derived from AuthContext (no getSession() call)
   const currentUser = profile ? { id: profile.id, name: profile.name || '外部ユーザー' } : null;
 
-  // Comment state
+  // All slides' comments (single source of truth)
+  const [allSlideComments, setAllSlideComments] = useState<SlideCommentFull[]>([]);
+  // Derived: current slide's comments for the overlay
+  const comments: SlideComment[] = allSlideComments.filter(c => c.slideIndex === current);
+
+  // Comment UI state
   const [isCommentMode, setIsCommentMode] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [panelFilter, setPanelFilter] = useState<PanelFilter>('all');
-  const [comments, setComments] = useState<SlideComment[]>([]);
   const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(null);
   const [newCommentText, setNewCommentText] = useState('');
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
@@ -116,32 +124,19 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const prev = useCallback(() => setCurrent(s => Math.max(0, s - 1)), []);
   const next = useCallback(() => setCurrent(s => Math.min(total - 1, s + 1)), [total]);
 
+  // ── 全スライドのコメントを初期ロード（パネル表示用）────────────────────
   useEffect(() => {
-    setPendingPos(null);
-    setActiveCommentId(null);
-    setNewCommentText('');
-    setEditingId(null);
-    setReplyingToId(null);
-    // Clear immediately to prevent previous slide's comments from showing during load
-    setComments([]);
-
-    if (!isSupabaseConfigured || !accessToken) {
-      setComments(loadAllComments()[`${presId}_${current}`] ?? []);
-      return;
-    }
-
+    if (!isSupabaseConfigured || !accessToken) return;
     let cancelled = false;
     (async () => {
       try {
-        type CommentRow = { id: string; text: string; timestamp: string; x: number; y: number; resolved: boolean; author_name: string };
+        type CommentRow = { id: string; text: string; timestamp: string; x: number; y: number; resolved: boolean; author_name: string; slide_index: number };
         type ReplyRow = { id: string; comment_id: string; text: string; timestamp: string; author_name: string };
-
         const rows = await commentRest<CommentRow[]>(
-          `slide_comments?presentation_id=eq.${presId}&slide_index=eq.${current}&order=created_at.asc`,
+          `slide_comments?presentation_id=eq.${presId}&order=slide_index.asc,created_at.asc`,
           accessToken, 'GET'
         );
         if (cancelled) return;
-
         let replyRows: ReplyRow[] = [];
         if (rows.length > 0) {
           const ids = rows.map(r => r.id).join(',');
@@ -151,19 +146,76 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
           );
           if (cancelled) return;
         }
-
-        const mapped: SlideComment[] = rows.map(r => ({
+        const mapped: SlideCommentFull[] = rows.map(r => ({
+          slideIndex: r.slide_index,
           id: r.id, text: r.text, timestamp: r.timestamp,
-          x: r.x, y: r.y, resolved: r.resolved,
-          authorName: r.author_name,
-          replies: replyRows
-            .filter(rp => rp.comment_id === r.id)
+          x: r.x, y: r.y, resolved: r.resolved, authorName: r.author_name,
+          replies: replyRows.filter(rp => rp.comment_id === r.id)
             .map(rp => ({ id: rp.id, text: rp.text, timestamp: rp.timestamp, authorName: rp.author_name })),
         }));
-        setComments(mapped);
+        setAllSlideComments(mapped);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presId, accessToken]);
+
+  // ── スライド切替時：現在スライドを最新データで更新 ───────────────────
+  useEffect(() => {
+    setPendingPos(null);
+    setActiveCommentId(null);
+    setNewCommentText('');
+    setEditingId(null);
+    setReplyingToId(null);
+
+    if (!isSupabaseConfigured || !accessToken) {
+      const local = (loadAllComments()[`${presId}_${current}`] ?? []) as SlideComment[];
+      setAllSlideComments(prev => [
+        ...prev.filter(c => c.slideIndex !== current),
+        ...local.map(c => ({ ...c, slideIndex: current })),
+      ]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        type CommentRow = { id: string; text: string; timestamp: string; x: number; y: number; resolved: boolean; author_name: string };
+        type ReplyRow = { id: string; comment_id: string; text: string; timestamp: string; author_name: string };
+        const rows = await commentRest<CommentRow[]>(
+          `slide_comments?presentation_id=eq.${presId}&slide_index=eq.${current}&order=created_at.asc`,
+          accessToken, 'GET'
+        );
+        if (cancelled) return;
+        let replyRows: ReplyRow[] = [];
+        if (rows.length > 0) {
+          const ids = rows.map(r => r.id).join(',');
+          replyRows = await commentRest<ReplyRow[]>(
+            `slide_comment_replies?comment_id=in.(${ids})&order=created_at.asc`,
+            accessToken, 'GET'
+          );
+          if (cancelled) return;
+        }
+        const mapped: SlideCommentFull[] = rows.map(r => ({
+          slideIndex: current,
+          id: r.id, text: r.text, timestamp: r.timestamp,
+          x: r.x, y: r.y, resolved: r.resolved, authorName: r.author_name,
+          replies: replyRows.filter(rp => rp.comment_id === r.id)
+            .map(rp => ({ id: rp.id, text: rp.text, timestamp: rp.timestamp, authorName: rp.author_name })),
+        }));
+        setAllSlideComments(prev => [
+          ...prev.filter(c => c.slideIndex !== current),
+          ...mapped,
+        ]);
         saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: mapped });
       } catch {
-        if (!cancelled) setComments(loadAllComments()[`${presId}_${current}`] ?? []);
+        if (!cancelled) {
+          const local = (loadAllComments()[`${presId}_${current}`] ?? []) as SlideComment[];
+          setAllSlideComments(prev => [
+            ...prev.filter(c => c.slideIndex !== current),
+            ...local.map(c => ({ ...c, slideIndex: current })),
+          ]);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -254,9 +306,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
       authorName,
       replies: [],
     };
-    const newList = [...comments, comment];
-    setComments(newList);
-    saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
+    setAllSlideComments(prev => [...prev, { ...comment, slideIndex: current }]);
+    saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: [...comments, comment] });
     if (isSupabaseConfigured && accessToken) {
       commentRest(`slide_comments`, accessToken, 'POST', {
         id: comment.id, presentation_id: presId, slide_index: current,
@@ -272,40 +323,43 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   }, [newCommentText, pendingPos, presId, current, comments, authorName, authorId, accessToken]);
 
   const deleteComment = useCallback((commentId: string) => {
-    const newList = comments.filter(c => c.id !== commentId);
-    setComments(newList);
-    saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
+    const slideIdx = allSlideComments.find(c => c.id === commentId)?.slideIndex ?? current;
+    setAllSlideComments(prev => prev.filter(c => c.id !== commentId));
+    const newSlideList = allSlideComments.filter(c => c.slideIndex === slideIdx && c.id !== commentId);
+    saveAllComments({ ...loadAllComments(), [`${presId}_${slideIdx}`]: newSlideList });
     if (isSupabaseConfigured && accessToken) {
       commentRest(`slide_comments?id=eq.${commentId}`, accessToken, 'DELETE')
         .catch(e => console.error('[comment] delete failed:', e));
     }
     setActiveCommentId(null);
     if (editingId === commentId) setEditingId(null);
-  }, [presId, current, comments, editingId, accessToken]);
+  }, [presId, current, allSlideComments, editingId, accessToken]);
 
   const resolveComment = useCallback((commentId: string) => {
-    const newList = comments.map(c => c.id === commentId ? { ...c, resolved: !c.resolved } : c);
-    setComments(newList);
-    saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
-    const resolved = newList.find(c => c.id === commentId)?.resolved ?? false;
+    const resolved = !(allSlideComments.find(c => c.id === commentId)?.resolved ?? true);
+    const slideIdx = allSlideComments.find(c => c.id === commentId)?.slideIndex ?? current;
+    setAllSlideComments(prev => prev.map(c => c.id === commentId ? { ...c, resolved } : c));
+    const newSlideList = allSlideComments.filter(c => c.slideIndex === slideIdx).map(c => c.id === commentId ? { ...c, resolved } : c);
+    saveAllComments({ ...loadAllComments(), [`${presId}_${slideIdx}`]: newSlideList });
     if (isSupabaseConfigured && accessToken) {
       commentRest(`slide_comments?id=eq.${commentId}`, accessToken, 'PATCH', { resolved })
         .catch(e => console.error('[comment] resolve failed:', e));
     }
-  }, [presId, current, comments, accessToken]);
+  }, [presId, current, allSlideComments, accessToken]);
 
   const saveEdit = useCallback(() => {
     if (!editingId || !editText.trim()) return;
-    const newList = comments.map(c => c.id === editingId ? { ...c, text: editText.trim() } : c);
-    setComments(newList);
-    saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
+    const slideIdx = allSlideComments.find(c => c.id === editingId)?.slideIndex ?? current;
+    setAllSlideComments(prev => prev.map(c => c.id === editingId ? { ...c, text: editText.trim() } : c));
+    const newSlideList = allSlideComments.filter(c => c.slideIndex === slideIdx).map(c => c.id === editingId ? { ...c, text: editText.trim() } : c);
+    saveAllComments({ ...loadAllComments(), [`${presId}_${slideIdx}`]: newSlideList });
     if (isSupabaseConfigured && accessToken) {
       commentRest(`slide_comments?id=eq.${editingId}`, accessToken, 'PATCH', { text: editText.trim() })
         .catch(e => console.error('[comment] edit failed:', e));
     }
     setEditingId(null);
     setEditText('');
-  }, [editingId, editText, presId, current, comments, accessToken]);
+  }, [editingId, editText, presId, current, allSlideComments, accessToken]);
 
   const addReply = useCallback(() => {
     if (!replyingToId || !replyText.trim()) return;
@@ -315,9 +369,10 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
       timestamp: formatTs(),
       authorName,
     };
-    const newList = comments.map(c => c.id === replyingToId ? { ...c, replies: [...c.replies, reply] } : c);
-    setComments(newList);
-    saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
+    const slideIdx = allSlideComments.find(c => c.id === replyingToId)?.slideIndex ?? current;
+    setAllSlideComments(prev => prev.map(c => c.id === replyingToId ? { ...c, replies: [...c.replies, reply] } : c));
+    const newSlideList = allSlideComments.filter(c => c.slideIndex === slideIdx).map(c => c.id === replyingToId ? { ...c, replies: [...c.replies, reply] } : c);
+    saveAllComments({ ...loadAllComments(), [`${presId}_${slideIdx}`]: newSlideList });
     if (isSupabaseConfigured && accessToken) {
       commentRest(`slide_comment_replies`, accessToken, 'POST', {
         id: reply.id, comment_id: replyingToId,
@@ -327,26 +382,29 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     }
     setReplyingToId(null);
     setReplyText('');
-  }, [replyingToId, replyText, presId, current, comments, authorName, authorId, accessToken]);
+  }, [replyingToId, replyText, presId, current, allSlideComments, authorName, authorId, accessToken]);
 
   const deleteReply = useCallback((commentId: string, replyId: string) => {
-    const newList = comments.map(c => c.id === commentId ? { ...c, replies: c.replies.filter(r => r.id !== replyId) } : c);
-    setComments(newList);
-    saveAllComments({ ...loadAllComments(), [`${presId}_${current}`]: newList });
+    const slideIdx = allSlideComments.find(c => c.id === commentId)?.slideIndex ?? current;
+    setAllSlideComments(prev => prev.map(c => c.id === commentId ? { ...c, replies: c.replies.filter(r => r.id !== replyId) } : c));
+    const newSlideList = allSlideComments.filter(c => c.slideIndex === slideIdx).map(c => c.id === commentId ? { ...c, replies: c.replies.filter(r => r.id !== replyId) } : c);
+    saveAllComments({ ...loadAllComments(), [`${presId}_${slideIdx}`]: newSlideList });
     if (isSupabaseConfigured && accessToken) {
       commentRest(`slide_comment_replies?id=eq.${replyId}`, accessToken, 'DELETE')
         .catch(e => console.error('[comment] reply delete failed:', e));
     }
-  }, [presId, current, comments, accessToken]);
+  }, [presId, current, allSlideComments, accessToken]);
 
   const showLaser = isLaser && isOverSlide;
   const S = slideScale ?? 0;
   const counterScale = S > 0 ? 1 / S : 1;
-  const openCount = comments.filter(c => !c.resolved).length;
-  const totalCount = comments.length;
-  const filteredComments = comments.filter(c =>
+  const openCount = allSlideComments.filter(c => !c.resolved).length;
+  const totalCount = allSlideComments.length;
+  const filteredAll = allSlideComments.filter(c =>
     panelFilter === 'open' ? !c.resolved : panelFilter === 'resolved' ? c.resolved : true
   );
+  const slideGroups = [...new Set(filteredAll.map(c => c.slideIndex))].sort((a, b) => a - b)
+    .map(idx => ({ idx, items: filteredAll.filter(c => c.slideIndex === idx) }));
 
   // ── Comment overlay ───────────────────────────────────────────────────
   const commentOverlay = (
@@ -441,19 +499,32 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
 
       {/* List */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
-        {filteredComments.length === 0 ? (
+        {filteredAll.length === 0 ? (
           <div style={{ paddingTop: 36, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: 12, lineHeight: 2 }}>
             {panelFilter === 'resolved' ? '解決済みのコメントはありません' : panelFilter === 'open' ? '未解決のコメントはありません' : 'コメントはありません\nスライドをクリックして追加'}
           </div>
-        ) : filteredComments.map(c => {
-          const origIdx = comments.indexOf(c);
-          const isEditing = editingId === c.id;
-          const isActive = activeCommentId === c.id;
-          const isReplying = replyingToId === c.id;
+        ) : slideGroups.map((group, groupIdx) => {
+          const slideAllComments = allSlideComments.filter(c => c.slideIndex === group.idx);
           return (
-            <div key={c.id} style={{ borderRadius: 10, marginBottom: 6, background: isActive ? 'rgba(167,139,250,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isActive ? 'rgba(167,139,250,0.25)' : 'rgba(255,255,255,0.06)'}`, opacity: c.resolved && !isActive ? 0.5 : 1, overflow: 'hidden' }}>
+            <div key={group.idx}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: groupIdx > 0 ? 14 : 4, marginBottom: 6 }}>
+                <button
+                  onClick={() => setCurrent(group.idx)}
+                  style={{ fontSize: 10, fontWeight: 700, color: group.idx === current ? '#a78bfa' : 'rgba(167,139,250,0.5)', whiteSpace: 'nowrap', letterSpacing: '0.05em', background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >
+                  P.{group.idx + 1}
+                </button>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+              </div>
+              {group.items.map(c => {
+                const origIdx = slideAllComments.findIndex(sc => sc.id === c.id);
+                const isEditing = editingId === c.id;
+                const isActive = activeCommentId === c.id;
+                const isReplying = replyingToId === c.id;
+                return (
+                  <div key={c.id} style={{ borderRadius: 10, marginBottom: 6, background: isActive ? 'rgba(167,139,250,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isActive ? 'rgba(167,139,250,0.25)' : 'rgba(255,255,255,0.06)'}`, opacity: c.resolved && !isActive ? 0.5 : 1, overflow: 'hidden' }}>
               {/* Comment header */}
-              <div style={{ padding: '9px 10px 0' }} onClick={() => !isEditing && setActiveCommentId(isActive ? null : c.id)}>
+              <div style={{ padding: '9px 10px 0' }} onClick={() => { if (!isEditing) { if (c.slideIndex !== current) setCurrent(c.slideIndex); setActiveCommentId(isActive ? null : c.id); } }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, cursor: isEditing ? 'default' : 'pointer' }}>
                   <div style={{ width: 20, height: 20, flexShrink: 0, borderRadius: c.resolved ? '50%' : '50% 50% 0 50%', background: c.resolved ? '#10b981' : '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'white' }}>
                     {c.resolved ? '✓' : origIdx + 1}
@@ -528,6 +599,9 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
                   <CornerDownRight size={11} />返信
                 </button>
               )}
+                  </div>
+                );
+              })}
             </div>
           );
         })}
