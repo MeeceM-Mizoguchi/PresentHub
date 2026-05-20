@@ -90,6 +90,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     slowTimerRef.current = setTimeout(() => setIsSlowLoading(true), 8000);
 
+    // Log the URL being used (first 60 chars) to verify env vars are correct
+    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || '(not set)';
+    console.log('[Supabase] URL:', supabaseUrl.slice(0, 60));
+
     // Each attempt gets its own AbortController so we can cancel timed-out
     // requests immediately, freeing browser TCP connections (limit: 6/host).
     async function doFetch(signal: AbortSignal): Promise<void> {
