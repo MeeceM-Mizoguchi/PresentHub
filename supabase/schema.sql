@@ -162,3 +162,25 @@ DROP POLICY IF EXISTS "replies_delete" ON public.slide_comment_replies;
 CREATE POLICY "replies_select" ON public.slide_comment_replies FOR SELECT TO authenticated USING (true);
 CREATE POLICY "replies_insert" ON public.slide_comment_replies FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
 CREATE POLICY "replies_delete" ON public.slide_comment_replies FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);
+
+-- ── プレゼンテーションアセット ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.presentation_assets (
+  id            TEXT        PRIMARY KEY,
+  name          TEXT        NOT NULL,
+  storage_path  TEXT        NOT NULL,
+  public_url    TEXT        NOT NULL,
+  mime_type     TEXT,
+  size_bytes    BIGINT,
+  related_id    TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.presentation_assets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "assets_select" ON public.presentation_assets;
+DROP POLICY IF EXISTS "assets_insert" ON public.presentation_assets;
+DROP POLICY IF EXISTS "assets_delete" ON public.presentation_assets;
+
+CREATE POLICY "assets_select" ON public.presentation_assets FOR SELECT TO authenticated USING (true);
+CREATE POLICY "assets_insert" ON public.presentation_assets FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "assets_delete" ON public.presentation_assets FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);

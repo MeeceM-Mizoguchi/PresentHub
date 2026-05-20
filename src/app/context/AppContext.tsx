@@ -2,6 +2,34 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback, Re
 import { Item, FolderItem, FileItem, SharedUser } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { useAuth } from './AuthContext';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+// Direct REST call that bypasses supabase.from() → getSession() → auth lock chain.
+// supabase.from() internally calls getSession() on every request, which waits for the
+// JS-level token-refresh lock. If that refresh is retrying (3× 10s = 30s), every
+// query hangs. Using the access token we already have from onAuthStateChange skips
+// the lock entirely.
+async function restGet<T>(path: string, token: string): Promise<T[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON_KEY,
+        'Accept': 'application/json',
+      },
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`REST ${res.status}: ${await res.text()}`);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const DEFAULT_SHARED_USERS: SharedUser[] = [];
 
@@ -61,6 +89,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { session } = useAuth();
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [files, setFiles] = useState<FileItem[]>(() =>
     buildFileItems({}, loadTitleOverrides())
@@ -81,47 +110,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured) { setIsLoading(false); return; }
 
+    const accessToken = session?.access_token;
+    if (!accessToken) { setIsLoading(false); return; }
+
     setIsLoading(true);
     setLoadError(false);
     let cancelled = false;
     if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     slowTimerRef.current = setTimeout(() => setIsSlowLoading(true), 8000);
 
-    // 35s hard timeout: covers auth token refresh retries (10s × up to 3 attempts)
-    // plus the actual data query. The fetchWithTimeout in supabase.ts ensures each
-    // individual request aborts in 10s, so this should naturally resolve before 35s.
     const hardTimeoutId = setTimeout(() => {
       if (cancelled) return;
       cancelled = true;
-      console.error('[Supabase] Hard timeout after 35s');
+      console.error('[AppContext] Hard timeout after 15s');
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
       setIsSlowLoading(false);
       setIsLoading(false);
       setLoadError(true);
-    }, 35_000);
+    }, 15_000);
 
     async function load() {
       try {
-        const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
-          supabase.from('folders').select('*').order('created_at'),
-          supabase.from('presentation_meta').select('*'),
+        // Use restGet (direct REST with access token) to bypass supabase.from()'s
+        // internal getSession() call, which blocks on the token-refresh JS lock.
+        const [dbFolders, dbMeta] = await Promise.all([
+          restGet<{ id: string; name: string; parent_id: string | null }>('folders?order=created_at', accessToken),
+          restGet<{ id: string; folder_id: string | null; starred: boolean }>('presentation_meta', accessToken),
         ]);
         if (cancelled) return;
-        if (fErr) throw fErr;
-        if (mErr) throw mErr;
-        if (dbFolders) {
-          setFolders(dbFolders.map(f => ({
-            id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
-          })));
-        }
+        setFolders(dbFolders.map(f => ({
+          id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
+        })));
         const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
-        if (dbMeta) {
-          for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
-        }
+        for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
         setFiles(buildFileItems(metaMap, loadTitleOverrides()));
       } catch (err) {
         if (cancelled) return;
-        console.error('[Supabase] Error:', err);
+        console.error('[AppContext] Load error:', err);
         setLoadError(true);
       } finally {
         clearTimeout(hardTimeoutId);
@@ -140,7 +165,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearTimeout(hardTimeoutId);
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     };
-  }, [loadTrigger]);
+  // session.access_token が変わる（トークンリフレッシュ）ときだけ再フェッチ
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadTrigger, session?.access_token]);
 
   const items: Item[] = [...folders, ...files];
 
