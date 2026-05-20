@@ -27,13 +27,11 @@ import { MoveToFolderDialog } from './MoveToFolderDialog';
 import { AdminRequestsPage } from './AdminRequestsPage';
 import { AccountPage } from './AccountPage';
 import { useApp } from '../context/AppContext';
-import { useDeployDetection } from '../hooks/useDeployDetection';
 import { FileItem } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
 import { toast } from '../lib/toast';
 
 export function DashboardPage() {
-  useDeployDetection();
   const { items, currentFolderId, addFolder, addSharedUser, setCurrentFolder, isLoading, isSlowLoading, loadError, retryLoad, toggleStar, updateStaticTitle } = useApp();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');

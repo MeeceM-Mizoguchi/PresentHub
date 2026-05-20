@@ -52,27 +52,10 @@ function presentationEditorPlugin() {
   }
 }
 
-const BUILD_TIME = new Date().toISOString();
-
-function buildVersionPlugin() {
-  return {
-    name: 'build-version',
-    buildStart() {
-      const publicDir = path.resolve(__dirname, 'public');
-      if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-      fs.writeFileSync(path.join(publicDir, 'version.json'), JSON.stringify({ buildTime: BUILD_TIME }), 'utf-8');
-    },
-  };
-}
-
 export default defineConfig({
-  define: {
-    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
-  },
   plugins: [
     figmaAssetResolver(),
     presentationEditorPlugin(),
-    buildVersionPlugin(),
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
     react(),
