@@ -87,40 +87,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
 
+    async function fetchData() {
+      const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
+        supabase.from('folders').select('*').order('created_at'),
+        supabase.from('presentation_meta').select('*'),
+      ]);
+      if (cancelled) return;
+      if (fErr) throw fErr;
+      if (mErr) throw mErr;
+      if (dbFolders) {
+        setFolders(dbFolders.map(f => ({
+          id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
+        })));
+      }
+      const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
+      if (dbMeta) {
+        for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
+      }
+      setFiles(buildFileItems(metaMap, loadTitleOverrides()));
+    }
+
+    // Supabase free tier sleeps after inactivity and can take 60-90s to wake.
+    // Retry once automatically before surfacing the error to the user.
     async function load() {
-      try {
-        await Promise.race([
-          (async () => {
-            const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
-              supabase.from('folders').select('*').order('created_at'),
-              supabase.from('presentation_meta').select('*'),
-            ]);
-            if (cancelled) return;
-            if (fErr) throw fErr;
-            if (mErr) throw mErr;
-            if (dbFolders) {
-              setFolders(dbFolders.map(f => ({
-                id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
-              })));
-            }
-            const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
-            if (dbMeta) {
-              for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
-            }
-            setFiles(buildFileItems(metaMap, loadTitleOverrides()));
-          })(),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('load timeout')), 60_000)),
-        ]);
-      } catch (err) {
-        if (!cancelled) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          await Promise.race([
+            fetchData(),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('load timeout')), 90_000)),
+          ]);
+          return; // success
+        } catch (err) {
+          if (cancelled) return;
+          if (attempt === 0) {
+            console.warn('Supabase load attempt 1 timed out, retrying...');
+            continue;
+          }
           console.error('Supabase load error:', err);
           setLoadError(true);
-        }
-      } finally {
-        if (!cancelled) {
-          if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
-          setIsSlowLoading(false);
-          setIsLoading(false);
         }
       }
     }
