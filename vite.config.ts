@@ -52,21 +52,22 @@ function presentationEditorPlugin() {
   }
 }
 
+const BUILD_TIME = new Date().toISOString();
+
 function buildVersionPlugin() {
   return {
     name: 'build-version',
     buildStart() {
-      const buildTime = new Date().toISOString();
       const publicDir = path.resolve(__dirname, 'public');
       if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-      fs.writeFileSync(path.join(publicDir, 'version.json'), JSON.stringify({ buildTime }), 'utf-8');
+      fs.writeFileSync(path.join(publicDir, 'version.json'), JSON.stringify({ buildTime: BUILD_TIME }), 'utf-8');
     },
   };
 }
 
 export default defineConfig({
   define: {
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
   },
   plugins: [
     figmaAssetResolver(),
