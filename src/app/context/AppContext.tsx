@@ -72,7 +72,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState(false);
   const [loadTrigger, setLoadTrigger] = useState(0);
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const retryLoad = useCallback(() => {
     setLoadError(false);
@@ -82,86 +81,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured) { setIsLoading(false); return; }
 
-    // Cancel any previous hanging requests before starting fresh
-    abortControllerRef.current?.abort();
-
     setIsLoading(true);
     setLoadError(false);
     let cancelled = false;
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     slowTimerRef.current = setTimeout(() => setIsSlowLoading(true), 8000);
 
-    // Log the URL being used (first 60 chars) to verify env vars are correct
-    const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || '(not set)';
-    console.log('[Supabase] URL:', supabaseUrl.slice(0, 60));
-
-    // Each attempt gets its own AbortController so we can cancel timed-out
-    // requests immediately, freeing browser TCP connections (limit: 6/host).
-    async function doFetch(signal: AbortSignal): Promise<void> {
-      console.log('[Supabase] Starting fetch attempt...');
-      const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
-        supabase.from('folders').select('*').order('created_at').abortSignal(signal),
-        supabase.from('presentation_meta').select('*').abortSignal(signal),
-      ]);
+    const hardTimeoutId = setTimeout(() => {
       if (cancelled) return;
-      if (fErr) throw fErr;
-      if (mErr) throw mErr;
-      if (dbFolders) {
-        setFolders(dbFolders.map(f => ({
-          id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
-        })));
-      }
-      const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
-      if (dbMeta) {
-        for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
-      }
-      setFiles(buildFileItems(metaMap, loadTitleOverrides()));
-      console.log('[Supabase] Fetch complete.');
-    }
+      cancelled = true;
+      console.error('[Supabase] Hard timeout — giving up after 30s');
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      setIsSlowLoading(false);
+      setIsLoading(false);
+      setLoadError(true);
+    }, 30_000);
 
     async function load() {
-      for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        console.log('[Auth] Checking session...');
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[Auth] Session:', session
+          ? `OK (expires ${new Date((session.expires_at ?? 0) * 1000).toISOString()})`
+          : 'null — no session');
+
+        console.log('[Supabase] Starting data fetch...');
+        const [{ data: dbFolders, error: fErr }, { data: dbMeta, error: mErr }] = await Promise.all([
+          supabase.from('folders').select('*').order('created_at'),
+          supabase.from('presentation_meta').select('*'),
+        ]);
         if (cancelled) return;
-
-        const controller = new AbortController();
-        abortControllerRef.current = controller;
-
-        let timeoutId: ReturnType<typeof setTimeout> | null = null;
-        try {
-          await Promise.race([
-            doFetch(controller.signal),
-            new Promise<never>((_, reject) => {
-              timeoutId = setTimeout(() => {
-                controller.abort();
-                reject(new Error('load timeout'));
-              }, 60_000);
-            }),
-          ]);
-          if (timeoutId) clearTimeout(timeoutId);
-          return; // success
-        } catch (err) {
-          if (timeoutId) clearTimeout(timeoutId);
-          if (cancelled) return;
-          if (attempt === 0) {
-            console.warn('[Supabase] Attempt 1 failed, retrying...', err);
-            continue;
-          }
-          console.error('[Supabase] Load failed after 2 attempts:', err);
-          setLoadError(true);
+        if (fErr) throw fErr;
+        if (mErr) throw mErr;
+        if (dbFolders) {
+          setFolders(dbFolders.map(f => ({
+            id: f.id, name: f.name, type: 'folder' as const, parentId: f.parent_id, sharedWith: [],
+          })));
+        }
+        const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
+        if (dbMeta) {
+          for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
+        }
+        setFiles(buildFileItems(metaMap, loadTitleOverrides()));
+        console.log('[Supabase] Fetch complete.');
+      } catch (err) {
+        if (cancelled) return;
+        console.error('[Supabase] Error:', err);
+        setLoadError(true);
+      } finally {
+        clearTimeout(hardTimeoutId);
+        if (!cancelled) {
+          if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+          setIsSlowLoading(false);
+          setIsLoading(false);
         }
       }
     }
 
-    load().finally(() => {
-      if (!cancelled) {
-        if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
-        setIsSlowLoading(false);
-        setIsLoading(false);
-      }
-    });
+    load();
 
     return () => {
       cancelled = true;
-      abortControllerRef.current?.abort();
+      clearTimeout(hardTimeoutId);
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     };
   }, [loadTrigger]);
