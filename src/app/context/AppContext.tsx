@@ -7,25 +7,55 @@ import { useAuth } from './AuthContext';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-// Direct REST call that bypasses supabase.from() → getSession() → auth lock chain.
+// Direct REST helpers that bypass supabase.from() → getSession() → auth lock chain.
 // supabase.from() internally calls getSession() on every request, which waits for the
 // JS-level token-refresh lock. If that refresh is retrying (3× 10s = 30s), every
 // query hangs. Using the access token we already have from onAuthStateChange skips
 // the lock entirely.
+function makeRestHeaders(token: string, extra?: Record<string, string>): Record<string, string> {
+  return {
+    'Authorization': `Bearer ${token}`,
+    'apikey': SUPABASE_ANON_KEY,
+    'Accept': 'application/json',
+    ...extra,
+  };
+}
+
 async function restGet<T>(path: string, token: string): Promise<T[]> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10_000);
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'apikey': SUPABASE_ANON_KEY,
-        'Accept': 'application/json',
-      },
+      headers: makeRestHeaders(token),
       signal: controller.signal,
     });
     if (!res.ok) throw new Error(`REST ${res.status}: ${await res.text()}`);
     return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function restMutate(
+  path: string,
+  token: string,
+  method: 'POST' | 'PATCH' | 'DELETE',
+  body?: Record<string, unknown>,
+  prefer = 'return=minimal'
+): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method,
+      headers: makeRestHeaders(token, {
+        'Content-Type': 'application/json',
+        'Prefer': prefer,
+      }),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`REST ${res.status}: ${await res.text()}`);
   } finally {
     clearTimeout(timer);
   }
@@ -188,11 +218,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addFolder = async (folder: FolderItem) => {
     setFolders(prev => [...prev, folder]);
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('folders').insert({ id: folder.id, name: folder.name, parent_id: folder.parentId });
-      if (error) {
-        console.error('addFolder error:', error);
-        setFolders(prev => prev.filter(f => f.id !== folder.id)); // ロールバック
-        throw error;
+      const token = session?.access_token;
+      if (!token) { setFolders(prev => prev.filter(f => f.id !== folder.id)); throw new Error('Not authenticated'); }
+      try {
+        await restMutate('folders', token, 'POST', { id: folder.id, name: folder.name, parent_id: folder.parentId });
+      } catch (err) {
+        console.error('addFolder error:', err);
+        setFolders(prev => prev.filter(f => f.id !== folder.id));
+        throw err;
       }
     }
   };
@@ -210,37 +243,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFolders(prev => prev.filter(f => !folderIdsToDelete.includes(f.id)));
     setFiles(prev => prev.filter(f => f.parentId === null || !folderIdsToDelete.includes(f.parentId)));
 
-    if (isSupabaseConfigured) {
-      await supabase.from('presentation_meta').delete().in('folder_id', folderIdsToDelete);
-      await supabase.from('folders').delete().in('id', folderIdsToDelete);
+    if (isSupabaseConfigured && folderIdsToDelete.length > 0) {
+      const token = session?.access_token;
+      if (!token) return;
+      const ids = folderIdsToDelete.join(',');
+      await restMutate(`presentation_meta?folder_id=in.(${ids})`, token, 'DELETE');
+      await restMutate(`folders?id=in.(${ids})`, token, 'DELETE');
     }
   };
 
   const renameFolder = async (id: string, name: string) => {
     setFolders(prev => prev.map(f => f.id === id ? { ...f, name } : f));
     if (isSupabaseConfigured) {
-      await supabase.from('folders').update({ name }).eq('id', id);
+      const token = session?.access_token;
+      if (token) await restMutate(`folders?id=eq.${id}`, token, 'PATCH', { name });
     }
   };
 
   const moveItemToFolder = async (itemId: string, itemType: 'file' | 'folder', newParentId: string | null) => {
+    const token = isSupabaseConfigured ? (session?.access_token ?? null) : null;
+
     if (itemType === 'folder') {
       const prev_parent = folders.find(f => f.id === itemId)?.parentId;
       setFolders(prev => prev.map(f => f.id === itemId ? { ...f, parentId: newParentId } : f));
-      if (isSupabaseConfigured) {
-        const { error } = await supabase.from('folders').update({ parent_id: newParentId }).eq('id', itemId);
-        if (error) {
-          console.error('moveFolder error:', error);
+      if (token) {
+        try {
+          await restMutate(`folders?id=eq.${itemId}`, token, 'PATCH', { parent_id: newParentId });
+        } catch (err) {
+          console.error('moveFolder error:', err);
           setFolders(prev => prev.map(f => f.id === itemId ? { ...f, parentId: prev_parent ?? null } : f));
         }
       }
     } else {
       const prev_parent = files.find(f => f.id === itemId)?.parentId;
       setFiles(prev => prev.map(f => f.id === itemId ? { ...f, parentId: newParentId } : f));
-      if (isSupabaseConfigured) {
-        const { error } = await supabase.from('presentation_meta').upsert({ id: itemId, folder_id: newParentId });
-        if (error) {
-          console.error('moveFile error:', error);
+      if (token) {
+        try {
+          await restMutate('presentation_meta', token, 'POST', { id: itemId, folder_id: newParentId }, 'resolution=merge-duplicates,return=minimal');
+        } catch (err) {
+          console.error('moveFile error:', err);
           setFiles(prev => prev.map(f => f.id === itemId ? { ...f, parentId: prev_parent ?? null } : f));
         }
       }
@@ -258,7 +299,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return f;
     }));
     if (isSupabaseConfigured) {
-      await supabase.from('presentation_meta').upsert({ id: fileId, starred: newStarred });
+      const token = session?.access_token;
+      if (token) await restMutate('presentation_meta', token, 'POST', { id: fileId, starred: newStarred }, 'resolution=merge-duplicates,return=minimal');
     }
   };
 
