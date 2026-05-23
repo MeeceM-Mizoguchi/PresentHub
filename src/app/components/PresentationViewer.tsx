@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users } from 'lucide-react';
 import type { PresentationEntry } from '../../presentations/registry';
-import { isSupabaseConfigured } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const REST_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -85,7 +85,7 @@ interface PresentationViewerProps {
 }
 
 export function PresentationViewer({ presentation, onClose, titleOverride }: PresentationViewerProps) {
-  const { session, profile } = useAuth();
+  const { session, profile, isAdmin } = useAuth();
   const accessToken = session?.access_token ?? '';
 
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -98,6 +98,12 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLaser, setIsLaser] = useState(false);
   const [laserPos, setLaserPos] = useState({ x: 0, y: 0 });
+
+  // Sync mode: 'off' | 'host' (admin broadcasting) | 'follower' (guest following)
+  const [syncMode, setSyncMode] = useState<'off' | 'host' | 'follower'>('off');
+  const [syncLaser, setSyncLaser] = useState({ x: 0, y: 0, active: false });
+  const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastBroadcastRef = useRef(0);
   const [isOverSlide, setIsOverSlide] = useState(false);
   const [slideScale, setSlideScale] = useState<number | null>(null);
 
@@ -260,6 +266,65 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     return () => window.removeEventListener('keydown', onKey);
   }, [next, prev, handleClose, toggleFullscreen, pendingPos, isCommentMode, editingId, replyingToId]);
 
+  // ── 同期モード: 管理者が全画面になると自動でホストとして配信開始 ────────
+  useEffect(() => {
+    if (!isSupabaseConfigured || !isAdmin || !isFullscreen) {
+      if (syncMode === 'host') {
+        syncChannelRef.current?.unsubscribe();
+        syncChannelRef.current = null;
+        setSyncMode('off');
+      }
+      return;
+    }
+    const ch = supabase.channel(`presentation-sync-${presId}`);
+    ch.subscribe();
+    syncChannelRef.current = ch;
+    setSyncMode('host');
+    return () => {
+      ch.unsubscribe();
+      syncChannelRef.current = null;
+      setSyncMode('off');
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, isFullscreen, presId]);
+
+  // ── ホスト: スライド変更を配信 ──────────────────────────────────────────
+  useEffect(() => {
+    if (syncMode !== 'host' || !syncChannelRef.current) return;
+    syncChannelRef.current.send({ type: 'broadcast', event: 'slide', payload: { index: current } });
+  }, [current, syncMode]);
+
+  // ── ホスト: レーザーがオフになったら追従側にも通知 ──────────────────
+  useEffect(() => {
+    if (syncMode === 'host' && !isLaser && syncChannelRef.current) {
+      syncChannelRef.current.send({ type: 'broadcast', event: 'laser', payload: { x: 0, y: 0, active: false } });
+    }
+  }, [isLaser, syncMode]);
+
+  // ── フォロワー管理 ──────────────────────────────────────────────────────
+  const startFollowing = useCallback(() => {
+    if (!isSupabaseConfigured || syncMode !== 'off') return;
+    const ch = supabase
+      .channel(`presentation-sync-${presId}`)
+      .on('broadcast', { event: 'slide' }, ({ payload }) => {
+        setCurrent((payload as { index: number }).index);
+      })
+      .on('broadcast', { event: 'laser' }, ({ payload }) => {
+        const p = payload as { x: number; y: number; active: boolean };
+        setSyncLaser({ x: p.x, y: p.y, active: p.active });
+      })
+      .subscribe();
+    syncChannelRef.current = ch;
+    setSyncMode('follower');
+  }, [presId, syncMode]);
+
+  const stopFollowing = useCallback(() => {
+    syncChannelRef.current?.unsubscribe();
+    syncChannelRef.current = null;
+    setSyncMode('off');
+    setSyncLaser({ x: 0, y: 0, active: false });
+  }, []);
+
   useEffect(() => {
     const el = slideAreaRef.current;
     if (!el) return;
@@ -273,7 +338,16 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
 
   const handleSlideMouseMove = useCallback((e: React.MouseEvent) => {
     setLaserPos({ x: e.clientX, y: e.clientY });
-  }, []);
+    if (syncMode === 'host' && isLaser && slideAreaRef.current) {
+      const now = Date.now();
+      if (now - lastBroadcastRef.current < 50) return;
+      lastBroadcastRef.current = now;
+      const rect = slideAreaRef.current.getBoundingClientRect();
+      const relX = (e.clientX - rect.left) / rect.width;
+      const relY = (e.clientY - rect.top) / rect.height;
+      syncChannelRef.current?.send({ type: 'broadcast', event: 'laser', payload: { x: relX, y: relY, active: true } });
+    }
+  }, [syncMode, isLaser]);
 
   const handleSlideClick = useCallback((e: React.MouseEvent) => {
     if (isLaser) return;
@@ -629,6 +703,31 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const controlBar = (
     <div className="flex items-center gap-1">
       <span className="text-sm text-white/50 tabular-nums mr-3">{current + 1} / {total}</span>
+
+      {/* ホスト配信中バッジ */}
+      {syncMode === 'host' && (
+        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/90 text-white text-xs font-semibold rounded-full mr-1">
+          <Radio className="w-3 h-3 animate-pulse" />
+          配信中
+        </span>
+      )}
+
+      {/* プレゼン追従ボタン（ゲスト向け、全画面時のみ表示） */}
+      {!isAdmin && isFullscreen && isSupabaseConfigured && (
+        <button
+          onClick={syncMode === 'follower' ? stopFollowing : startFollowing}
+          title={syncMode === 'follower' ? '追従を停止' : 'プレゼン追従'}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold mr-1 ${
+            syncMode === 'follower'
+              ? 'bg-green-500 text-white'
+              : 'hover:bg-white/10 text-white/60 hover:text-white border border-white/20'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          {syncMode === 'follower' ? '追従中' : 'プレゼン追従'}
+        </button>
+      )}
+
       <button onClick={() => { setIsLaser(v => !v); if (isCommentMode) setIsCommentMode(false); }} title="レーザーポインター (L)" className={`p-2 rounded-lg transition-colors ${isLaser ? 'bg-red-500 text-white' : 'hover:bg-white/10 text-white/60 hover:text-white'}`}><Crosshair className="w-5 h-5" /></button>
       <button
         onClick={() => { if (isCommentMode) { setIsCommentMode(false); setPendingPos(null); setActiveCommentId(null); } else { setIsCommentMode(true); setShowPanel(true); if (isLaser) setIsLaser(false); } }}
@@ -662,6 +761,9 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
             <div ref={slideAreaRef} onMouseMove={handleSlideMouseMove} onMouseEnter={() => setIsOverSlide(true)} onMouseLeave={() => setIsOverSlide(false)} onClick={handleSlideClick} style={{ width: 'min(100%, calc(100vh * 16 / 9))', height: 'min(100%, calc(100vw * 9 / 16))', background: 'white', overflow: 'hidden', cursor: slideCursor, position: 'relative' }}>
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>{slideEl}</div>
               {commentOverlay}
+              {syncMode === 'follower' && syncLaser.active && (
+                <div style={{ position: 'absolute', left: `${syncLaser.x * 100}%`, top: `${syncLaser.y * 100}%`, width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', transform: 'translate(-50%,-50%)', boxShadow: '0 0 16px 6px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 100 }} />
+              )}
             </div>
             <button onClick={next} disabled={current === total - 1} className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white"><ChevronRight className="w-8 h-8" /></button>
           </div>
@@ -694,6 +796,9 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
               <div className="absolute inset-0 bg-white rounded-xl overflow-hidden shadow-2xl" ref={slideAreaRef} onMouseMove={handleSlideMouseMove} onMouseEnter={() => setIsOverSlide(true)} onMouseLeave={() => setIsOverSlide(false)} onClick={handleSlideClick} style={{ cursor: slideCursor }}>
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>{slideEl}</div>
                 {commentOverlay}
+                {syncMode === 'follower' && syncLaser.active && (
+                  <div style={{ position: 'absolute', left: `${syncLaser.x * 100}%`, top: `${syncLaser.y * 100}%`, width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', transform: 'translate(-50%,-50%)', boxShadow: '0 0 16px 6px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 100 }} />
+                )}
               </div>
             </div>
           </div>

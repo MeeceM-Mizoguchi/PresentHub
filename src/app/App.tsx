@@ -10,6 +10,7 @@ import { ConfirmProvider } from './components/ConfirmDialog';
 import { LoginPage } from './components/LoginPage';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { RequestAccessPage } from './components/RequestAccessPage';
+import { SetPasswordPage } from './components/SetPasswordPage';
 import { DashboardPage } from './components/DashboardPage';
 import { useDeployDetection } from './hooks/useDeployDetection';
 
@@ -37,6 +38,7 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/request-access" element={<RequestAccessPage />} />
+      <Route path="/set-password" element={<SetPasswordPage />} />
       <Route path="/*" element={
         <ProtectedRoute>
           <DndProvider backend={HTML5Backend}>

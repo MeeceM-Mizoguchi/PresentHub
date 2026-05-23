@@ -16,6 +16,7 @@ import {
   Loader2,
   Pencil,
   RefreshCw,
+  Maximize2,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { FolderView } from './FolderView';
@@ -26,13 +27,16 @@ import { PresentationViewer } from './PresentationViewer';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
 import { AdminRequestsPage } from './AdminRequestsPage';
 import { AccountPage } from './AccountPage';
+import { InviteDialog } from './InviteDialog';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { FileItem } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
 import { toast } from '../lib/toast';
 
 export function DashboardPage() {
   const { items, currentFolderId, addFolder, addSharedUser, setCurrentFolder, isLoading, isSlowLoading, loadError, retryLoad, toggleStar, updateStaticTitle } = useApp();
+  const { isAdmin, profile } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<string>('dashboard');
@@ -45,6 +49,7 @@ export function DashboardPage() {
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'starred' | 'recent'>('all');
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
 
   const allFiles = items.filter(item => item.type === 'file') as FileItem[];
   const filteredFiles = allFiles
@@ -408,6 +413,93 @@ export function DashboardPage() {
     </>
   );
 
+  // ── ゲスト向けビュー ──────────────────────────────────────────────────
+  if (!isAdmin) {
+    return (
+      <div className="flex h-screen w-full bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50 flex-col">
+        <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 flex-shrink-0">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+              PresentHub
+            </h1>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <User className="w-4 h-4" />
+              <span>{profile?.name || profile?.email}</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto px-6 py-8">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+            </div>
+          ) : allFiles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <FileText className="w-16 h-16 text-gray-200 mb-4" />
+              <h2 className="text-lg font-semibold text-gray-500">閲覧できる資料がありません</h2>
+              <p className="text-sm text-gray-400 mt-2">管理者からの閲覧許可をお待ちください</p>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-base font-semibold text-gray-700 mb-6">あなたの資料 ({allFiles.length}件)</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {allFiles.map(file => {
+                  const registryEntry = presentationRegistry.find(p => p.meta.id === file.id);
+                  const firstSlide = registryEntry?.slides?.[0];
+                  return (
+                    <div
+                      key={file.id}
+                      onClick={() => setViewingFileId(file.id)}
+                      className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer border border-violet-100 relative"
+                    >
+                      <div className="h-48 relative overflow-hidden" style={
+                        firstSlide
+                          ? { background: '#000' }
+                          : file.thumbnail?.startsWith('http') || file.thumbnail?.startsWith('blob')
+                            ? { backgroundImage: `url(${file.thumbnail})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                            : { background: file.thumbnail || 'linear-gradient(135deg, #9D72FF, #FF5BAE)' }
+                      }>
+                        {firstSlide && (
+                          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div style={{ width: 'calc(100% / 0.267)', height: '720px', transform: 'scale(0.267)', transformOrigin: 'top left', position: 'absolute', top: 0, left: 0 }}>
+                              {firstSlide}
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                          <span className="flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full">
+                            <Maximize2 className="w-4 h-4" />
+                            開いて閲覧
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        <h3 className="mb-2 text-gray-800 font-semibold truncate">{file.name}</h3>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <User className="w-4 h-4" />
+                          <span>{file.author}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </main>
+
+        {viewingPresentation && (
+          <PresentationViewer
+            presentation={viewingPresentation}
+            titleOverride={viewingFile?.name}
+            onClose={() => setViewingFileId(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex h-screen w-full bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50"
@@ -432,6 +524,13 @@ export function DashboardPage() {
               {currentView === 'admin-requests' && 'アカウント申請'}
             </h1>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowInviteDialog(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-pink-500 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-200 text-sm"
+              >
+                <UserPlus className="w-4 h-4" />
+                ユーザーを招待
+              </button>
             </div>
           </div>
         </header>
@@ -480,6 +579,9 @@ export function DashboardPage() {
           currentFolderId={movingFile.parentId}
           onClose={() => setMovingFile(null)}
         />
+      )}
+      {showInviteDialog && (
+        <InviteDialog onClose={() => setShowInviteDialog(false)} />
       )}
     </div>
   );

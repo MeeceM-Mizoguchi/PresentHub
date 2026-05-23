@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { Item, FolderItem, FileItem, SharedUser } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from './AuthContext';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -122,7 +122,8 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [files, setFiles] = useState<FileItem[]>(() =>
     buildFileItems({}, loadTitleOverrides())
@@ -164,8 +165,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     async function load() {
       try {
-        // Use restGet (direct REST with access token) to bypass supabase.from()'s
-        // internal getSession() call, which blocks on the token-refresh JS lock.
         const [dbFolders, dbMeta] = await Promise.all([
           restGet<{ id: string; name: string; parent_id: string | null }>('folders?order=created_at', accessToken),
           restGet<{ id: string; folder_id: string | null; starred: boolean }>('presentation_meta', accessToken),
@@ -176,7 +175,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         })));
         const metaMap: Record<string, { folderId: string | null; starred: boolean }> = {};
         for (const row of dbMeta) metaMap[row.id] = { folderId: row.folder_id, starred: row.starred };
-        setFiles(buildFileItems(metaMap, loadTitleOverrides()));
+
+        const allFiles = buildFileItems(metaMap, loadTitleOverrides());
+
+        if (!isAdmin && session?.user?.id) {
+          const perms = await restGet<{ presentation_id: string }>(
+            `presentation_permissions?user_id=eq.${session.user.id}&select=presentation_id`,
+            accessToken
+          );
+          if (cancelled) return;
+          const allowed = new Set(perms.map(p => p.presentation_id));
+          setFiles(allFiles.filter(f => allowed.has(f.id)));
+        } else {
+          setFiles(allFiles);
+        }
       } catch (err) {
         if (cancelled) return;
         console.error('[AppContext] Load error:', err);
@@ -198,9 +210,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearTimeout(hardTimeoutId);
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     };
-  // session.access_token が変わる（トークンリフレッシュ）ときだけ再フェッチ
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadTrigger, session?.access_token]);
+  }, [loadTrigger, session?.access_token, isAdmin]);
 
   const items: Item[] = [...folders, ...files];
 

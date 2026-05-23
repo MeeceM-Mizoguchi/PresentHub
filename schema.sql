@@ -53,6 +53,35 @@ ALTER TABLE presentation_assets DISABLE ROW LEVEL SECURITY;
 -- Allow all operations for anon key (development)
 -- CREATE POLICY "allow_all" ON storage.objects FOR ALL TO anon USING (bucket_id = 'presentation-assets') WITH CHECK (bucket_id = 'presentation-assets');
 
+-- =============================================
+-- Invitations & Permissions
+-- Run this block if not yet applied
+-- =============================================
+
+-- Invited users (one row per email, linked to auth.users after signup)
+CREATE TABLE IF NOT EXISTS user_invites (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email       TEXT NOT NULL UNIQUE,
+  name        TEXT NOT NULL,
+  user_id     UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  invited_by  UUID REFERENCES auth.users(id),
+  status      TEXT NOT NULL DEFAULT 'pending',  -- 'pending' | 'accepted'
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE user_invites DISABLE ROW LEVEL SECURITY;
+
+-- Per-presentation access control
+CREATE TABLE IF NOT EXISTS presentation_permissions (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  presentation_id TEXT NOT NULL,
+  user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  granted_by      UUID REFERENCES auth.users(id),
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(presentation_id, user_id)
+);
+ALTER TABLE presentation_permissions DISABLE ROW LEVEL SECURITY;
+
+-- =============================================
 -- Default folders (same as DEFAULT_FOLDERS in AppContext)
 INSERT INTO folders (id, name, parent_id) VALUES
   ('folder-1', 'プロジェクト',   NULL),
