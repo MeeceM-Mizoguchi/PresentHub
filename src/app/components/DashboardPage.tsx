@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Maximize2,
   X,
+  Plus,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { FolderView } from './FolderView';
