@@ -122,8 +122,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const { session, profile } = useAuth();
-  const isAdmin = profile?.role === 'admin';
+  const { session, isGuest } = useAuth();
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [files, setFiles] = useState<FileItem[]>(() =>
     buildFileItems({}, loadTitleOverrides())
@@ -178,7 +177,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const allFiles = buildFileItems(metaMap, loadTitleOverrides());
 
-        if (!isAdmin && session?.user?.id) {
+        if (isGuest && session?.user?.id) {
           const perms = await restGet<{ presentation_id: string }>(
             `presentation_permissions?user_id=eq.${session.user.id}&select=presentation_id`,
             accessToken
@@ -211,7 +210,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadTrigger, session?.access_token, isAdmin]);
+  }, [loadTrigger, session?.access_token, isGuest]);
 
   const items: Item[] = [...folders, ...files];
 

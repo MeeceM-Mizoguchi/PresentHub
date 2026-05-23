@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Plus,
   Search,
   FileText,
   Calendar,
@@ -17,6 +17,7 @@ import {
   Pencil,
   RefreshCw,
   Maximize2,
+  X,
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { FolderView } from './FolderView';
@@ -27,19 +28,48 @@ import { PresentationViewer } from './PresentationViewer';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
 import { AdminRequestsPage } from './AdminRequestsPage';
 import { AccountPage } from './AccountPage';
-import { InviteDialog } from './InviteDialog';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { FileItem } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
 import { toast } from '../lib/toast';
 
+function fuzzyScore(query: string, target: string): number {
+  const q = query.toLowerCase().trim();
+  const t = target.toLowerCase();
+  if (!q) return 0;
+  if (t === q) return 100;
+  if (t.startsWith(q)) return 80;
+  if (t.includes(q)) return 60;
+  let qi = 0;
+  for (let i = 0; i < t.length && qi < q.length; i++) {
+    if (t[i] === q[qi]) qi++;
+  }
+  return qi === q.length ? 30 : 0;
+}
+
+function viewFromPath(pathname: string): string {
+  if (pathname === '/' || pathname === '') return 'dashboard';
+  if (pathname.startsWith('/shared')) return 'shared';
+  if (pathname.startsWith('/folder')) return 'folder';
+  if (pathname.startsWith('/account')) return 'account';
+  if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname.startsWith('/admin-requests')) return 'admin-requests';
+  return 'dashboard';
+}
+
 export function DashboardPage() {
-  const { items, currentFolderId, addFolder, addSharedUser, setCurrentFolder, isLoading, isSlowLoading, loadError, retryLoad, toggleStar, updateStaticTitle } = useApp();
-  const { isAdmin, profile } = useAuth();
+  const { items, currentFolderId, addFolder, setCurrentFolder, isLoading, isSlowLoading, loadError, retryLoad, toggleStar, updateStaticTitle } = useApp();
+  const { isAdmin, isGuest, profile } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentView = viewFromPath(location.pathname);
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentView, setCurrentView] = useState<string>('dashboard');
+  const [headerSearch, setHeaderSearch] = useState('');
+  const [showSearchDrop, setShowSearchDrop] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [createFolderParentId, setCreateFolderParentId] = useState<string | null>(null);
   const [permissionItemId, setPermissionItemId] = useState<string | null>(null);
@@ -49,7 +79,25 @@ export function DashboardPage() {
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'starred' | 'recent'>('all');
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
+
+  const allFilesFlat = items.filter(i => i.type === 'file') as FileItem[];
+  const searchResults = headerSearch.trim()
+    ? allFilesFlat
+        .map(f => ({ file: f, score: fuzzyScore(headerSearch, f.name) }))
+        .filter(r => r.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 6)
+    : [];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSearchDrop(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const allFiles = items.filter(item => item.type === 'file') as FileItem[];
   const filteredFiles = allFiles
@@ -82,24 +130,9 @@ export function DashboardPage() {
     }
   };
 
-  const handleInviteUser = (name: string, email: string) => {
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name,
-      email,
-      status: 'pending' as const,
-      invitedAt: new Date().toISOString().split('T')[0],
-    };
-    addSharedUser(newUser);
-    const inviteToken = btoa(`${newUser.id}-${Date.now()}`);
-    const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${inviteToken}`;
-    navigator.clipboard.writeText(inviteUrl).catch(() => {});
-    toast.success(`${email} に招待リンクをコピーしました`);
-  };
-
   const handleViewChange = (view: string) => {
-    setCurrentView(view);
-    if (view === 'dashboard') setCurrentFolder(null);
+    if (view === 'dashboard') { navigate('/'); setCurrentFolder(null); }
+    else navigate(`/${view}`);
   };
 
   const handleCardClick = (file: FileItem) => {
@@ -413,8 +446,8 @@ export function DashboardPage() {
     </>
   );
 
-  // ── ゲスト向けビュー ──────────────────────────────────────────────────
-  if (!isAdmin) {
+  // ── ゲスト向けビュー（user_invites に登録済みの招待ユーザーのみ）──────────
+  if (isGuest) {
     return (
       <div className="flex h-screen w-full bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50 flex-col">
         <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 flex-shrink-0">
@@ -514,8 +547,8 @@ export function DashboardPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white/80 backdrop-blur-md border-b border-violet-100">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <h1 className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+          <div className="px-6 py-4 flex items-center gap-4">
+            <h1 className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent flex-shrink-0">
               {currentView === 'dashboard' && 'ダッシュボード'}
               {currentView === 'folder' && 'フォルダ'}
               {currentView === 'shared' && '共有管理'}
@@ -523,14 +556,63 @@ export function DashboardPage() {
               {currentView === 'account' && 'アカウント'}
               {currentView === 'admin-requests' && 'アカウント申請'}
             </h1>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowInviteDialog(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-pink-500 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-200 text-sm"
-              >
-                <UserPlus className="w-4 h-4" />
-                ユーザーを招待
-              </button>
+
+            {/* グローバル検索 */}
+            <div ref={searchRef} className="flex-1 max-w-md relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={headerSearch}
+                  onChange={e => { setHeaderSearch(e.target.value); setShowSearchDrop(true); }}
+                  onFocus={() => setShowSearchDrop(true)}
+                  placeholder="資料名で検索..."
+                  className="w-full pl-9 pr-8 py-2 bg-violet-50 border border-violet-200 rounded-xl text-sm outline-none focus:border-violet-400 focus:bg-white transition-all"
+                />
+                {headerSearch && (
+                  <button onClick={() => { setHeaderSearch(''); setShowSearchDrop(false); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {showSearchDrop && headerSearch.trim() && (
+                <div className="absolute top-full mt-1 left-0 right-0 bg-white rounded-xl shadow-xl border border-violet-100 overflow-hidden z-50">
+                  {searchResults.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-400">「{headerSearch}」に一致する資料はありません</div>
+                  ) : (
+                    <div>
+                      {searchResults.map(({ file, score }) => {
+                        const entry = presentationRegistry.find(p => p.meta.id === file.id);
+                        const firstSlide = entry?.slides?.[0];
+                        return (
+                          <button
+                            key={file.id}
+                            onClick={() => { setViewingFileId(file.id); setHeaderSearch(''); setShowSearchDrop(false); }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-violet-50 transition-colors text-left"
+                          >
+                            <div className="w-10 h-7 rounded overflow-hidden bg-gray-100 flex-shrink-0 relative">
+                              {firstSlide ? (
+                                <div className="absolute inset-0 overflow-hidden pointer-events-none scale-[0.078] origin-top-left" style={{ width: '1280px', height: '720px' }}>
+                                  {firstSlide}
+                                </div>
+                              ) : (
+                                <FileText className="w-4 h-4 text-gray-400 m-auto mt-1.5" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-800 truncate">{file.name}</div>
+                              <div className="text-xs text-gray-400">{file.author}</div>
+                            </div>
+                            {score === 100 && <span className="text-xs text-violet-500 flex-shrink-0">完全一致</span>}
+                            {score === 80 && <span className="text-xs text-violet-400 flex-shrink-0">前方一致</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -544,7 +626,7 @@ export function DashboardPage() {
             />
           )}
           {currentView === 'shared' && (
-            <SharedManagementPage onInvite={handleInviteUser} />
+            <SharedManagementPage />
           )}
           {currentView === 'admin-requests' && <AdminRequestsPage />}
           {currentView === 'account' && <AccountPage />}
@@ -579,9 +661,6 @@ export function DashboardPage() {
           currentFolderId={movingFile.parentId}
           onClose={() => setMovingFile(null)}
         />
-      )}
-      {showInviteDialog && (
-        <InviteDialog onClose={() => setShowInviteDialog(false)} />
       )}
     </div>
   );

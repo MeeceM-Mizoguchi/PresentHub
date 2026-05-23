@@ -17,6 +17,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   session: Session | null;
   isAdmin: boolean;
+  isGuest: boolean;  // true = invited user (sees guest view)
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -112,10 +113,23 @@ async function ensureProfileDirect(user: User, accessToken: string): Promise<Use
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+async function checkIsInvited(email: string, accessToken: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_invites?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
+      { headers: { 'Authorization': `Bearer ${accessToken}`, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' } }
+    );
+    if (!res.ok) return false;
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch { return false; }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -144,15 +158,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         const seq = ++fetchSeq;
         try {
-          // Use direct REST fetch to avoid supabase.from() → getSession() → lock chain.
           const p = await ensureProfileDirect(session.user, session.access_token);
           if (seq === fetchSeq) setProfile(p);
+          // ゲスト判定: user_invites に登録されているか
+          if (session.user.email) {
+            const invited = await checkIsInvited(session.user.email, session.access_token);
+            if (seq === fetchSeq) setIsGuest(invited);
+          }
         } catch {
-          if (seq === fetchSeq) setProfile(null);
+          if (seq === fetchSeq) { setProfile(null); setIsGuest(false); }
         }
       } else {
         fetchSeq++;
         setProfile(null);
+        setIsGuest(false);
       }
 
       setIsLoading(false);
@@ -193,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, profile, session,
       isAdmin: profile?.role === 'admin',
+      isGuest,
       isLoading,
       signIn, signOut, resetPassword, updateProfile,
     }}>

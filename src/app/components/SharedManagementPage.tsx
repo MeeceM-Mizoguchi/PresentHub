@@ -1,120 +1,156 @@
-import { useState } from 'react';
-import {
-  UserPlus,
-  Mail,
-  Check,
-  X,
-  MoreVertical,
-  Edit,
-  Trash2,
-  FolderOpen,
-  FileText
-} from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { SharedUser } from '../types';
+import { useState, useEffect, useCallback } from 'react';
+import { UserPlus, Mail, Check, Trash2, Loader2, Edit2, ChevronDown, ChevronUp } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { InviteDialog } from './InviteDialog';
+import { toast } from '../lib/toast';
+import { isSupabaseConfigured } from '../../lib/supabase';
+import { presentationRegistry } from '../../presentations/registry';
 
-interface SharedManagementPageProps {
-  onInvite: (name: string, email: string) => void;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+interface InvitedUser {
+  id: string;
+  email: string;
+  name: string;
+  user_id: string | null;
+  status: string;
+  created_at: string;
 }
 
-export function SharedManagementPage({ onInvite }: SharedManagementPageProps) {
-  const { sharedUsers, items, updateItem } = useApp();
-  const [showInviteForm, setShowInviteForm] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [inviteName, setInviteName] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
+function restHead(token: string): Record<string, string> {
+  return { 'Authorization': `Bearer ${token}`, 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' };
+}
 
-  const activeUsers = sharedUsers.filter(u => u.status !== 'deleted');
+// ── ユーザーごとの資料権限パネル ──────────────────────────────────────────
+function UserPermissionPanel({ userId, token }: { userId: string; token: string }) {
+  const [grantedIds, setGrantedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const handleInvite = () => {
-    if (inviteName && inviteEmail) {
-      onInvite(inviteName, inviteEmail);
-      setInviteName('');
-      setInviteEmail('');
-      setShowInviteForm(false);
-    }
-  };
+  useEffect(() => {
+    if (!token) return;
+    setIsLoading(true);
+    fetch(`${SUPABASE_URL}/rest/v1/presentation_permissions?user_id=eq.${userId}&select=presentation_id`, {
+      headers: restHead(token),
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then((rows: { presentation_id: string }[]) => setGrantedIds(new Set(rows.map(r => r.presentation_id))))
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [userId, token]);
 
-  const getStatusBadge = (status: SharedUser['status']) => {
-    switch (status) {
-      case 'active':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
-            <Check className="w-3 h-3" />
-            アクティブ
-          </span>
-        );
-      case 'pending':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">
-            <Mail className="w-3 h-3" />
-            招待中
-          </span>
-        );
-      case 'deleted':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
-            <X className="w-3 h-3" />
-            削除済み
-          </span>
-        );
-    }
-  };
-
-  const toggleItemPermission = (userId: string, itemId: string) => {
-    const item = items.find(i => i.id === itemId);
-    if (!item) return;
-
-    const sharedWith = item.sharedWith || [];
-    const hasAccess = sharedWith.includes(userId);
-
-    if (hasAccess) {
-      updateItem(itemId, {
-        sharedWith: sharedWith.filter(id => id !== userId)
-      });
-    } else {
-      updateItem(itemId, {
-        sharedWith: [...sharedWith, userId]
-      });
-    }
-  };
-
-  const renderFolderTree = (parentId: string | null, depth: number = 0): JSX.Element[] => {
-    const childItems = items.filter(item => {
-      if (item.type === 'folder') {
-        return item.parentId === parentId;
+  const toggle = async (presId: string) => {
+    setTogglingId(presId);
+    const has = grantedIds.has(presId);
+    try {
+      if (has) {
+        await fetch(`${SUPABASE_URL}/rest/v1/presentation_permissions?presentation_id=eq.${presId}&user_id=eq.${userId}`, {
+          method: 'DELETE',
+          headers: restHead(token),
+        });
+        setGrantedIds(prev => { const n = new Set(prev); n.delete(presId); return n; });
       } else {
-        return item.parentId === parentId;
+        await fetch(`${SUPABASE_URL}/rest/v1/presentation_permissions`, {
+          method: 'POST',
+          headers: { ...restHead(token), 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({ presentation_id: presId, user_id: userId }),
+        });
+        setGrantedIds(prev => new Set([...prev, presId]));
       }
-    });
+    } catch {
+      toast.error('権限の更新に失敗しました');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
-    return childItems.map((item) => {
-      const hasAccess = selectedUser ? (item.sharedWith || []).includes(selectedUser) : false;
+  if (isLoading) return (
+    <div className="flex items-center justify-center py-4">
+      <Loader2 className="w-5 h-5 text-violet-500 animate-spin" />
+    </div>
+  );
 
-      return (
-        <div key={item.id}>
-          <div
-            className="flex items-center gap-2 py-2 px-3 hover:bg-violet-50 rounded-lg"
-            style={{ paddingLeft: `${12 + depth * 20}px` }}
+  return (
+    <div className="space-y-1">
+      {presentationRegistry.map(entry => {
+        const has = grantedIds.has(entry.meta.id);
+        const toggling = togglingId === entry.meta.id;
+        return (
+          <label
+            key={entry.meta.id}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-violet-50 cursor-pointer transition-colors"
           >
-            <input
-              type="checkbox"
-              checked={hasAccess}
-              onChange={() => selectedUser && toggleItemPermission(selectedUser, item.id)}
-              disabled={!selectedUser}
-              className="w-4 h-4 text-violet-600 border-gray-300 rounded focus:ring-violet-500"
-            />
-            {item.type === 'folder' ? (
-              <FolderOpen className="w-4 h-4 text-violet-500" />
-            ) : (
-              <FileText className="w-4 h-4 text-gray-500" />
-            )}
-            <span className="text-sm text-gray-700">{item.name}</span>
-          </div>
-          {item.type === 'folder' && renderFolderTree(item.id, depth + 1)}
-        </div>
-      );
-    });
+            <div className="relative flex-shrink-0">
+              {toggling
+                ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
+                : <input
+                    type="checkbox"
+                    checked={has}
+                    onChange={() => toggle(entry.meta.id)}
+                    className="w-4 h-4 accent-violet-500 cursor-pointer"
+                  />
+              }
+            </div>
+            <span className="text-sm text-gray-700 flex-1">{entry.meta.title}</span>
+            {has && <Check className="w-3.5 h-3.5 text-violet-500 flex-shrink-0" />}
+          </label>
+        );
+      })}
+      {presentationRegistry.length === 0 && (
+        <p className="text-sm text-gray-400 px-3 py-2">資料がありません</p>
+      )}
+    </div>
+  );
+}
+
+// ── メインコンポーネント ──────────────────────────────────────────────────
+export function SharedManagementPage() {
+  const { session } = useAuth();
+  const token = session?.access_token ?? '';
+
+  const [invitedUsers, setInvitedUsers] = useState<InvitedUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const loadUsers = useCallback(async () => {
+    if (!token || !isSupabaseConfigured) { setIsLoading(false); return; }
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/user_invites?order=created_at.desc`, {
+        headers: restHead(token),
+      });
+      if (res.ok) setInvitedUsers(await res.json());
+    } catch { /* ignore */ } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  const handleDelete = async (invite: InvitedUser) => {
+    setDeletingId(invite.id);
+    try {
+      if (invite.user_id) {
+        await fetch(`${SUPABASE_URL}/rest/v1/presentation_permissions?user_id=eq.${invite.user_id}`, {
+          method: 'DELETE',
+          headers: restHead(token),
+        });
+      }
+      await fetch(`${SUPABASE_URL}/rest/v1/user_invites?id=eq.${invite.id}`, {
+        method: 'DELETE',
+        headers: restHead(token),
+      });
+      setInvitedUsers(prev => prev.filter(u => u.id !== invite.id));
+      if (expandedUserId === invite.user_id) setExpandedUserId(null);
+      toast.success('招待を削除しました');
+    } catch {
+      toast.error('削除に失敗しました');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -126,7 +162,7 @@ export function SharedManagementPage({ onInvite }: SharedManagementPageProps) {
           <p className="text-gray-600">プレゼンテーションの共有者を管理します</p>
         </div>
         <button
-          onClick={() => setShowInviteForm(true)}
+          onClick={() => setShowInviteDialog(true)}
           className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
         >
           <UserPlus className="w-5 h-5" />
@@ -134,134 +170,94 @@ export function SharedManagementPage({ onInvite }: SharedManagementPageProps) {
         </button>
       </div>
 
-      {/* Invite Modal */}
-      {showInviteForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => {
-              setShowInviteForm(false);
-              setInviteName('');
-              setInviteEmail('');
-            }}
-          />
-          <div className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl mx-4">
-            <div className="flex items-center justify-between mb-5">
-              <h3>新しい共有者を招待</h3>
-              <button
-                onClick={() => {
-                  setShowInviteForm(false);
-                  setInviteName('');
-                  setInviteEmail('');
-                }}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block mb-2 text-gray-700">名前</label>
-                <input
-                  type="text"
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-violet-50 to-pink-50 border-2 border-transparent focus:border-violet-400 rounded-xl outline-none transition-all"
-                  placeholder="山田太郎"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block mb-2 text-gray-700">メールアドレス</label>
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-violet-50 to-pink-50 border-2 border-transparent focus:border-violet-400 rounded-xl outline-none transition-all"
-                  placeholder="yamada@example.com"
-                />
-              </div>
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={handleInvite}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-pink-500 text-white rounded-xl hover:shadow-lg transition-all"
-                >
-                  <Mail className="w-5 h-5" />
-                  招待メールを送信
-                </button>
-                <button
-                  onClick={() => {
-                    setShowInviteForm(false);
-                    setInviteName('');
-                    setInviteEmail('');
-                  }}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all"
-                >
-                  キャンセル
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Users List */}
       <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-violet-100">
         <div className="p-6 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-pink-50">
-          <h3>共有者一覧 ({activeUsers.length})</h3>
+          <h3>共有者一覧 ({invitedUsers.length})</h3>
         </div>
-        <div className="divide-y divide-violet-50">
-          {activeUsers.map((user) => (
-            <div key={user.id} className="p-5 hover:bg-violet-50 transition-colors">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-400 to-pink-400 flex items-center justify-center text-white flex-shrink-0">
-                  <span>{user.name.charAt(0)}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="text-gray-800">{user.name}</h4>
-                    {getStatusBadge(user.status)}
-                  </div>
-                  <p className="text-sm text-gray-500 mb-1">{user.email}</p>
-                  <p className="text-xs text-gray-400">
-                    招待日: {user.invitedAt}
-                    {user.activatedAt && ` / アクティブ化: ${user.activatedAt}`}
-                  </p>
-                  <button
-                    onClick={() => setSelectedUser(selectedUser === user.id ? null : user.id)}
-                    className="mt-3 text-sm text-violet-600 hover:text-violet-700 flex items-center gap-1"
-                  >
-                    <Edit className="w-4 h-4" />
-                    {selectedUser === user.id ? '権限編集を閉じる' : '権限を編集'}
-                  </button>
-                </div>
-              </div>
 
-              {/* Permission Editor */}
-              {selectedUser === user.id && (
-                <div className="mt-4 p-4 bg-violet-50 rounded-xl">
-                  <h4 className="mb-3 text-sm text-gray-700">アクセス権限</h4>
-                  <div className="max-h-64 overflow-y-auto">
-                    {renderFolderTree(null)}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+          </div>
+        ) : invitedUsers.length === 0 ? (
+          <div className="text-center py-12">
+            <UserPlus className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">まだ共有者がいません</p>
+            <button
+              onClick={() => setShowInviteDialog(true)}
+              className="mt-4 text-violet-600 hover:text-violet-700"
+            >
+              最初の共有者を招待する
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-violet-50">
+            {invitedUsers.map(u => {
+              const isExpanded = expandedUserId === u.user_id;
+              return (
+                <div key={u.id}>
+                  <div className="p-5 hover:bg-violet-50/50 transition-colors flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-400 to-pink-400 flex items-center justify-center text-white font-bold flex-shrink-0 text-lg">
+                      {u.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="font-semibold text-gray-800">{u.name}</span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          u.status === 'accepted'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {u.status === 'accepted'
+                            ? <><Check className="w-3 h-3" />承認済</>
+                            : <><Mail className="w-3 h-3" />招待中</>}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">{u.email}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">招待日: {u.created_at.split('T')[0]}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {u.user_id ? (
+                        <button
+                          onClick={() => setExpandedUserId(isExpanded ? null : u.user_id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-violet-600 hover:bg-violet-100 rounded-lg border border-violet-200 transition-colors"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          権限を編集
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-amber-500 px-2">メール未確認</span>
+                      )}
+                      <button
+                        onClick={() => handleDelete(u)}
+                        disabled={deletingId === u.id}
+                        className="p-2 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                      >
+                        {deletingId === u.id
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* 権限編集パネル */}
+                  {isExpanded && u.user_id && (
+                    <div className="px-5 pb-4 bg-violet-50/40 border-t border-violet-100">
+                      <p className="text-xs text-gray-500 py-3 font-medium">閲覧を許可する資料</p>
+                      <UserPermissionPanel userId={u.user_id} token={token} />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {activeUsers.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-2xl">
-          <UserPlus className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">まだ共有者がいません</p>
-          <button
-            onClick={() => setShowInviteForm(true)}
-            className="mt-4 text-violet-600 hover:text-violet-700"
-          >
-            最初の共有者を招待する
-          </button>
-        </div>
+      {showInviteDialog && (
+        <InviteDialog onClose={() => { setShowInviteDialog(false); loadUsers(); }} />
       )}
     </div>
   );

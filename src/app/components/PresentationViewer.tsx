@@ -85,7 +85,7 @@ interface PresentationViewerProps {
 }
 
 export function PresentationViewer({ presentation, onClose, titleOverride }: PresentationViewerProps) {
-  const { session, profile, isAdmin } = useAuth();
+  const { session, profile, isAdmin, isGuest } = useAuth();
   const accessToken = session?.access_token ?? '';
 
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -104,6 +104,9 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const [syncLaser, setSyncLaser] = useState({ x: 0, y: 0, active: false });
   const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastBroadcastRef = useRef(0);
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [presentUsers, setPresentUsers] = useState<{ userId: string; name: string; isPresenting: boolean }[]>([]);
+  const [showFollowPanel, setShowFollowPanel] = useState(false);
   const [isOverSlide, setIsOverSlide] = useState(false);
   const [slideScale, setSlideScale] = useState<number | null>(null);
 
@@ -266,27 +269,72 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     return () => window.removeEventListener('keydown', onKey);
   }, [next, prev, handleClose, toggleFullscreen, pendingPos, isCommentMode, editingId, replyingToId]);
 
-  // ── 同期モード: 管理者が全画面になると自動でホストとして配信開始 ────────
+  // ── プレゼンス: 視聴者リストを維持 ─────────────────────────────────────
   useEffect(() => {
-    if (!isSupabaseConfigured || !isAdmin || !isFullscreen) {
+    if (!isSupabaseConfigured || !session?.user?.id) return;
+    const userId = session.user.id;
+    const userName = profile?.name || '外部ユーザー';
+
+    const ch = supabase.channel(`presentation-presence-${presId}`, {
+      config: { presence: { key: userId } },
+    })
+    .on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState<{ name: string; isPresenting: boolean }>();
+      const users = Object.entries(state)
+        .filter(([uid]) => uid !== userId)
+        .map(([uid, presences]) => ({
+          userId: uid,
+          name: (presences[0] as { name: string; isPresenting: boolean }).name ?? '不明',
+          isPresenting: (presences[0] as { name: string; isPresenting: boolean }).isPresenting ?? false,
+        }));
+      setPresentUsers(users);
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await ch.track({ name: userName, isPresenting: false });
+      }
+    });
+
+    presenceChannelRef.current = ch;
+    return () => {
+      ch.unsubscribe();
+      presenceChannelRef.current = null;
+      setPresentUsers([]);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presId, session?.user?.id]);
+
+  // ── 全画面終了時にフォローパネルを閉じる ──────────────────────────────
+  useEffect(() => {
+    if (!isFullscreen) setShowFollowPanel(false);
+  }, [isFullscreen]);
+
+  // ── 同期モード: 非ゲスト（オーナー）が全画面になると自動でホストとして配信開始 ──
+  useEffect(() => {
+    const userId = session?.user?.id;
+    const userName = profile?.name || '外部ユーザー';
+    if (!isSupabaseConfigured || isGuest || !isFullscreen || !userId) {
       if (syncMode === 'host') {
         syncChannelRef.current?.unsubscribe();
         syncChannelRef.current = null;
         setSyncMode('off');
+        presenceChannelRef.current?.track({ name: userName, isPresenting: false });
       }
       return;
     }
-    const ch = supabase.channel(`presentation-sync-${presId}`);
+    const ch = supabase.channel(`presentation-sync-${presId}-${userId}`);
     ch.subscribe();
     syncChannelRef.current = ch;
     setSyncMode('host');
+    presenceChannelRef.current?.track({ name: userName, isPresenting: true });
     return () => {
       ch.unsubscribe();
       syncChannelRef.current = null;
       setSyncMode('off');
+      presenceChannelRef.current?.track({ name: userName, isPresenting: false });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, isFullscreen, presId]);
+  }, [isAdmin, isFullscreen, presId, session?.user?.id]);
 
   // ── ホスト: スライド変更を配信 ──────────────────────────────────────────
   useEffect(() => {
@@ -296,16 +344,16 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
 
   // ── ホスト: レーザーがオフになったら追従側にも通知 ──────────────────
   useEffect(() => {
-    if (syncMode === 'host' && !isLaser && syncChannelRef.current) {
+    if (syncMode === 'host' && !isLaser && syncChannelRef.current && !isGuest) {
       syncChannelRef.current.send({ type: 'broadcast', event: 'laser', payload: { x: 0, y: 0, active: false } });
     }
   }, [isLaser, syncMode]);
 
   // ── フォロワー管理 ──────────────────────────────────────────────────────
-  const startFollowing = useCallback(() => {
+  const startFollowing = useCallback((targetUserId: string) => {
     if (!isSupabaseConfigured || syncMode !== 'off') return;
     const ch = supabase
-      .channel(`presentation-sync-${presId}`)
+      .channel(`presentation-sync-${presId}-${targetUserId}`)
       .on('broadcast', { event: 'slide' }, ({ payload }) => {
         setCurrent((payload as { index: number }).index);
       })
@@ -316,6 +364,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
       .subscribe();
     syncChannelRef.current = ch;
     setSyncMode('follower');
+    setShowFollowPanel(false);
   }, [presId, syncMode]);
 
   const stopFollowing = useCallback(() => {
@@ -323,6 +372,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     syncChannelRef.current = null;
     setSyncMode('off');
     setSyncLaser({ x: 0, y: 0, active: false });
+    setShowFollowPanel(false);
   }, []);
 
   useEffect(() => {
@@ -712,20 +762,71 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
         </span>
       )}
 
-      {/* プレゼン追従ボタン（ゲスト向け、全画面時のみ表示） */}
-      {!isAdmin && isFullscreen && isSupabaseConfigured && (
-        <button
-          onClick={syncMode === 'follower' ? stopFollowing : startFollowing}
-          title={syncMode === 'follower' ? '追従を停止' : 'プレゼン追従'}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold mr-1 ${
-            syncMode === 'follower'
-              ? 'bg-green-500 text-white'
-              : 'hover:bg-white/10 text-white/60 hover:text-white border border-white/20'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          {syncMode === 'follower' ? '追従中' : 'プレゼン追従'}
-        </button>
+      {/* プレゼン追従ボタン（招待ゲスト向け、全画面時のみ表示） */}
+      {isGuest && isFullscreen && isSupabaseConfigured && (
+        <div className="relative mr-1">
+          <button
+            onClick={syncMode === 'follower' ? stopFollowing : () => setShowFollowPanel(v => !v)}
+            title={syncMode === 'follower' ? '追従を停止' : 'プレゼン追従'}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-semibold ${
+              syncMode === 'follower'
+                ? 'bg-green-500 text-white'
+                : showFollowPanel
+                ? 'bg-white/20 text-white border border-white/30'
+                : 'hover:bg-white/10 text-white/60 hover:text-white border border-white/20'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            {syncMode === 'follower' ? '追従中' : 'プレゼン追従'}
+          </button>
+
+          {showFollowPanel && syncMode === 'off' && (
+            <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900/95 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden z-50">
+              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+                <div>
+                  <div className="text-white/85 text-sm font-semibold">追従する人を選択</div>
+                  <div className="text-white/35 text-xs mt-0.5">現在この資料を開いている人</div>
+                </div>
+                <button onClick={() => setShowFollowPanel(false)} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                  <X className="w-4 h-4 text-white/40" />
+                </button>
+              </div>
+              <div className="max-h-56 overflow-y-auto">
+                {presentUsers.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <Users className="w-8 h-8 text-white/15 mx-auto mb-2" />
+                    <p className="text-white/35 text-xs">他に誰も開いていません</p>
+                  </div>
+                ) : (
+                  <div className="p-2 space-y-1">
+                    {presentUsers.map(u => (
+                      <div key={u.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          {u.name.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white/80 text-sm font-medium truncate">{u.name}</div>
+                          {u.isPresenting && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Radio className="w-2.5 h-2.5 text-red-400 animate-pulse" />
+                              <span className="text-red-400 text-xs font-medium">プレゼン中</span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => startFollowing(u.userId)}
+                          className="px-2.5 py-1 bg-violet-500 hover:bg-violet-400 text-white text-xs rounded-lg font-semibold transition-colors flex-shrink-0"
+                        >
+                          追従
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       <button onClick={() => { setIsLaser(v => !v); if (isCommentMode) setIsCommentMode(false); }} title="レーザーポインター (L)" className={`p-2 rounded-lg transition-colors ${isLaser ? 'bg-red-500 text-white' : 'hover:bg-white/10 text-white/60 hover:text-white'}`}><Crosshair className="w-5 h-5" /></button>

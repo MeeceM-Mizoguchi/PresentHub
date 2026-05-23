@@ -11,6 +11,7 @@ import { PresentationViewer } from './PresentationViewer';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
 import { presentationRegistry } from '../../presentations/registry';
 import { DRAG_TYPE, DragItem } from '../dnd';
+import { useConfirm } from './ConfirmDialog';
 
 // ─────────────────────────────────────────────
 // FolderCard
