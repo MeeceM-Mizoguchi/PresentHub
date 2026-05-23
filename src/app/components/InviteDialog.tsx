@@ -18,8 +18,11 @@ async function restReq(
   path: string,
   token: string,
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
-  body?: object
+  body?: object,
+  prefer?: string
 ): Promise<Response> {
+  const defaultPrefer = method === 'POST' ? 'resolution=merge-duplicates,return=minimal' : method !== 'GET' && method !== 'DELETE' ? 'return=minimal' : undefined;
+  const resolvedPrefer = prefer ?? defaultPrefer;
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
@@ -27,7 +30,7 @@ async function restReq(
       'apikey': SUPABASE_ANON_KEY,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      ...(method !== 'GET' && method !== 'DELETE' ? { 'Prefer': 'return=minimal' } : {}),
+      ...(resolvedPrefer ? { 'Prefer': resolvedPrefer } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -114,6 +117,13 @@ export function InviteDialog({ onClose }: InviteDialogProps) {
         ? 'このメールアドレスは既に登録されています'
         : `アカウント作成に失敗しました: ${signUpError.message}`;
       setFormError(msg);
+      setIsSubmitting(false);
+      return;
+    }
+
+    // identities=[] means already registered but Supabase doesn't return an error
+    if (signUpData.user && (!signUpData.user.identities || signUpData.user.identities.length === 0)) {
+      setFormError('このメールアドレスは既に登録されています');
       setIsSubmitting(false);
       return;
     }
