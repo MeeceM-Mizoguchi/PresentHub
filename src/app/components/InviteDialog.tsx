@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, UserPlus, Mail, Loader2, Check, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '../context/AuthContext';
 import { presentationRegistry } from '../../presentations/registry';
 import { toast } from '../lib/toast';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-function createTempClient() {
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
-}
 
 async function restReq(
   path: string,
@@ -98,37 +91,28 @@ export function InviteDialog({ onClose }: InviteDialogProps) {
 
     setIsSubmitting(true);
 
-    // 1. Create auth account (temp client — won't affect admin session)
-    const tempClient = createTempClient();
-    const randomPwd = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
-
-    const { data: signUpData, error: signUpError } = await tempClient.auth.signUp({
-      email: email.trim(),
-      password: randomPwd,
-      options: {
-        emailRedirectTo: `${window.location.origin}/set-password`,
-        data: { name: name.trim(), role: 'user' },
-      },
-    });
-
-    if (signUpError) {
-      const msg = signUpError.message.includes('already registered')
-        ? 'このメールアドレスは既に登録されています'
-        : `アカウント作成に失敗しました: ${signUpError.message}`;
-      setFormError(msg);
+    // 1. Vercel関数経由でアカウント作成 & Resendで招待メール送信
+    let newUserId: string | null = null;
+    let isExistingUser = false;
+    try {
+      const inviteRes = await fetch('/api/invite-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), name: name.trim(), origin: window.location.origin }),
+      });
+      const inviteData = await inviteRes.json();
+      if (!inviteRes.ok) {
+        setFormError(inviteData.error ?? 'アカウント作成に失敗しました');
+        setIsSubmitting(false);
+        return;
+      }
+      newUserId = inviteData.userId ?? null;
+      isExistingUser = inviteData.isExisting ?? false;
+    } catch {
+      setFormError('招待処理に失敗しました。しばらくしてから再試行してください');
       setIsSubmitting(false);
       return;
     }
-
-    // identities=[] means already registered but Supabase doesn't return an error
-    if (signUpData.user && (!signUpData.user.identities || signUpData.user.identities.length === 0)) {
-      setFormError('このメールアドレスは既に登録されています');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const newUserId = signUpData.user?.id;
 
     // 2. Insert user_invites record
     await restReq('user_invites', token, 'POST', {
@@ -136,7 +120,7 @@ export function InviteDialog({ onClose }: InviteDialogProps) {
       name: name.trim(),
       user_id: newUserId ?? null,
       invited_by: user?.id ?? null,
-      status: 'pending',
+      status: isExistingUser ? 'accepted' : 'pending',
     });
 
     // 3. Create profile for new user
@@ -162,7 +146,10 @@ export function InviteDialog({ onClose }: InviteDialogProps) {
       );
     }
 
-    toast.success(`${email.trim()} に招待メールを送信しました`);
+    toast.success(isExistingUser
+      ? `${email.trim()} を共有者に追加しました`
+      : `${email.trim()} に招待メールを送信しました`
+    );
     setEmail('');
     setName('');
     setSelectedPresentations(new Set());

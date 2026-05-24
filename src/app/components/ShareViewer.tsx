@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
-  Crosshair, Users, Radio, X, Loader2,
+  Crosshair, Users, Radio, X, Loader2, Clock,
 } from 'lucide-react';
 import { presentationRegistry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
@@ -39,6 +39,7 @@ export function ShareViewer() {
   const [laserPos, setLaserPos] = useState({ x: 0, y: 0 });
   const [isOverSlide, setIsOverSlide] = useState(false);
   const [slideScale, setSlideScale] = useState<number | null>(null);
+  const [isExpiredWhileViewing, setIsExpiredWhileViewing] = useState(false);
   const [syncMode, setSyncMode] = useState<'off' | 'follower'>('off');
   const [syncLaser, setSyncLaser] = useState({ x: 0, y: 0, active: false });
   const [presentUsers, setPresentUsers] = useState<{ userId: string; name: string; isPresenting: boolean }[]>([]);
@@ -63,6 +64,15 @@ export function ShareViewer() {
       })
       .catch(() => setStatus('invalid'));
   }, [token]);
+
+  // 視聴中に有効期限が切れたら自動でオーバーレイ表示
+  useEffect(() => {
+    if (!linkData) return;
+    const remaining = new Date(linkData.expires_at).getTime() - Date.now();
+    if (remaining <= 0) { setIsExpiredWhileViewing(true); return; }
+    const timer = setTimeout(() => setIsExpiredWhileViewing(true), remaining);
+    return () => clearTimeout(timer);
+  }, [linkData]);
 
   const presentation = linkData
     ? presentationRegistry.find(p => p.meta.id === linkData.presentation_id) ?? null
@@ -282,6 +292,22 @@ export function ShareViewer() {
     </div>
   );
 
+  // ── 期限切れオーバーレイ ─────────────────────────────────────────────────
+  const expiredOverlay = isExpiredWhileViewing && (
+    <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center">
+      <div className="text-center max-w-md px-6">
+        <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Clock className="w-10 h-10 text-violet-300" />
+        </div>
+        <h1 className="text-2xl font-bold text-white mb-3">有効期限が切れました</h1>
+        <p className="text-white/60 leading-relaxed">
+          この資料の共有リンクは有効期限が切れました。<br />
+          引き続き閲覧する場合は、再度リンクの発行を依頼してください。
+        </p>
+      </div>
+    </div>
+  );
+
   // ── フルスクリーン表示 ───────────────────────────────────────────────────
   if (isFullscreen) {
     return (
@@ -323,6 +349,7 @@ export function ShareViewer() {
             <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />
           ))}
         </div>
+        {expiredOverlay}
       </div>
     );
   }
@@ -372,6 +399,7 @@ export function ShareViewer() {
           <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />
         ))}
       </div>
+      {expiredOverlay}
     </div>
   );
 }

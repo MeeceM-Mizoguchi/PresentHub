@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Loader2 } from 'lucide-react';
@@ -14,10 +14,12 @@ import { SetPasswordPage } from './components/SetPasswordPage';
 import { DashboardPage } from './components/DashboardPage';
 import { ShareViewer } from './components/ShareViewer';
 import { NotFoundPage } from './components/NotFoundPage';
+import { AccessRestrictedPage } from './components/AccessRestrictedPage';
 import { useDeployDetection } from './hooks/useDeployDetection';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -27,7 +29,11 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    // ルートURLへの直接アクセスはアクセス制限ページを表示（ログイン画面を見せない）
+    if (location.pathname === '/') return <AccessRestrictedPage />;
+    return <Navigate to="/login" replace />;
+  }
   return <>{children}</>;
 }
 

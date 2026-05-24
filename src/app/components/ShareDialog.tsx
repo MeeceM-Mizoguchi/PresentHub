@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Link, Mail, Clock, Copy, Trash2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Link, Mail, Clock, Copy, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from '../lib/toast';
 
@@ -76,7 +76,8 @@ export function ShareDialog({ presentationId, presentationTitle, onClose }: Shar
         const now = new Date().toISOString();
         const active = all.filter(l => l.expires_at > now);
         setUrlLinks(active.filter(l => !l.recipient_email));
-        setEmailLinks(active.filter(l => !!l.recipient_email));
+        // メール共有は期限切れでも一覧に残す
+        setEmailLinks(all.filter(l => !!l.recipient_email));
       }
     } catch { /* ignore */ } finally {
       setIsLoading(false);
@@ -207,26 +208,29 @@ export function ShareDialog({ presentationId, presentationTitle, onClose }: Shar
 
   const LinkCard = ({ link, isEmail }: { link: SharedLink; isEmail: boolean }) => {
     const expiry = formatExpiry(link.expires_at);
+    const isExpired = expiry.label === '期限切れ';
     return (
-      <div className="flex items-center gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100">
+      <div className={`flex items-center gap-2 p-3 rounded-xl border ${isExpired ? 'bg-gray-50 border-gray-200' : 'bg-violet-50 border-violet-100'}`}>
         <div className="flex-1 min-w-0">
           {isEmail
-            ? <p className="text-sm font-medium text-gray-700 truncate">{link.recipient_email}</p>
+            ? <p className={`text-sm font-medium truncate ${isExpired ? 'text-gray-400' : 'text-gray-700'}`}>{link.recipient_email}</p>
             : <p className="text-xs font-mono text-gray-500 truncate">/share/{link.id.slice(0, 8)}…</p>
           }
-          <p className={`text-xs mt-0.5 font-medium ${expiry.urgent ? 'text-orange-500' : 'text-violet-600'}`}>
-            {expiry.label}
+          <p className={`text-xs mt-0.5 font-medium ${isExpired ? 'text-gray-400' : expiry.urgent ? 'text-orange-500' : 'text-violet-600'}`}>
+            {isExpired ? '期限切れ' : expiry.label}
           </p>
         </div>
-        <button onClick={() => copyUrl(link.id)} className="p-1.5 hover:bg-violet-100 rounded-lg transition-colors flex-shrink-0" title="URLをコピー">
-          {copiedId === link.id
-            ? <CheckCircle className="w-4 h-4 text-green-500" />
-            : <Copy className="w-4 h-4 text-violet-500" />}
-        </button>
-        <button onClick={() => revoke(link.id)} disabled={revokingId === link.id} className="p-1.5 hover:bg-red-100 rounded-lg transition-colors flex-shrink-0" title="共有解除">
+        {!isExpired && (
+          <button onClick={() => copyUrl(link.id)} className="p-1.5 hover:bg-violet-100 rounded-lg transition-colors flex-shrink-0" title="URLをコピー">
+            {copiedId === link.id
+              ? <CheckCircle className="w-4 h-4 text-green-500" />
+              : <Copy className="w-4 h-4 text-violet-500" />}
+          </button>
+        )}
+        <button onClick={() => revoke(link.id)} disabled={revokingId === link.id} className="p-1.5 hover:bg-red-100 rounded-lg transition-colors flex-shrink-0" title="削除">
           {revokingId === link.id
             ? <Loader2 className="w-4 h-4 animate-spin text-red-400" />
-            : <Trash2 className="w-4 h-4 text-red-400" />}
+            : <X className="w-4 h-4 text-red-400" />}
         </button>
       </div>
     );
