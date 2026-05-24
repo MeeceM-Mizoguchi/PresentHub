@@ -120,7 +120,7 @@ export function InviteDialog({ onClose }: InviteDialogProps) {
       name: name.trim(),
       user_id: newUserId ?? null,
       invited_by: user?.id ?? null,
-      status: isExistingUser ? 'accepted' : 'pending',
+      status: 'pending',
     });
 
     // 3. Create profile for new user
