@@ -165,11 +165,15 @@ export function InviteDialog({ onClose }: InviteDialogProps) {
         await restReq(`presentation_permissions?user_id=eq.${invite.user_id}`, token, 'DELETE');
         await restReq(`user_profiles?id=eq.${invite.user_id}`, token, 'DELETE');
         // auth.users からも削除（再招待時の旧パスワード残留を防ぐ）
-        await fetch('/api/delete-user', {
+        const authDelRes = await fetch('/api/delete-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: invite.user_id }),
-        }).catch(err => console.error('[delete] auth user delete failed:', err));
+        });
+        if (!authDelRes.ok) {
+          const errData = await authDelRes.json().catch(() => ({}));
+          throw new Error(errData.error ?? 'auth削除失敗');
+        }
       }
       await restReq(`user_invites?id=eq.${invite.id}`, token, 'DELETE');
       setInvitedUsers(prev => prev.filter(u => u.id !== invite.id));
