@@ -12,6 +12,8 @@ import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { RequestAccessPage } from './components/RequestAccessPage';
 import { SetPasswordPage } from './components/SetPasswordPage';
 import { DashboardPage } from './components/DashboardPage';
+import { ShareViewer } from './components/ShareViewer';
+import { NotFoundPage } from './components/NotFoundPage';
 import { useDeployDetection } from './hooks/useDeployDetection';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -35,10 +37,13 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* 公開ルート（認証不要） */}
+      <Route path="/share/:token" element={<ShareViewer />} />
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/request-access" element={<RequestAccessPage />} />
       <Route path="/set-password" element={<SetPasswordPage />} />
+      {/* 認証必須ルート */}
       <Route path="/*" element={
         <ProtectedRoute>
           <DndProvider backend={HTML5Backend}>
@@ -48,6 +53,7 @@ function AppRoutes() {
           </DndProvider>
         </ProtectedRoute>
       } />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

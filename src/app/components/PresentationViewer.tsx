@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users, Share2 } from 'lucide-react';
 import type { PresentationEntry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { ShareDialog } from './ShareDialog';
 
 const REST_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const REST_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -119,6 +120,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const comments: SlideComment[] = allSlideComments.filter(c => c.slideIndex === current);
 
   // Comment UI state
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [isCommentMode, setIsCommentMode] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [panelFilter, setPanelFilter] = useState<PanelFilter>('all');
@@ -829,6 +831,17 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
         </div>
       )}
 
+      {/* 共有URLボタン（管理者のみ） */}
+      {!isGuest && (
+        <button
+          onClick={() => setShowShareDialog(true)}
+          title="共有URL"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/10 text-white/60 hover:text-white border border-white/20 text-xs font-semibold"
+        >
+          <Share2 className="w-3.5 h-3.5" />
+          共有
+        </button>
+      )}
       <button onClick={() => { setIsLaser(v => !v); if (isCommentMode) setIsCommentMode(false); }} title="レーザーポインター (L)" className={`p-2 rounded-lg transition-colors ${isLaser ? 'bg-red-500 text-white' : 'hover:bg-white/10 text-white/60 hover:text-white'}`}><Crosshair className="w-5 h-5" /></button>
       <button
         onClick={() => { if (isCommentMode) { setIsCommentMode(false); setPendingPos(null); setActiveCommentId(null); } else { setIsCommentMode(true); setShowPanel(true); if (isLaser) setIsLaser(false); } }}
@@ -845,6 +858,15 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   );
 
   const slideEl = presentation.slides[current];
+
+  // ── 共有ダイアログ ────────────────────────────────────────────────────
+  const shareDialogEl = showShareDialog && (
+    <ShareDialog
+      presentationId={presId}
+      presentationTitle={titleOverride ?? presentation.meta.title}
+      onClose={() => setShowShareDialog(false)}
+    />
+  );
 
   // ── Fullscreen ────────────────────────────────────────────────────────
   if (isFullscreen) {
@@ -873,6 +895,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
         <div className="pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0">
           {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
         </div>
+        {shareDialogEl}
       </div>
     );
   }
@@ -910,6 +933,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
       <div className="pb-6 flex items-center justify-center gap-2 flex-shrink-0">
         {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
       </div>
+      {shareDialogEl}
     </div>
   );
 }
+
