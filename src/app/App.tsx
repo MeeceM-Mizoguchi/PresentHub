@@ -1,5 +1,6 @@
-import { ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { ReactNode, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Loader2 } from 'lucide-react';
@@ -39,7 +40,26 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
 function AppRoutes() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   useDeployDetection();
+
+  useEffect(() => {
+    // URLハッシュに type=invite / type=recovery が含まれる場合は /set-password へ誘導
+    // （Supabaseのリダイレクト先がベースURLになっても正しく動作させるため）
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const type = params.get('type');
+    if (type === 'invite' || type === 'recovery') {
+      navigate('/set-password', { replace: true });
+      return;
+    }
+    // 通常のパスワードリセットフロー（resetPasswordForEmail）用
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate('/set-password', { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Routes>
