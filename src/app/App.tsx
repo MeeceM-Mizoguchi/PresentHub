@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { DndProvider } from 'react-dnd';
@@ -18,20 +18,49 @@ import { NotFoundPage } from './components/NotFoundPage';
 import { AccessRestrictedPage } from './components/AccessRestrictedPage';
 import { useDeployDetection } from './hooks/useDeployDetection';
 
+const LoadingScreen = () => (
+  <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50">
+    <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+  </div>
+);
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  if (isLoading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50">
-        <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
-      </div>
-    );
-  }
+  // 招待・パスワードリセットリンクで開かれた場合、セッション確立を待ってから/set-passwordへ遷移
+  const [invitePending] = useState(() =>
+    /type=(invite|recovery)/.test(window.location.hash)
+  );
+
+  useEffect(() => {
+    if (!invitePending) return;
+
+    let done = false;
+    const go = () => {
+      if (!done) { done = true; navigate('/set-password', { replace: true }); }
+    };
+
+    // セッションが既に確立済みの場合に対応
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) go();
+    });
+
+    // SIGNED_IN / PASSWORD_RECOVERY を待ってから遷移（セッション確立後に実行）
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session) go();
+    });
+
+    // 15秒でタイムアウト → /set-password の「リンクが無効」画面を表示
+    const timer = setTimeout(go, 15000);
+
+    return () => { subscription.unsubscribe(); clearTimeout(timer); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isLoading || invitePending) return <LoadingScreen />;
 
   if (!user) {
-    // ルートURLへの直接アクセスはアクセス制限ページを表示（ログイン画面を見せない）
     if (location.pathname === '/') return <AccessRestrictedPage />;
     return <Navigate to="/login" replace />;
   }
@@ -43,20 +72,10 @@ function AppRoutes() {
   const navigate = useNavigate();
   useDeployDetection();
 
+  // 通常のパスワードリセットフロー（forgot-passwordページからのメールリンク）
   useEffect(() => {
-    // URLハッシュに type=invite / type=recovery が含まれる場合は /set-password へ誘導
-    // （Supabaseのリダイレクト先がベースURLになっても正しく動作させるため）
-    const params = new URLSearchParams(window.location.hash.slice(1));
-    const type = params.get('type');
-    if (type === 'invite' || type === 'recovery') {
-      navigate('/set-password', { replace: true });
-      return;
-    }
-    // 通常のパスワードリセットフロー（resetPasswordForEmail）用
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        navigate('/set-password', { replace: true });
-      }
+      if (event === 'PASSWORD_RECOVERY') navigate('/set-password', { replace: true });
     });
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
