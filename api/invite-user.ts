@@ -76,6 +76,8 @@ export default async function handler(req: any, res: any) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const resendApiKey = process.env.RESEND_API_KEY;
+  // クライアント提供のoriginよりサーバー側の環境変数を優先（localhost混入防止）
+  const safeOrigin = process.env.APP_ORIGIN ?? origin;
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.error('[invite-user] Supabase service role key not configured');
@@ -91,7 +93,7 @@ export default async function handler(req: any, res: any) {
     type: 'invite',
     email,
     options: {
-      emailRedirectTo: `${origin}/set-password`,
+      emailRedirectTo: `${safeOrigin}/set-password`,
       data: { name, role: 'user' },
     },
   });
@@ -110,7 +112,7 @@ export default async function handler(req: any, res: any) {
         const { data: recData } = await supabaseAdmin.auth.admin.generateLink({
           type: 'recovery',
           email,
-          options: { redirectTo: `${origin}/set-password` },
+          options: { redirectTo: `${safeOrigin}/set-password` },
         });
         const recoveryUrl: string | null = (recData as any)?.properties?.action_link ?? null;
         if (resendApiKey && recoveryUrl) {
