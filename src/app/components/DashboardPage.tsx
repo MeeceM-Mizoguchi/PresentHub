@@ -67,7 +67,6 @@ export function DashboardPage() {
   const currentView = viewFromPath(location.pathname);
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
   const [headerSearch, setHeaderSearch] = useState('');
   const [showSearchDrop, setShowSearchDrop] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -102,7 +101,6 @@ export function DashboardPage() {
 
   const allFiles = items.filter(item => item.type === 'file') as FileItem[];
   const filteredFiles = allFiles
-    .filter(file => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter(file => filterMode === 'starred' ? !!file.starred : true)
     .sort((a, b) => {
       if (filterMode === 'recent') {
@@ -346,17 +344,27 @@ export function DashboardPage() {
 
   const renderDashboard = () => (
     <>
-      {/* Search and Actions Bar */}
-      <div className="mb-8 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="プレゼンテーションを検索..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-violet-100 rounded-xl outline-none focus:border-violet-400 transition-colors"
-          />
+      {/* Actions Bar */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex gap-3">
+          {([
+            { key: 'starred', label: 'お気に入り', icon: Star },
+            { key: 'recent',  label: '最近使用',   icon: Clock },
+            { key: 'all',     label: 'すべて',      icon: FolderOpen },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setFilterMode(key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors whitespace-nowrap ${
+                filterMode === key
+                  ? 'bg-violet-500 border-violet-500 text-white'
+                  : 'bg-white border-violet-100 text-gray-600 hover:bg-violet-50'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -381,28 +389,6 @@ export function DashboardPage() {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Quick Filters */}
-      <div className="mb-6 flex gap-3 overflow-x-auto pb-2">
-        {([
-          { key: 'starred', label: 'お気に入り', icon: Star },
-          { key: 'recent',  label: '最近使用',   icon: Clock },
-          { key: 'all',     label: 'すべて',      icon: FolderOpen },
-        ] as const).map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setFilterMode(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-colors whitespace-nowrap ${
-              filterMode === key
-                ? 'bg-violet-500 border-violet-500 text-white'
-                : 'bg-white border-violet-100 text-gray-600 hover:bg-violet-50'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
-        ))}
       </div>
 
       {/* Loading / error state */}
