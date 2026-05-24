@@ -7,6 +7,19 @@ import { useAuth } from '../context/AuthContext';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
+function translateAuthError(msg: string): string {
+  if (msg.includes('New password should be different from the old password')) {
+    return '以前と異なるパスワードを設定してください';
+  }
+  if (msg.includes('Password should be at least')) {
+    return 'パスワードは8文字以上で入力してください';
+  }
+  if (msg.includes('session')) {
+    return 'セッションが切れました。招待メールのリンクを再度クリックしてください';
+  }
+  return 'パスワードの設定に失敗しました。しばらくしてから再試行してください';
+}
+
 const BgDeco = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none">
     <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-violet-300/30 to-pink-300/30 rounded-full blur-3xl" />
@@ -90,7 +103,7 @@ export function SetPasswordPage() {
 
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
-      setError(updateError.message);
+      setError(translateAuthError(updateError.message));
       setIsSubmitting(false);
       return;
     }

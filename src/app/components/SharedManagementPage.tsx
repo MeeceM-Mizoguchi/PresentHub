@@ -142,6 +142,12 @@ export function SharedManagementPage() {
           method: 'DELETE',
           headers: restHead(token),
         });
+        // auth.users からも削除（再招待時の旧パスワード残留を防ぐ）
+        await fetch('/api/delete-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: invite.user_id }),
+        }).catch(err => console.error('[delete] auth user delete failed:', err));
       }
       await fetch(`${SUPABASE_URL}/rest/v1/user_invites?id=eq.${invite.id}`, {
         method: 'DELETE',
