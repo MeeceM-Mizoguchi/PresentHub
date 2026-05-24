@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Loader2, CheckCircle, AlertCircle, Eye, EyeOff, FileText } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -101,14 +100,30 @@ export function SetPasswordPage() {
     if (password !== confirm) { setError('パスワードが一致しません'); return; }
     setIsSubmitting(true);
 
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    if (updateError) {
-      setError(translateAuthError(updateError.message));
+    // 招待セッションは権限が制限されているため管理者APIを使ってパスワードを設定
+    const token = session?.access_token;
+    if (!token) {
+      setError('セッションが無効です。招待メールのリンクを再度クリックしてください');
       setIsSubmitting(false);
       return;
     }
 
-    // Mark invite as accepted
+    const setRes = await fetch('/api/set-password', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password }),
+    });
+    const setData = await setRes.json();
+    if (!setRes.ok) {
+      setError(setData.error ?? 'パスワードの設定に失敗しました');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 招待ステータスを承認済みに更新
     if (user.email && session?.access_token) {
       fetch(`${SUPABASE_URL}/rest/v1/user_invites?email=eq.${encodeURIComponent(user.email)}`, {
         method: 'PATCH',
