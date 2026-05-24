@@ -17,14 +17,15 @@ function figmaAssetResolver() {
   }
 }
 
+const BUILD_TIME = new Date().toISOString();
+
 function versionJsonPlugin() {
   return {
     name: 'version-json',
     buildStart() {
-      const buildTime = new Date().toISOString();
       const publicDir = path.resolve(__dirname, 'public');
       if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-      fs.writeFileSync(path.resolve(publicDir, 'version.json'), JSON.stringify({ buildTime }), 'utf-8');
+      fs.writeFileSync(path.resolve(publicDir, 'version.json'), JSON.stringify({ buildTime: BUILD_TIME }), 'utf-8');
     },
   };
 }
@@ -66,7 +67,7 @@ function presentationEditorPlugin() {
 
 export default defineConfig({
   define: {
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
   },
   plugins: [
     versionJsonPlugin(),

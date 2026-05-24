@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,17 +21,19 @@ export function useDeployDetection() {
   const { signOut } = useAuth();
   const location = useLocation();
   const detectedRef = useRef(false);
+  const signOutRef = useRef(signOut);
+  signOutRef.current = signOut;
 
-  const checkAndLogout = async () => {
+  const checkAndLogout = useCallback(async () => {
     if (detectedRef.current) return;
     const deployed = await fetchDeployedBuildTime();
     if (!deployed) return;
     if (deployed !== __BUILD_TIME__) {
       detectedRef.current = true;
-      await signOut();
+      await signOutRef.current();
       window.location.replace('/login');
     }
-  };
+  }, []);
 
   useEffect(() => {
     checkAndLogout();
@@ -41,11 +43,9 @@ export function useDeployDetection() {
       window.removeEventListener('focus', checkAndLogout);
       clearInterval(timer);
     };
-  }, []);
+  }, [checkAndLogout]);
 
-  // 画面遷移時にもチェック
   useEffect(() => {
     checkAndLogout();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [location.pathname, checkAndLogout]);
 }
