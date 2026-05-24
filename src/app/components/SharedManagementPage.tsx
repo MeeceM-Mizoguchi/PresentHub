@@ -138,6 +138,10 @@ export function SharedManagementPage() {
           method: 'DELETE',
           headers: restHead(token),
         });
+        await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?id=eq.${invite.user_id}`, {
+          method: 'DELETE',
+          headers: restHead(token),
+        });
       }
       await fetch(`${SUPABASE_URL}/rest/v1/user_invites?id=eq.${invite.id}`, {
         method: 'DELETE',

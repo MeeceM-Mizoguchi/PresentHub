@@ -161,11 +161,10 @@ export function InviteDialog({ onClose }: InviteDialogProps) {
   const handleDelete = async (invite: InvitedUser) => {
     setDeletingId(invite.id);
     try {
-      // Remove permissions
       if (invite.user_id) {
         await restReq(`presentation_permissions?user_id=eq.${invite.user_id}`, token, 'DELETE');
+        await restReq(`user_profiles?id=eq.${invite.user_id}`, token, 'DELETE');
       }
-      // Remove invite record
       await restReq(`user_invites?id=eq.${invite.id}`, token, 'DELETE');
       setInvitedUsers(prev => prev.filter(u => u.id !== invite.id));
       toast.success('招待を削除しました');

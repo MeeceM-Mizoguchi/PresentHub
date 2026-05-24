@@ -42,11 +42,18 @@ export default async function handler(req: any, res: any) {
   const userId: string | null = data?.user?.id ?? null;
 
   if (error) {
-    // ユーザーが既に存在する場合はIDだけ取得してメール送信しない
-    const { data: existingUserData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-    if (existingUserData?.user) {
-      return res.status(200).json({ userId: existingUserData.user.id, isExisting: true });
-    }
+    // getUserByEmail はSDKに存在しないため admin REST APIで直接検索
+    try {
+      const userListRes = await fetch(
+        `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
+        { headers: { 'apikey': serviceRoleKey, 'Authorization': `Bearer ${serviceRoleKey}` } }
+      );
+      const userListData = await userListRes.json();
+      const existingUser = userListData?.users?.[0];
+      if (existingUser) {
+        return res.status(200).json({ userId: existingUser.id, isExisting: true });
+      }
+    } catch { /* fallthrough */ }
     console.error('[invite-user] generateLink error:', error.message);
     return res.status(400).json({ error: error.message });
   }
