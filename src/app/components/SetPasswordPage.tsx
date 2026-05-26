@@ -57,13 +57,8 @@ export function SetPasswordPage() {
           <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 border border-white/50 text-center">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-800 mb-2">リンクが無効です</h2>
-            <p className="text-gray-600 mb-6">招待リンクの有効期限が切れているか、無効なリンクです。</p>
-            <button
-              onClick={() => navigate('/login')}
-              className="px-6 py-3 bg-gradient-to-r from-violet-500 to-pink-500 text-white rounded-xl hover:shadow-xl transition-all"
-            >
-              ログイン画面へ
-            </button>
+            <p className="text-gray-600">招待リンクの有効期限が切れているか、無効なリンクです。</p>
+            <p className="text-gray-500 text-sm mt-3">管理者までお問い合わせください。</p>
           </div>
         </div>
       </div>
