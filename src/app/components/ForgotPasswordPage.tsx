@@ -50,7 +50,7 @@ export function ForgotPasswordPage() {
                   <span className="font-medium text-gray-700">{email}</span> にパスワードリセット用のリンクを送信しました。メールをご確認ください。
                 </p>
                 <Link
-                  to="/login"
+                  to="/admin/a9c2b7"
                   className="inline-flex items-center gap-2 text-violet-600 hover:text-violet-700 text-sm font-medium mt-4 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -96,7 +96,7 @@ export function ForgotPasswordPage() {
 
                 <div className="text-center">
                   <Link
-                    to="/login"
+                    to="/admin/a9c2b7"
                     className="inline-flex items-center gap-1 text-sm text-violet-600 hover:text-violet-700 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />

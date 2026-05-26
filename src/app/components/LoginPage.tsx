@@ -100,7 +100,7 @@ export function LoginPage() {
 
             <div className="text-center">
               <Link
-                to="/forgot-password"
+                to="/admin/a9c2b7/forgot"
                 className="text-violet-600 hover:text-violet-700 text-sm transition-colors"
               >
                 ID・パスワードをお忘れですか？
@@ -112,7 +112,7 @@ export function LoginPage() {
           <div className="px-8 pb-8 pt-2 border-t border-gray-100 text-center text-sm text-gray-500">
             <p className="mb-2">アクセスをご希望の方は</p>
             <Link
-              to="/request-access"
+              to="/admin/a9c2b7/request"
               className="text-violet-600 hover:text-violet-700 font-medium transition-colors"
             >
               アカウント申請フォームへ →

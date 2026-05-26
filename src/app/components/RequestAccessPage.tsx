@@ -64,7 +64,7 @@ export function RequestAccessPage() {
                   申請内容を確認の上、<span className="font-medium text-gray-700">{form.email}</span> 宛にご連絡いたします。しばらくお待ちください。
                 </p>
                 <Link
-                  to="/login"
+                  to="/admin/a9c2b7"
                   className="inline-flex items-center gap-2 text-violet-600 hover:text-violet-700 text-sm font-medium mt-4 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -151,7 +151,7 @@ export function RequestAccessPage() {
 
                 <div className="text-center">
                   <Link
-                    to="/login"
+                    to="/admin/a9c2b7"
                     className="inline-flex items-center gap-1 text-sm text-violet-600 hover:text-violet-700 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />

@@ -60,7 +60,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   if (isLoading || invitePending) return <LoadingScreen />;
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <NotFoundPage />;
   }
   return <>{children}</>;
 }
@@ -82,9 +82,9 @@ function AppRoutes() {
     <Routes>
       {/* 公開ルート（認証不要） */}
       <Route path="/v/:token" element={<ShareViewer />} />
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/request-access" element={<RequestAccessPage />} />
+      <Route path="/admin/a9c2b7" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route path="/admin/a9c2b7/forgot" element={<ForgotPasswordPage />} />
+      <Route path="/admin/a9c2b7/request" element={<RequestAccessPage />} />
       <Route path="/set-password" element={<SetPasswordPage />} />
       {/* 認証必須ルート */}
       <Route path="/*" element={
