@@ -15,7 +15,6 @@ import { SetPasswordPage } from './components/SetPasswordPage';
 import { DashboardPage } from './components/DashboardPage';
 import { ShareViewer } from './components/ShareViewer';
 import { NotFoundPage } from './components/NotFoundPage';
-import { AccessRestrictedPage } from './components/AccessRestrictedPage';
 import { useDeployDetection } from './hooks/useDeployDetection';
 
 const LoadingScreen = () => (
@@ -61,7 +60,6 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   if (isLoading || invitePending) return <LoadingScreen />;
 
   if (!user) {
-    if (location.pathname === '/') return <AccessRestrictedPage />;
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;

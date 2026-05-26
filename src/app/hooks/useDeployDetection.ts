@@ -24,28 +24,30 @@ export function useDeployDetection() {
   const signOutRef = useRef(signOut);
   signOutRef.current = signOut;
 
-  const checkAndLogout = useCallback(async () => {
+  const checkAndReload = useCallback(async () => {
+    // 開発環境ではサーバー再起動のたびに BUILD_TIME がずれるため無効化
+    if (import.meta.env.DEV) return;
     if (detectedRef.current) return;
     const deployed = await fetchDeployedBuildTime();
     if (!deployed) return;
     if (deployed !== __BUILD_TIME__) {
       detectedRef.current = true;
       await signOutRef.current();
-      window.location.replace('/login');
+      window.location.reload();
     }
   }, []);
 
   useEffect(() => {
-    checkAndLogout();
-    window.addEventListener('focus', checkAndLogout);
-    const timer = setInterval(checkAndLogout, CHECK_INTERVAL_MS);
+    checkAndReload();
+    window.addEventListener('focus', checkAndReload);
+    const timer = setInterval(checkAndReload, CHECK_INTERVAL_MS);
     return () => {
-      window.removeEventListener('focus', checkAndLogout);
+      window.removeEventListener('focus', checkAndReload);
       clearInterval(timer);
     };
-  }, [checkAndLogout]);
+  }, [checkAndReload]);
 
   useEffect(() => {
-    checkAndLogout();
-  }, [location.pathname, checkAndLogout]);
+    checkAndReload();
+  }, [location.pathname, checkAndReload]);
 }
