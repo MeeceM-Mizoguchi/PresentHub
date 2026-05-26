@@ -81,7 +81,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* 公開ルート（認証不要） */}
-      <Route path="/share/:token" element={<ShareViewer />} />
+      <Route path="/v/:token" element={<ShareViewer />} />
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/request-access" element={<RequestAccessPage />} />

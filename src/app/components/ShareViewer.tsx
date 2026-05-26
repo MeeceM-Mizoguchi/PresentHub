@@ -11,6 +11,18 @@ import { NotFoundPage } from './NotFoundPage';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
+function tokenToUuid(token: string): string | null {
+  try {
+    const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+    const binary = atob(base64);
+    if (binary.length !== 16) return null;
+    const hex = Array.from(binary).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  } catch {
+    return null;
+  }
+}
+
 interface SharedLink {
   id: string;
   presentation_id: string;
@@ -47,8 +59,9 @@ export function ShareViewer() {
 
   // ── リンク検証 ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!token) { setStatus('invalid'); return; }
-    fetch(`${SUPABASE_URL}/rest/v1/shared_links?id=eq.${token}&select=id,presentation_id,expires_at,is_revoked`, {
+    const uuid = token ? tokenToUuid(token) : null;
+    if (!uuid) { setStatus('invalid'); return; }
+    fetch(`${SUPABASE_URL}/rest/v1/shared_links?id=eq.${uuid}&select=id,presentation_id,expires_at,is_revoked`, {
       headers: { 'apikey': SUPABASE_ANON_KEY, 'Accept': 'application/json' },
     })
       .then(r => r.ok ? r.json() : [])

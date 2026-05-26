@@ -6,6 +6,13 @@ import { toast } from '../lib/toast';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
+function uuidToToken(uuid: string): string {
+  const hex = uuid.replace(/-/g, '');
+  const bytes = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 function makeHeaders(token: string): Record<string, string> {
   return {
     'Authorization': `Bearer ${token}`,
@@ -137,7 +144,7 @@ export function ShareDialog({ presentationId, presentationTitle, onClose }: Shar
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const [newLink]: SharedLink[] = await res.json();
-      const shareUrl = `${window.location.origin}/share/${newLink.id}`;
+      const shareUrl = `${window.location.origin}/v/${uuidToToken(newLink.id)}`;
       await fetch('/api/send-share-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -173,7 +180,7 @@ export function ShareDialog({ presentationId, presentationTitle, onClose }: Shar
   };
 
   const copyUrl = (id: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/share/${id}`);
+    navigator.clipboard.writeText(`${window.location.origin}/v/${uuidToToken(id)}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -214,7 +221,7 @@ export function ShareDialog({ presentationId, presentationTitle, onClose }: Shar
         <div className="flex-1 min-w-0">
           {isEmail
             ? <p className={`text-sm font-medium truncate ${isExpired ? 'text-gray-400' : 'text-gray-700'}`}>{link.recipient_email}</p>
-            : <p className="text-xs font-mono text-gray-500 truncate">/share/{link.id.slice(0, 8)}…</p>
+            : <p className="text-xs font-mono text-gray-500 truncate">/v/{uuidToToken(link.id).slice(0, 10)}…</p>
           }
           <p className={`text-xs mt-0.5 font-medium ${isExpired ? 'text-gray-400' : expiry.urgent ? 'text-orange-500' : 'text-violet-600'}`}>
             {isExpired ? '期限切れ' : expiry.label}
