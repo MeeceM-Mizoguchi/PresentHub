@@ -17,9 +17,11 @@ export interface PresentationEntry {
 import { meeceIntroPresentation } from './meece-intro';
 import { maStatus2026Presentation } from './ma-status-2026';
 import { aiLabPresentation } from './ai-lab';
+import { devticketPresentation } from './devticket';
 
 export const presentationRegistry: PresentationEntry[] = [
   meeceIntroPresentation,
   maStatus2026Presentation,
   aiLabPresentation,
+  devticketPresentation,
 ];

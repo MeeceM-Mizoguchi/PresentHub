@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users, Share2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users, Share2, Download } from 'lucide-react';
 import type { PresentationEntry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -85,6 +85,7 @@ interface PresentationViewerProps {
   titleOverride?: string;
 }
 
+
 export function PresentationViewer({ presentation, onClose, titleOverride }: PresentationViewerProps) {
   const { session, profile, isAdmin, isGuest } = useAuth();
   const accessToken = session?.access_token ?? '';
@@ -134,6 +135,60 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
 
   const prev = useCallback(() => setCurrent(s => Math.max(0, s - 1)), []);
   const next = useCallback(() => setCurrent(s => Math.min(total - 1, s + 1)), [total]);
+
+  // ── PDF エクスポート ──────────────────────────────────────────────────
+  const [pdfProgress, setPdfProgress] = useState<{ current: number; total: number } | null>(null);
+
+  const handleExportPdf = useCallback(async () => {
+    if (pdfProgress) return;
+    setPdfProgress({ current: 0, total });
+    try {
+      const [{ jsPDF }, { toJpeg }, { createRoot }] = await Promise.all([
+        import('jspdf'),
+        import('html-to-image'),
+        import('react-dom/client'),
+      ]);
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1280, 720], compress: true });
+
+      for (let i = 0; i < total; i++) {
+        setPdfProgress({ current: i, total });
+
+        const container = document.createElement('div');
+        container.style.cssText =
+          'position:fixed;top:0;left:0;width:1280px;height:720px;overflow:hidden;' +
+          'background:#ffffff;pointer-events:none;z-index:100;';
+        document.body.appendChild(container);
+        const root = createRoot(container);
+
+        try {
+          root.render(presentation.slides[i]);
+
+          await new Promise<void>(resolve =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+          );
+
+          const dataUrl = await toJpeg(container, {
+            quality: 0.95,
+            width: 1280,
+            height: 720,
+            pixelRatio: 2,
+          });
+
+          if (i > 0) pdf.addPage([1280, 720], 'landscape');
+          pdf.addImage(dataUrl, 'JPEG', 0, 0, 1280, 720);
+        } finally {
+          root.unmount();
+          document.body.removeChild(container);
+        }
+      }
+
+      pdf.save(`${presentation.meta.title}.pdf`);
+    } catch (e) {
+      console.error('[PDF export]', e);
+    } finally {
+      setPdfProgress(null);
+    }
+  }, [pdfProgress, total, presentation]);
 
   // ── 全スライドのコメントを初期ロード（パネル表示用）────────────────────
   useEffect(() => {
@@ -842,6 +897,16 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
           共有
         </button>
       )}
+      {/* PDFエクスポートボタン */}
+      <button
+        onClick={handleExportPdf}
+        disabled={!!pdfProgress}
+        title="PDFエクスポート"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/10 text-white/60 hover:text-white border border-white/20 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <Download className="w-3.5 h-3.5" />
+        PDF
+      </button>
       <button onClick={() => { setIsLaser(v => !v); if (isCommentMode) setIsCommentMode(false); }} title="レーザーポインター (L)" className={`p-2 rounded-lg transition-colors ${isLaser ? 'bg-red-500 text-white' : 'hover:bg-white/10 text-white/60 hover:text-white'}`}><Crosshair className="w-5 h-5" /></button>
       <button
         onClick={() => { if (isCommentMode) { setIsCommentMode(false); setPendingPos(null); setActiveCommentId(null); } else { setIsCommentMode(true); setShowPanel(true); if (isLaser) setIsLaser(false); } }}
@@ -866,6 +931,30 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
       presentationTitle={titleOverride ?? presentation.meta.title}
       onClose={() => setShowShareDialog(false)}
     />
+  );
+
+  // ── PDF プログレスオーバーレイ ────────────────────────────────────────
+  const pdfExportOverlay = pdfProgress && (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 99999,
+      background: 'rgba(0,0,0,0.75)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16,
+    }}>
+      <Download style={{ width: 32, height: 32, color: '#a78bfa', marginBottom: 4 }} />
+      <div style={{ color: 'white', fontSize: 15, fontWeight: 600 }}>
+        PDFを生成中...
+      </div>
+      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
+        {pdfProgress.current + 1} / {pdfProgress.total} スライド
+      </div>
+      <div style={{ width: 240, height: 5, background: 'rgba(255,255,255,0.15)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{
+          width: `${((pdfProgress.current + 1) / pdfProgress.total) * 100}%`,
+          height: '100%', background: '#8B5CF6', borderRadius: 3,
+          transition: 'width 0.2s ease',
+        }} />
+      </div>
+    </div>
   );
 
   // ── Fullscreen ────────────────────────────────────────────────────────
@@ -896,6 +985,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
           {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
         </div>
         {shareDialogEl}
+        {pdfExportOverlay}
       </div>
     );
   }
@@ -934,6 +1024,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
         {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
       </div>
       {shareDialogEl}
+      {pdfExportOverlay}
     </div>
   );
 }
