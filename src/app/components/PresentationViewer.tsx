@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users, Share2, Download } from 'lucide-react';
 import type { PresentationEntry } from '../../presentations/registry';
+import { exportPdf } from '../lib/exportPdf';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { ShareDialog } from './ShareDialog';
@@ -143,46 +144,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     if (pdfProgress) return;
     setPdfProgress({ current: 0, total });
     try {
-      const [{ jsPDF }, { toJpeg }, { createRoot }] = await Promise.all([
-        import('jspdf'),
-        import('html-to-image'),
-        import('react-dom/client'),
-      ]);
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1280, 720], compress: true });
-
-      for (let i = 0; i < total; i++) {
-        setPdfProgress({ current: i, total });
-
-        const container = document.createElement('div');
-        container.style.cssText =
-          'position:fixed;top:0;left:0;width:1280px;height:720px;overflow:hidden;' +
-          'background:#ffffff;pointer-events:none;z-index:100;';
-        document.body.appendChild(container);
-        const root = createRoot(container);
-
-        try {
-          root.render(presentation.slides[i]);
-
-          await new Promise<void>(resolve =>
-            requestAnimationFrame(() => requestAnimationFrame(resolve))
-          );
-
-          const dataUrl = await toJpeg(container, {
-            quality: 0.95,
-            width: 1280,
-            height: 720,
-            pixelRatio: 2,
-          });
-
-          if (i > 0) pdf.addPage([1280, 720], 'landscape');
-          pdf.addImage(dataUrl, 'JPEG', 0, 0, 1280, 720);
-        } finally {
-          root.unmount();
-          document.body.removeChild(container);
-        }
-      }
-
-      pdf.save(`${presentation.meta.title}.pdf`);
+      await exportPdf(presentation, (current, t) => setPdfProgress({ current, total: t }));
     } catch (e) {
       console.error('[PDF export]', e);
     } finally {

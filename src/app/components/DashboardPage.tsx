@@ -19,7 +19,9 @@ import {
   Maximize2,
   X,
   Plus,
+  Download,
 } from 'lucide-react';
+import { exportPdf } from '../lib/exportPdf';
 import { Sidebar } from './Sidebar';
 import { FolderView } from './FolderView';
 import { SharedManagementPage } from './SharedManagementPage';
@@ -78,6 +80,22 @@ export function DashboardPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState('');
+  const [pdfExportingId, setPdfExportingId] = useState<string | null>(null);
+
+  const handleExportPdfFromMenu = async (fileId: string) => {
+    const pres = presentationRegistry.find(p => p.meta.id === fileId);
+    if (!pres || pdfExportingId) return;
+    setOpenMenuId(null);
+    setPdfExportingId(fileId);
+    try {
+      await exportPdf(pres);
+      toast.success('PDFをダウンロードしました');
+    } catch {
+      toast.error('PDF生成に失敗しました');
+    } finally {
+      setPdfExportingId(null);
+    }
+  };
   const [filterMode, setFilterMode] = useState<'all' | 'starred' | 'recent'>('all');
 
   const allFilesFlat = items.filter(i => i.type === 'file') as FileItem[];
@@ -212,6 +230,19 @@ export function DashboardPage() {
                 >
                   <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
                 </button>
+                {presentationRegistry.some(p => p.meta.id === file.id) && (
+                  <button
+                    onClick={() => handleExportPdfFromMenu(file.id)}
+                    disabled={!!pdfExportingId}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors disabled:opacity-40"
+                  >
+                    {pdfExportingId === file.id
+                      ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
+                      : <Download className="w-4 h-4 text-violet-500" />
+                    }
+                    PDF出力
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -334,6 +365,19 @@ export function DashboardPage() {
               >
                 <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
               </button>
+              {presentationRegistry.some(p => p.meta.id === file.id) && (
+                <button
+                  onClick={() => handleExportPdfFromMenu(file.id)}
+                  disabled={!!pdfExportingId}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors disabled:opacity-40"
+                >
+                  {pdfExportingId === file.id
+                    ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
+                    : <Download className="w-4 h-4 text-violet-500" />
+                  }
+                  PDF出力
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -3,8 +3,10 @@ import { useDrag, useDrop } from 'react-dnd';
 import {
   FileText, Calendar, User, Grid3x3, List, Star, MoreVertical,
   ChevronRight, Home, Folder as FolderIcon, UserPlus, FolderInput,
-  Pencil, Trash2, Plus,
+  Pencil, Trash2, Plus, Download, Loader2,
 } from 'lucide-react';
+import { exportPdf } from '../lib/exportPdf';
+import { toast } from '../lib/toast';
 import { useApp } from '../context/AppContext';
 import { FolderItem, FileItem } from '../types';
 import { PresentationViewer } from './PresentationViewer';
@@ -201,9 +203,25 @@ function FileCard({ file, viewMode, onView, onMove, onPermissionClick, onToggleS
   const [openMenu, setOpenMenu] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameVal, setRenameVal] = useState(file.name);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (isRenaming) renameInputRef.current?.focus(); }, [isRenaming]);
+
+  const handleExportPdf = async () => {
+    const pres = presentationRegistry.find(p => p.meta.id === file.id);
+    if (!pres || isExportingPdf) return;
+    setOpenMenu(false);
+    setIsExportingPdf(true);
+    try {
+      await exportPdf(pres);
+      toast.success('PDFをダウンロードしました');
+    } catch {
+      toast.error('PDF生成に失敗しました');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   const handleRenameSubmit = () => {
     const trimmed = renameVal.trim();
@@ -243,6 +261,16 @@ function FileCard({ file, viewMode, onView, onMove, onPermissionClick, onToggleS
         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors">
         <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
       </button>
+      {presentationRegistry.some(p => p.meta.id === file.id) && (
+        <button onClick={handleExportPdf} disabled={isExportingPdf}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors disabled:opacity-40">
+          {isExportingPdf
+            ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
+            : <Download className="w-4 h-4 text-violet-500" />
+          }
+          PDF出力
+        </button>
+      )}
     </div>
   );
 
