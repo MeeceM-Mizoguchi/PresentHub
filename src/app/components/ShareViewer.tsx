@@ -7,7 +7,7 @@ import {
 import { presentationRegistry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { NotFoundPage } from './NotFoundPage';
-import { useViewerFullscreen, useIsPortrait, useIsCoarsePointer, useSwipeNav } from '../hooks/useViewerMode';
+import { useViewerFullscreen, useIsPortrait, useIsCoarsePointer, useSwipeNav, useVisualViewportStyle } from '../hooks/useViewerMode';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -47,7 +47,8 @@ export function ShareViewer() {
   ).current;
 
   const [current, setCurrent] = useState(0);
-  const { fullscreenActive: isFullscreen, toggleFullscreen, exitFullscreen } = useViewerFullscreen(viewerRef);
+  const { fullscreenActive: isFullscreen, isPseudoFullscreen, toggleFullscreen, exitFullscreen } = useViewerFullscreen(viewerRef);
+  const vvStyle = useVisualViewportStyle(isPseudoFullscreen);
   const isPortrait = useIsPortrait();
   const isCoarse = useIsCoarsePointer();
   const [isLaser, setIsLaser] = useState(false);
@@ -328,7 +329,7 @@ export function ShareViewer() {
   // ── フルスクリーン表示 ───────────────────────────────────────────────────
   if (isFullscreen) {
     return (
-      <div ref={viewerRef} className="fixed inset-0 z-50 bg-black flex flex-col">
+      <div ref={viewerRef} className="fixed inset-0 z-50 bg-black flex flex-col" style={vvStyle}>
         {showLaser && (
           <div style={{ position: 'fixed', left: laserPos.x - 8, top: laserPos.y - 8, width: 16, height: 16, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', boxShadow: '0 0 14px 5px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 9999 }} />
         )}

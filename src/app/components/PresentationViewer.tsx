@@ -5,7 +5,7 @@ import { exportPdf } from '../lib/exportPdf';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { ShareDialog } from './ShareDialog';
-import { useViewerFullscreen, useIsPortrait, useIsCoarsePointer, useSwipeNav } from '../hooks/useViewerMode';
+import { useViewerFullscreen, useIsPortrait, useIsCoarsePointer, useSwipeNav, useVisualViewportStyle } from '../hooks/useViewerMode';
 
 const REST_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const REST_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -99,7 +99,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const total = presentation.slides.length;
   const presId = presentation.meta.id;
 
-  const { fullscreenActive: isFullscreen, toggleFullscreen, exitFullscreen } = useViewerFullscreen(viewerRef);
+  const { fullscreenActive: isFullscreen, isPseudoFullscreen, toggleFullscreen, exitFullscreen } = useViewerFullscreen(viewerRef);
+  const vvStyle = useVisualViewportStyle(isPseudoFullscreen);
   const isPortrait = useIsPortrait();
   const isCoarse = useIsCoarsePointer();
   const [isLaser, setIsLaser] = useState(false);
@@ -930,7 +931,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   // ── Fullscreen ────────────────────────────────────────────────────────
   if (isFullscreen) {
     return (
-      <div ref={viewerRef} className="fixed inset-0 z-50 bg-black flex flex-col">
+      <div ref={viewerRef} className="fixed inset-0 z-50 bg-black flex flex-col" style={vvStyle}>
         {showLaser && <div style={{ position: 'fixed', left: laserPos.x - 8, top: laserPos.y - 8, width: 16, height: 16, borderRadius: '50%', background: 'rgba(255, 30, 30, 0.9)', boxShadow: '0 0 14px 5px rgba(255, 30, 30, 0.45)', pointerEvents: 'none', zIndex: 9999 }} />}
         <div className="flex items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10">
           <h2 className="font-semibold text-white/80 text-sm sm:text-base truncate max-w-[38vw] sm:max-w-sm">{titleOverride ?? presentation.meta.title}</h2>

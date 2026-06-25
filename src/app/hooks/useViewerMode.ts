@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, RefObject } from 'react';
+import { useState, useEffect, useCallback, useRef, RefObject, CSSProperties } from 'react';
 
 /**
  * モバイル（特に iOS Safari）では Element.requestFullscreen() が使えないため、
@@ -52,7 +52,56 @@ export function useViewerFullscreen(viewerRef: RefObject<HTMLElement | null>) {
     else enter();
   }, [fullscreenActive, enter, exit]);
 
-  return { fullscreenActive, toggleFullscreen, exitFullscreen: exit };
+  return {
+    fullscreenActive,
+    isPseudoFullscreen: pseudoFs,
+    toggleFullscreen,
+    exitFullscreen: exit,
+  };
+}
+
+/**
+ * 擬似全画面（iOS 等）のとき、ビューアー枠を「実際に見えている領域」に
+ * ピッタリ合わせるための inline style を返す。
+ *
+ * iOS では `position: fixed; inset: 0` がアドレスバーの裏側まで含む
+ * レイアウトビューポートを指すため、下端が見切れてしまう。
+ * VisualViewport API で可視領域の幅・高さ・オフセットを測り、それに合わせる。
+ * `active` が false のときは undefined を返し、通常の inset-0 をそのまま使う。
+ */
+export function useVisualViewportStyle(active: boolean): CSSProperties | undefined {
+  const [vp, setVp] = useState<{ w: number; h: number; top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!active) { setVp(null); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVp({ w: vv.width, h: vv.height, top: vv.offsetTop, left: vv.offsetLeft });
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    window.addEventListener('orientationchange', update);
+    // 擬似全画面中は背面ページのスクロール（アドレスバー再出現の要因）を止める
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      window.removeEventListener('orientationchange', update);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [active]);
+
+  if (!active || !vp) return undefined;
+  return {
+    top: 0,
+    left: 0,
+    right: 'auto',
+    bottom: 'auto',
+    width: vp.w,
+    height: vp.h,
+    transform: `translate(${vp.left}px, ${vp.top}px)`,
+  };
 }
 
 /**
