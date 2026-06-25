@@ -52,6 +52,30 @@ export function ShareViewer() {
   const { containerRef: normalBoxRef, boxStyle: normalBoxStyle } = useContainBox(16, 9);
   const isPortrait = useIsPortrait();
   const isCoarse = useIsCoarsePointer();
+
+  // モバイル全画面では操作UI（ヘッダー・ページドット）を既定で隠し、タップで出し入れ
+  const [showControls, setShowControls] = useState(false);
+  const controlsTimerRef = useRef<number | null>(null);
+  const mobileImmersive = isCoarse && isFullscreen;
+  const revealControls = useCallback((autoHide = true) => {
+    setShowControls(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    if (autoHide) controlsTimerRef.current = window.setTimeout(() => setShowControls(false), 2800);
+  }, []);
+  useEffect(() => {
+    if (!mobileImmersive) { setShowControls(true); return; }
+    revealControls(true);
+    return () => { if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current); };
+  }, [mobileImmersive, revealControls]);
+  const handleImmersiveTap = useCallback(() => {
+    if (showControls) {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+      setShowControls(false);
+    } else {
+      revealControls(true);
+    }
+  }, [showControls, revealControls]);
+
   const [isLaser, setIsLaser] = useState(false);
   const [laserPos, setLaserPos] = useState({ x: 0, y: 0 });
   const [isOverSlide, setIsOverSlide] = useState(false);
@@ -334,7 +358,7 @@ export function ShareViewer() {
         {showLaser && (
           <div style={{ position: 'fixed', left: laserPos.x - 8, top: laserPos.y - 8, width: 16, height: 16, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', boxShadow: '0 0 14px 5px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 9999 }} />
         )}
-        <div className="flex items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10">
+        <div className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10 transition-opacity duration-300 ${mobileImmersive && !showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <h2 className="font-semibold text-white/80 text-sm sm:text-base truncate max-w-[40vw] sm:max-w-sm">{presentation.meta.title}</h2>
           {controlBar}
         </div>
@@ -349,7 +373,7 @@ export function ShareViewer() {
               onMouseMove={e => setLaserPos({ x: e.clientX, y: e.clientY })}
               onMouseEnter={() => setIsOverSlide(true)}
               onMouseLeave={() => setIsOverSlide(false)}
-              onClick={e => { if (suppressClickRef.current) return; const r = e.currentTarget.getBoundingClientRect(); if (e.clientX - r.left < r.width / 2) prev(); else next(); }}
+              onClick={e => { if (suppressClickRef.current) return; if (mobileImmersive) { handleImmersiveTap(); return; } const r = e.currentTarget.getBoundingClientRect(); if (e.clientX - r.left < r.width / 2) prev(); else next(); }}
               style={{ width: 'min(100%, calc(100dvh * 16 / 9))', height: 'min(100%, calc(100dvw * 9 / 16))', background: 'white', overflow: 'hidden', position: 'relative', touchAction: 'manipulation' }}
             >
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>
@@ -364,7 +388,7 @@ export function ShareViewer() {
             </button>}
           </div>
         </div>
-        <div className="pb-3 sm:pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0 px-4 overflow-x-auto">
+        <div className={`pb-3 sm:pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0 px-4 overflow-x-auto transition-opacity duration-300 ${mobileImmersive && !showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           {presentation.slides.map((_, i) => (
             <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 flex-shrink-0 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />
           ))}

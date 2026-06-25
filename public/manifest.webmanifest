@@ -1,0 +1,11 @@
+{
+  "name": "PresentHub",
+  "short_name": "PresentHub",
+  "start_url": "/",
+  "scope": "/",
+  "display_override": ["fullscreen", "standalone"],
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#000000",
+  "theme_color": "#000000"
+}

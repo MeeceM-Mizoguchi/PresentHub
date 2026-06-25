@@ -104,6 +104,23 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const { containerRef: normalBoxRef, boxStyle: normalBoxStyle } = useContainBox(16, 9);
   const isPortrait = useIsPortrait();
   const isCoarse = useIsCoarsePointer();
+
+  // モバイル全画面では操作UI（ヘッダー・ページドット）を既定で隠し、タップで出し入れする
+  const mobileImmersive = isCoarse && isFullscreen;
+  const [showControls, setShowControls] = useState(false);
+  const controlsTimerRef = useRef<number | null>(null);
+  const revealControls = useCallback((autoHide = true) => {
+    setShowControls(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    if (autoHide) controlsTimerRef.current = window.setTimeout(() => setShowControls(false), 2800);
+  }, []);
+  // 没入モードに入った瞬間は操作UIを一度見せてから自動で隠す（操作方法の周知）。
+  // 非没入（PC・通常表示）では常に表示。
+  useEffect(() => {
+    if (!mobileImmersive) { setShowControls(true); return; }
+    revealControls(true);
+    return () => { if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current); };
+  }, [mobileImmersive, revealControls]);
   const [isLaser, setIsLaser] = useState(false);
   const [laserPos, setLaserPos] = useState({ x: 0, y: 0 });
 
@@ -417,6 +434,16 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
 
   const handleSlideClick = useCallback((e: React.MouseEvent) => {
     if (suppressClickRef.current) return; // スワイプ直後のクリックを無視
+    // モバイル全画面：タップで操作UIをトグル（ページ送りはスワイプ）
+    if (mobileImmersive && !isCommentMode && !isLaser) {
+      if (showControls) {
+        if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+        setShowControls(false);
+      } else {
+        revealControls(true);
+      }
+      return;
+    }
     if (isLaser) return;
     setActiveCommentId(null);
     if (isCommentMode) {
@@ -431,7 +458,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     }
     const rect = e.currentTarget.getBoundingClientRect();
     if (e.clientX - rect.left < rect.width / 2) prev(); else next();
-  }, [isLaser, isCommentMode, slideScale, prev, next]);
+  }, [isLaser, isCommentMode, slideScale, prev, next, mobileImmersive, showControls, revealControls]);
 
   const authorName = currentUser?.name ?? '外部ユーザー';
   const authorId = currentUser?.id ?? null;
@@ -934,7 +961,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     return (
       <div ref={viewerRef} className="fixed inset-0 z-50 bg-black flex flex-col" style={vvStyle}>
         {showLaser && <div style={{ position: 'fixed', left: laserPos.x - 8, top: laserPos.y - 8, width: 16, height: 16, borderRadius: '50%', background: 'rgba(255, 30, 30, 0.9)', boxShadow: '0 0 14px 5px rgba(255, 30, 30, 0.45)', pointerEvents: 'none', zIndex: 9999 }} />}
-        <div className="flex items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10">
+        <div className={`flex items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10 transition-opacity duration-300 ${mobileImmersive && !showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <h2 className="font-semibold text-white/80 text-sm sm:text-base truncate max-w-[38vw] sm:max-w-sm">{titleOverride ?? presentation.meta.title}</h2>
           {controlBar}
         </div>
@@ -954,7 +981,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
           {commentPanel}
         </div>
         {orientationHint}
-        <div className="pb-3 sm:pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0 px-4 overflow-x-auto">
+        <div className={`pb-3 sm:pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0 px-4 overflow-x-auto transition-opacity duration-300 ${mobileImmersive && !showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 flex-shrink-0 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
         </div>
         {shareDialogEl}
