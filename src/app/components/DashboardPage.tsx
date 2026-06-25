@@ -482,8 +482,8 @@ export function DashboardPage() {
   // ── ゲスト向けビュー（user_invites に登録済みの招待ユーザーのみ）──────────
   if (isGuest) {
     return (
-      <div className="flex h-screen w-full bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50 flex-col">
-        <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 flex-shrink-0">
+      <div className="fixed inset-0 flex w-full bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50 flex-col">
+        <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 flex-shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="px-6 py-4 flex items-center justify-between">
             <h1 className="text-lg font-bold bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
               PresentHub
@@ -495,7 +495,7 @@ export function DashboardPage() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 sm:py-8">
+        <main className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-6 sm:py-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}>
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
@@ -568,7 +568,7 @@ export function DashboardPage() {
 
   return (
     <div
-      className="flex h-screen w-full bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50"
+      className="fixed inset-0 flex w-full bg-gradient-to-br from-violet-50 via-pink-50 to-orange-50"
       onClick={() => setOpenMenuId(null)}
     >
       <Sidebar
@@ -580,8 +580,8 @@ export function DashboardPage() {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white/80 backdrop-blur-md border-b border-violet-100">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header className="bg-white/80 backdrop-blur-md border-b border-violet-100 flex-shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="px-4 sm:px-6 py-4 flex items-center gap-2 sm:gap-4">
             <button
               onClick={(e) => { e.stopPropagation(); setSidebarOpen(true); }}
@@ -659,7 +659,7 @@ export function DashboardPage() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 sm:py-8">
+        <main className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 py-6 sm:py-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}>
           {currentView === 'dashboard' && renderDashboard()}
           {currentView === 'folder' && (
             <FolderView
