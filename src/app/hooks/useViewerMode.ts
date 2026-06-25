@@ -10,7 +10,11 @@ export function useViewerFullscreen(viewerRef: RefObject<HTMLElement | null>) {
   const [pseudoFs, setPseudoFs] = useState(false);
 
   useEffect(() => {
-    const handler = () => setNativeFs(!!document.fullscreenElement);
+    const handler = () => {
+      const active = !!document.fullscreenElement;
+      setNativeFs(active);
+      if (active) setPseudoFs(false); // ネイティブ全画面が起動したら擬似はオフ
+    };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
@@ -32,6 +36,11 @@ export function useViewerFullscreen(viewerRef: RefObject<HTMLElement | null>) {
           orientation?.lock?.('landscape').catch(() => {});
         })
         .catch(() => setPseudoFs(true));
+      // iOS Chrome/Safari では requestFullscreen が「無反応・例外も出さない」ことがある。
+      // 一定時間内にネイティブ全画面が起動しなければ擬似全画面へフォールバック。
+      setTimeout(() => {
+        if (!document.fullscreenElement) setPseudoFs(true);
+      }, 350);
     } else {
       // Fullscreen API 非対応（iPhone Safari 等）→ 擬似全画面
       setPseudoFs(true);
@@ -135,6 +144,35 @@ export function useSwipeNav(onPrev: () => void, onNext: () => void) {
   }, [onPrev, onNext]);
 
   return { swipeHandlers: { onTouchStart, onTouchEnd }, suppressClickRef };
+}
+
+/**
+ * コンテナ内に収まる最大の `ratioW:ratioH` ボックスを px で算出する。
+ * `containerRef` を計測し、幅・高さの両方を考慮して contain（はみ出さない）させる。
+ * CSS の `padding-top` 方式は幅基準のため横長・低い画面で縦にあふれるが、これは両軸を見る。
+ */
+export function useContainBox(ratioW = 16, ratioH = 9) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width <= 0 || height <= 0) return;
+      const fit = Math.min(width / ratioW, height / ratioH);
+      setBox({ w: Math.floor(fit * ratioW), h: Math.floor(fit * ratioH) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ratioW, ratioH]);
+
+  const boxStyle: CSSProperties = box
+    ? { width: box.w, height: box.h }
+    : { width: '100%', visibility: 'hidden' };
+
+  return { containerRef, boxStyle };
 }
 
 /** 端末の向き（縦持ち = portrait）を返す。 */

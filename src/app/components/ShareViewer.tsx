@@ -7,7 +7,7 @@ import {
 import { presentationRegistry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { NotFoundPage } from './NotFoundPage';
-import { useViewerFullscreen, useIsPortrait, useIsCoarsePointer, useSwipeNav, useVisualViewportStyle } from '../hooks/useViewerMode';
+import { useViewerFullscreen, useIsPortrait, useIsCoarsePointer, useSwipeNav, useVisualViewportStyle, useContainBox } from '../hooks/useViewerMode';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -49,6 +49,7 @@ export function ShareViewer() {
   const [current, setCurrent] = useState(0);
   const { fullscreenActive: isFullscreen, isPseudoFullscreen, toggleFullscreen, exitFullscreen } = useViewerFullscreen(viewerRef);
   const vvStyle = useVisualViewportStyle(isPseudoFullscreen);
+  const { containerRef: normalBoxRef, boxStyle: normalBoxStyle } = useContainBox(16, 9);
   const isPortrait = useIsPortrait();
   const isCoarse = useIsCoarsePointer();
   const [isLaser, setIsLaser] = useState(false);
@@ -391,25 +392,23 @@ export function ShareViewer() {
         {!isCoarse && <button onClick={prev} disabled={current === 0} className="p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0">
           <ChevronLeft className="w-8 h-8" />
         </button>}
-        <div className="flex-1 max-w-5xl min-w-0">
-          <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-            <div
-              className="absolute inset-0 bg-white rounded-xl overflow-hidden shadow-2xl"
-              ref={slideAreaRef}
-              {...swipeHandlers}
-              onMouseMove={e => setLaserPos({ x: e.clientX, y: e.clientY })}
-              onMouseEnter={() => setIsOverSlide(true)}
-              onMouseLeave={() => setIsOverSlide(false)}
-              onClick={e => { if (suppressClickRef.current) return; const r = e.currentTarget.getBoundingClientRect(); if (e.clientX - r.left < r.width / 2) prev(); else next(); }}
-              style={{ touchAction: 'manipulation' }}
-            >
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>
-                {slideEl}
-              </div>
-              {syncMode === 'follower' && syncLaser.active && (
-                <div style={{ position: 'absolute', left: `${syncLaser.x * 100}%`, top: `${syncLaser.y * 100}%`, width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', transform: 'translate(-50%,-50%)', boxShadow: '0 0 16px 6px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 100 }} />
-              )}
+        <div ref={normalBoxRef} className="flex-1 max-w-5xl min-w-0 min-h-0 h-full flex items-center justify-center">
+          <div
+            className="bg-white rounded-xl overflow-hidden shadow-2xl relative"
+            ref={slideAreaRef}
+            {...swipeHandlers}
+            onMouseMove={e => setLaserPos({ x: e.clientX, y: e.clientY })}
+            onMouseEnter={() => setIsOverSlide(true)}
+            onMouseLeave={() => setIsOverSlide(false)}
+            onClick={e => { if (suppressClickRef.current) return; const r = e.currentTarget.getBoundingClientRect(); if (e.clientX - r.left < r.width / 2) prev(); else next(); }}
+            style={{ ...normalBoxStyle, touchAction: 'manipulation' }}
+          >
+            <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>
+              {slideEl}
             </div>
+            {syncMode === 'follower' && syncLaser.active && (
+              <div style={{ position: 'absolute', left: `${syncLaser.x * 100}%`, top: `${syncLaser.y * 100}%`, width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', transform: 'translate(-50%,-50%)', boxShadow: '0 0 16px 6px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 100 }} />
+            )}
           </div>
         </div>
         {!isCoarse && <button onClick={next} disabled={current === total - 1} className="p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0">
