@@ -1,11 +1,17 @@
 {
   "name": "PresentHub",
   "short_name": "PresentHub",
-  "start_url": "/",
+  "description": "プレゼンテーション管理",
+  "start_url": "/admin/a9c2b7",
   "scope": "/",
-  "display_override": ["fullscreen", "standalone"],
-  "display": "fullscreen",
+  "display_override": ["standalone", "fullscreen"],
+  "display": "standalone",
   "orientation": "any",
-  "background_color": "#000000",
-  "theme_color": "#000000"
+  "background_color": "#0b0b14",
+  "theme_color": "#0b0b14",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
 }
