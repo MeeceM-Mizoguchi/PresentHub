@@ -2,7 +2,7 @@
   "name": "PresentHub",
   "short_name": "PresentHub",
   "description": "プレゼンテーション管理",
-  "start_url": "/admin/a9c2b7",
+  "start_url": "/",
   "scope": "/",
   "display_override": ["standalone", "fullscreen"],
   "display": "standalone",

@@ -60,7 +60,8 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   if (isLoading || invitePending) return <LoadingScreen />;
 
   if (!user) {
-    return <NotFoundPage />;
+    // 未ログインで保護ページ（root含む）に来たらログイン画面を表示（URLはそのまま）
+    return <LoginPage />;
   }
   return <>{children}</>;
 }
