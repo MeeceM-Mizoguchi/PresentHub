@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users, Share2, Download } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users, Share2, Download, RotateCw } from 'lucide-react';
 import type { PresentationEntry } from '../../presentations/registry';
 import { exportPdf } from '../lib/exportPdf';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { ShareDialog } from './ShareDialog';
+import { useViewerFullscreen, useIsPortrait, useIsCoarsePointer, useSwipeNav } from '../hooks/useViewerMode';
 
 const REST_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const REST_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -98,7 +99,9 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   const total = presentation.slides.length;
   const presId = presentation.meta.id;
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { fullscreenActive: isFullscreen, toggleFullscreen, exitFullscreen } = useViewerFullscreen(viewerRef);
+  const isPortrait = useIsPortrait();
+  const isCoarse = useIsCoarsePointer();
   const [isLaser, setIsLaser] = useState(false);
   const [laserPos, setLaserPos] = useState({ x: 0, y: 0 });
 
@@ -136,6 +139,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
 
   const prev = useCallback(() => setCurrent(s => Math.max(0, s - 1)), []);
   const next = useCallback(() => setCurrent(s => Math.min(total - 1, s + 1)), [total]);
+  const { swipeHandlers, suppressClickRef } = useSwipeNav(prev, next);
 
   // ── PDF エクスポート ──────────────────────────────────────────────────
   const [pdfProgress, setPdfProgress] = useState<{ current: number; total: number } | null>(null);
@@ -250,21 +254,11 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presId, current, accessToken]);
 
-  useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handler);
-    return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) viewerRef.current?.requestFullscreen().catch(() => {});
-    else document.exitFullscreen().catch(() => {});
-  }, []);
-
   const handleClose = useCallback(() => {
+    exitFullscreen();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {}).finally(onClose);
     else onClose();
-  }, [onClose]);
+  }, [onClose, exitFullscreen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -276,7 +270,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
         if (replyingToId) { setReplyingToId(null); setReplyText(''); return; }
         if (editingId) { setEditingId(null); return; }
         if (isCommentMode) { setIsCommentMode(false); return; }
-        if (!document.fullscreenElement) handleClose();
+        if (isFullscreen) { exitFullscreen(); return; }
+        handleClose();
       }
       else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
       else if (e.key === 'l' || e.key === 'L') setIsLaser(v => !v);
@@ -286,7 +281,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [next, prev, handleClose, toggleFullscreen, pendingPos, isCommentMode, editingId, replyingToId]);
+  }, [next, prev, handleClose, toggleFullscreen, pendingPos, isCommentMode, editingId, replyingToId, isFullscreen, exitFullscreen]);
 
   // ── プレゼンス: 視聴者リストを維持 ─────────────────────────────────────
   useEffect(() => {
@@ -419,6 +414,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   }, [syncMode, isLaser]);
 
   const handleSlideClick = useCallback((e: React.MouseEvent) => {
+    if (suppressClickRef.current) return; // スワイプ直後のクリックを無視
     if (isLaser) return;
     setActiveCommentId(null);
     if (isCommentMode) {
@@ -616,7 +612,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
 
   // ── Comment panel ─────────────────────────────────────────────────────
   const commentPanel = showPanel ? (
-    <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 300, background: 'rgba(12, 16, 28, 0.97)', borderLeft: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', zIndex: 20, backdropFilter: 'blur(12px)' }}>
+    <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 'min(300px, 85vw)', background: 'rgba(12, 16, 28, 0.97)', borderLeft: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', zIndex: 20, backdropFilter: 'blur(12px)' }}>
       {/* Header */}
       <div style={{ padding: '14px 14px 0', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -770,8 +766,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
 
   // ── Control bar ───────────────────────────────────────────────────────
   const controlBar = (
-    <div className="flex items-center gap-1">
-      <span className="text-sm text-white/50 tabular-nums mr-3">{current + 1} / {total}</span>
+    <div className="flex items-center gap-1 flex-shrink-0">
+      <span className="text-sm text-white/50 tabular-nums mr-1.5 sm:mr-3">{current + 1} / {total}</span>
 
       {/* ホスト配信中バッジ */}
       {syncMode === 'host' && (
@@ -796,7 +792,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            {syncMode === 'follower' ? '追従中' : 'プレゼン追従'}
+            <span className="hidden sm:inline">{syncMode === 'follower' ? '追従中' : 'プレゼン追従'}</span>
           </button>
 
           {showFollowPanel && syncMode === 'off' && (
@@ -848,28 +844,31 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
         </div>
       )}
 
-      {/* 共有URLボタン（管理者のみ） */}
+      {/* 共有URLボタン（管理者のみ・縦持ちスマホでは非表示） */}
       {!isGuest && (
         <button
           onClick={() => setShowShareDialog(true)}
           title="共有URL"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/10 text-white/60 hover:text-white border border-white/20 text-xs font-semibold"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/10 text-white/60 hover:text-white border border-white/20 text-xs font-semibold"
         >
           <Share2 className="w-3.5 h-3.5" />
           共有
         </button>
       )}
-      {/* PDFエクスポートボタン */}
+      {/* PDFエクスポートボタン（縦持ちスマホでは非表示） */}
       <button
         onClick={handleExportPdf}
         disabled={!!pdfProgress}
         title="PDFエクスポート"
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/10 text-white/60 hover:text-white border border-white/20 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+        className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/10 text-white/60 hover:text-white border border-white/20 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <Download className="w-3.5 h-3.5" />
         PDF
       </button>
-      <button onClick={() => { setIsLaser(v => !v); if (isCommentMode) setIsCommentMode(false); }} title="レーザーポインター (L)" className={`p-2 rounded-lg transition-colors ${isLaser ? 'bg-red-500 text-white' : 'hover:bg-white/10 text-white/60 hover:text-white'}`}><Crosshair className="w-5 h-5" /></button>
+      {/* レーザーポインター（タッチ端末では非表示） */}
+      {!isCoarse && (
+        <button onClick={() => { setIsLaser(v => !v); if (isCommentMode) setIsCommentMode(false); }} title="レーザーポインター (L)" className={`p-2 rounded-lg transition-colors ${isLaser ? 'bg-red-500 text-white' : 'hover:bg-white/10 text-white/60 hover:text-white'}`}><Crosshair className="w-5 h-5" /></button>
+      )}
       <button
         onClick={() => { if (isCommentMode) { setIsCommentMode(false); setPendingPos(null); setActiveCommentId(null); } else { setIsCommentMode(true); setShowPanel(true); if (isLaser) setIsLaser(false); } }}
         title={isCommentMode ? 'コメントモードを終了 (C)' : 'コメントを追加 (C)'}
@@ -878,7 +877,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
         <MessageSquare className="w-5 h-5" />
         {totalCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-violet-400 rounded-full text-[10px] flex items-center justify-center text-white font-bold">{openCount > 0 ? openCount : '✓'}</span>}
       </button>
-      {totalCount > 0 && !isCommentMode && <button onClick={() => setShowPanel(v => !v)} title={showPanel ? 'コメント一覧を閉じる' : 'コメント一覧を開く'} className={`px-2 py-1.5 rounded-lg transition-colors text-xs font-semibold ${showPanel ? 'bg-violet-500/30 text-violet-300' : 'hover:bg-white/10 text-white/40 hover:text-white/70'}`}>一覧</button>}
+      {totalCount > 0 && !isCommentMode && <button onClick={() => setShowPanel(v => !v)} title={showPanel ? 'コメント一覧を閉じる' : 'コメント一覧を開く'} className={`hidden sm:block px-2 py-1.5 rounded-lg transition-colors text-xs font-semibold ${showPanel ? 'bg-violet-500/30 text-violet-300' : 'hover:bg-white/10 text-white/40 hover:text-white/70'}`}>一覧</button>}
       <button onClick={toggleFullscreen} title={isFullscreen ? '全画面を終了 (F)' : '全画面表示 (F)'} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white">{isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}</button>
       <button onClick={handleClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors ml-1"><X className="w-6 h-6" /></button>
     </div>
@@ -919,32 +918,42 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     </div>
   );
 
+  // ── 端末を横向きに促すヒント（タッチ端末・縦持ち・全画面時のみ）──────────
+  const orientationHint = isCoarse && isPortrait && isFullscreen && (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', pointerEvents: 'none', textAlign: 'center', padding: 24 }}>
+      <RotateCw className="w-12 h-12 text-white/90 animate-pulse" />
+      <div style={{ color: 'white', fontSize: 15, fontWeight: 600 }}>端末を横向きにしてください</div>
+      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.6 }}>横向きにすると<br />スライドが大きく見やすく表示されます</div>
+    </div>
+  );
+
   // ── Fullscreen ────────────────────────────────────────────────────────
   if (isFullscreen) {
     return (
       <div ref={viewerRef} className="fixed inset-0 z-50 bg-black flex flex-col">
         {showLaser && <div style={{ position: 'fixed', left: laserPos.x - 8, top: laserPos.y - 8, width: 16, height: 16, borderRadius: '50%', background: 'rgba(255, 30, 30, 0.9)', boxShadow: '0 0 14px 5px rgba(255, 30, 30, 0.45)', pointerEvents: 'none', zIndex: 9999 }} />}
-        <div className="flex items-center justify-between px-6 py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10">
-          <h2 className="font-semibold text-white/80 text-base truncate max-w-sm">{titleOverride ?? presentation.meta.title}</h2>
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10">
+          <h2 className="font-semibold text-white/80 text-sm sm:text-base truncate max-w-[38vw] sm:max-w-sm">{titleOverride ?? presentation.meta.title}</h2>
           {controlBar}
         </div>
         {isCommentMode && <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 bg-violet-500/90 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">スライドをクリックしてコメントを配置</div>}
         <div className="flex-1 flex min-h-0 relative">
           <div className="flex-1 flex items-center justify-center min-h-0 relative">
-            <button onClick={prev} disabled={current === 0} className="absolute left-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white"><ChevronLeft className="w-8 h-8" /></button>
-            <div ref={slideAreaRef} onMouseMove={handleSlideMouseMove} onMouseEnter={() => setIsOverSlide(true)} onMouseLeave={() => setIsOverSlide(false)} onClick={handleSlideClick} style={{ width: 'min(100%, calc(100vh * 16 / 9))', height: 'min(100%, calc(100vw * 9 / 16))', background: 'white', overflow: 'hidden', cursor: slideCursor, position: 'relative' }}>
+            {!isCoarse && <button onClick={prev} disabled={current === 0} className="absolute left-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white"><ChevronLeft className="w-8 h-8" /></button>}
+            <div ref={slideAreaRef} {...swipeHandlers} onMouseMove={handleSlideMouseMove} onMouseEnter={() => setIsOverSlide(true)} onMouseLeave={() => setIsOverSlide(false)} onClick={handleSlideClick} style={{ width: 'min(100%, calc(100dvh * 16 / 9))', height: 'min(100%, calc(100dvw * 9 / 16))', background: 'white', overflow: 'hidden', cursor: slideCursor, position: 'relative', touchAction: 'manipulation' }}>
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>{slideEl}</div>
               {commentOverlay}
               {syncMode === 'follower' && syncLaser.active && (
                 <div style={{ position: 'absolute', left: `${syncLaser.x * 100}%`, top: `${syncLaser.y * 100}%`, width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', transform: 'translate(-50%,-50%)', boxShadow: '0 0 16px 6px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 100 }} />
               )}
             </div>
-            <button onClick={next} disabled={current === total - 1} className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white"><ChevronRight className="w-8 h-8" /></button>
+            {!isCoarse && <button onClick={next} disabled={current === total - 1} className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white"><ChevronRight className="w-8 h-8" /></button>}
           </div>
           {commentPanel}
         </div>
-        <div className="pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0">
-          {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
+        {orientationHint}
+        <div className="pb-3 sm:pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0 px-4 overflow-x-auto">
+          {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 flex-shrink-0 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
         </div>
         {shareDialogEl}
         {pdfExportOverlay}
@@ -956,20 +965,20 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   return (
     <div ref={viewerRef} className="fixed inset-0 z-50 bg-black/90 flex flex-col">
       {showLaser && <div style={{ position: 'fixed', left: laserPos.x - 8, top: laserPos.y - 8, width: 16, height: 16, borderRadius: '50%', background: 'rgba(255, 30, 30, 0.9)', boxShadow: '0 0 14px 5px rgba(255, 30, 30, 0.45)', pointerEvents: 'none', zIndex: 9999 }} />}
-      <div className="flex items-center justify-between px-8 py-4 text-white flex-shrink-0">
-        <div>
-          <h2 className="font-semibold text-lg">{titleOverride ?? presentation.meta.title}</h2>
-          <p className="text-sm text-white/50">{presentation.meta.author} · {presentation.meta.createdAt}</p>
+      <div className="flex items-center justify-between gap-2 flex-wrap px-4 sm:px-8 py-3 sm:py-4 text-white flex-shrink-0">
+        <div className="min-w-0">
+          <h2 className="font-semibold text-base sm:text-lg truncate">{titleOverride ?? presentation.meta.title}</h2>
+          <p className="text-xs sm:text-sm text-white/50 truncate">{presentation.meta.author} · {presentation.meta.createdAt}</p>
         </div>
         {controlBar}
       </div>
       {isCommentMode && <div className="flex justify-center mb-2 flex-shrink-0"><span className="bg-violet-500/80 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">スライドをクリックしてコメントを配置 · Esc でキャンセル</span></div>}
       <div className="flex-1 flex min-h-0 relative">
-        <div className="flex-1 flex items-center justify-center px-8 pb-4 gap-6 min-h-0">
-          <button onClick={prev} disabled={current === 0} className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0"><ChevronLeft className="w-8 h-8" /></button>
+        <div className="flex-1 flex items-center justify-center px-2 sm:px-8 pb-4 gap-2 sm:gap-6 min-h-0">
+          {!isCoarse && <button onClick={prev} disabled={current === 0} className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0"><ChevronLeft className="w-8 h-8" /></button>}
           <div className="flex-1 max-w-5xl min-w-0">
             <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-              <div className="absolute inset-0 bg-white rounded-xl overflow-hidden shadow-2xl" ref={slideAreaRef} onMouseMove={handleSlideMouseMove} onMouseEnter={() => setIsOverSlide(true)} onMouseLeave={() => setIsOverSlide(false)} onClick={handleSlideClick} style={{ cursor: slideCursor }}>
+              <div className="absolute inset-0 bg-white rounded-xl overflow-hidden shadow-2xl" ref={slideAreaRef} {...swipeHandlers} onMouseMove={handleSlideMouseMove} onMouseEnter={() => setIsOverSlide(true)} onMouseLeave={() => setIsOverSlide(false)} onClick={handleSlideClick} style={{ cursor: slideCursor, touchAction: 'manipulation' }}>
                 <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>{slideEl}</div>
                 {commentOverlay}
                 {syncMode === 'follower' && syncLaser.active && (
@@ -978,12 +987,12 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
               </div>
             </div>
           </div>
-          <button onClick={next} disabled={current === total - 1} className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0"><ChevronRight className="w-8 h-8" /></button>
+          {!isCoarse && <button onClick={next} disabled={current === total - 1} className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0"><ChevronRight className="w-8 h-8" /></button>}
         </div>
         {commentPanel}
       </div>
-      <div className="pb-6 flex items-center justify-center gap-2 flex-shrink-0">
-        {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
+      <div className="pb-4 sm:pb-6 flex items-center justify-center gap-2 flex-shrink-0 overflow-x-auto px-4 max-w-full">
+        {presentation.slides.map((_, i) => <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 flex-shrink-0 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />)}
       </div>
       {shareDialogEl}
       {pdfExportOverlay}

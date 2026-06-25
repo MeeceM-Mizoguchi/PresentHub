@@ -3448,27 +3448,43 @@ const SlideLOIDiscussion = (
       <span style={{ fontSize: 12, fontWeight: 600, color: '#5B21B6', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '4px 14px', borderRadius: 999 }}>2026年6月9日</span>
     </div>
 
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, flex: 1, minHeight: 0, padding: '16px 40px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, flex: 1, minHeight: 0, padding: '14px 40px' }}>
       {[
-        { icon: '🎯', title: 'グループ内の位置づけ', color: '#7C3AED', points: ['Meeceをデジタル/AIの先進中核として先頭で牽引', '波及効果でグループ全体（約320名）の従来型開発をAI化', '「この数年が勝負」— 早期にグループ全体へ横展開'] },
-        { icon: '🏗️', title: 'AI開発部署の立ち上げ（③）', color: '#6D28D9', points: ['当面はグループ内AI案件・SICテックのユーザー案件を共同開発', 'S3（輸出規制パッケージ）へのAI検索機能の高度化', '小規模AI部隊とMeece部隊でリソース貸し合い→将来一体化'] },
-        { icon: '⚡', title: 'Meeceの開発力（強み）', color: '#0891B2', points: ['最低100万円の案件から対応（一般SIerは3,000〜4,000万〜）', '500万以下の小規模案件を高速・多数こなす（1人で3〜4PJ）', '中〜大規模も15〜20名→3〜4名のチームで対応可能'] },
-        { icon: '🏢', title: 'オフィス', color: '#7C3AED', points: ['SIC本社13F（開発フロア）を提供、DD段階から利用可', 'AI駆動開発はスピードが速く対面コミュニケーションを重視', 'レンタルオフィスの制約を解消、入社待ち2名の受け皿に'] },
-        { icon: '🌐', title: '事業観・市場認識', color: '#5B21B6', points: ['AI規制が来る前に「今のうちにリードを取る」のが業界の課題', '次の技術は量子コンピュータ・AIエージェント等を見据える', '個人受負の乱立はセキュリティ面で危険、早期にリード確立'] },
-        { icon: '🎫', title: 'AI駆動開発の実証（DevTicket）', color: '#D97706', points: ['M&A期間中にAIで自社チケット管理ツールを内製・今月公開予定', 'グループ内/外部へチケットを公開しリソース共有する構想', 'コンサル→開発→リリースまで一気通貫できる実績を提示'] },
-      ].map(({ icon, title, color, points }) => (
-        <div key={title} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', borderTop: `4px solid ${color}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 20 }}>{icon}</span>
+        { icon: '🎯', title: 'グループ内の位置づけ', color: '#7C3AED', tint: '#F5F3FF', bd: '#DDD6FE',
+          points: ['Meeceをデジタル/AIの先進中核として「先頭で牽引」', '波及効果でグループ全体（約320名）の従来型開発を段階的にAI化', '従来型エンジニアも「この数年が勝負」— 早期にAI開発へ移行', '一気には変えられないため、センターで引っ張り徐々に波及', 'グループブランド「SIC」を高めていく中核に位置づけ'],
+          quote: '「センターで引っ張り、波及させる形にしたい」（SIC代表）' },
+        { icon: '🏗️', title: 'AI開発部署の立ち上げ（③）', color: '#6D28D9', tint: '#F5F3FF', bd: '#DDD6FE',
+          points: ['当面はグループ内のAI案件を中心に共同開発からスタート', 'SICテックが受けるユーザー案件をAIで技術化', 'S3（輸出規制パッケージ）の検索機能をAIで高度化（曖昧検索）', '小規模AI部隊とMeece部隊でリソースを貸し合い→将来一体化', 'メンバーはいずれ既存グループ社員も送り込み拡大'],
+          quote: '「本社をAIの主軸にするか窓口にするかは今後判断（両方取れる）」' },
+        { icon: '⚡', title: 'Meeceの開発力（強み）', color: '#0891B2', tint: '#F0F9FF', bd: '#BAE6FD',
+          points: ['最低100万円の案件から対応（一般的SIerは3,000〜4,000万〜）', '500万以下の小規模案件を高速・多数こなすのが最大の強み', '小規模なら1人で3〜4プロダクトを並行担当', '中〜大規模も15〜20名→3〜4名のチームで対応可能', '「誰も受けない小さな案件」をグループの受け皿として開拓'],
+          quote: '「数百万の案件を数こなすのがAIの特徴」（溝口）' },
+        { icon: '🏢', title: 'オフィス', color: '#7C3AED', tint: '#F5F3FF', bd: '#DDD6FE',
+          points: ['SIC本社13F（開発フロア）を提供、DD段階から利用可', 'AI駆動開発はスピードが速く、対面コミュニケーションを重視', '現レンタルオフィスは17時半までの制約・1年契約の負担', '入社待ち2名（弟＋紹介者）の受け皿としても必要', '現契約は月額のため、移転タイミングのみ調整'],
+          quote: '「一緒のワークスペースがないと追いつかない」（溝口）' },
+        { icon: '🌐', title: '事業観・市場認識', color: '#5B21B6', tint: '#F5F3FF', bd: '#DDD6FE',
+          points: ['AI規制が来る前に「今のうちにリードを取る」のが業界の課題', 'リードを取れればエンタープライズ顧客は離れない', '次の技術は量子コンピュータ・AIエージェント等を見据える', '個人受負（フリーランスのAI受注）の乱立はセキュリティ面で危険', '早期にリードを確立し、その流れを抑える使命感'],
+          quote: '「5年後の利益が全然違う — 気づけている会社が勝つ」' },
+        { icon: '🎫', title: 'AI駆動開発の実証（DevTicket）', color: '#D97706', tint: '#FFFBEB', bd: '#FDE68A',
+          points: ['M&A期間中にAIで自社チケット管理ツールを内製・今月公開予定', 'Slack「メンション」通知など他SaaSにない独自機能', 'チケット一括作成（Excelライク）・CSV出力・実績工数の可視化', 'グループ内/外部へチケットを公開しリソース共有する構想', 'コンサル→開発→リリースまで一気通貫できる実績を提示'],
+          quote: '進捗80%。基盤は溝口、品質改善は社員で並行開発中' },
+      ].map(({ icon, title, color, tint, bd, points, quote }) => (
+        <div key={title} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 14, padding: '13px 15px', display: 'flex', flexDirection: 'column', borderTop: `4px solid ${color}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+            <span style={{ fontSize: 19 }}>{icon}</span>
             <p style={{ fontSize: 14, fontWeight: 900, color: '#111827', lineHeight: 1.2 }}>{title}</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
             {points.map((p) => (
               <div key={p} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <div style={{ width: 5, height: 5, borderRadius: '50%', background: color, marginTop: 6, flexShrink: 0 }} />
-                <p style={{ fontSize: 11.5, color: '#475569', lineHeight: 1.55 }}>{p}</p>
+                <p style={{ fontSize: 11.5, color: '#475569', lineHeight: 1.5 }}>{p}</p>
               </div>
             ))}
+          </div>
+          <div style={{ marginTop: 9, background: tint, border: `1px solid ${bd}`, borderRadius: 9, padding: '8px 11px', display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 12, flexShrink: 0, color }}>💬</span>
+            <p style={{ fontSize: 11, color, lineHeight: 1.5, fontWeight: 600 }}>{quote}</p>
           </div>
         </div>
       ))}

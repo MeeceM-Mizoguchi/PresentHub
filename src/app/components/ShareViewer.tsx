@@ -2,11 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
-  Crosshair, Users, Radio, X, Loader2, Clock,
+  Crosshair, Users, Radio, X, Loader2, Clock, RotateCw,
 } from 'lucide-react';
 import { presentationRegistry } from '../../presentations/registry';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { NotFoundPage } from './NotFoundPage';
+import { useViewerFullscreen, useIsPortrait, useIsCoarsePointer, useSwipeNav } from '../hooks/useViewerMode';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -46,7 +47,9 @@ export function ShareViewer() {
   ).current;
 
   const [current, setCurrent] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { fullscreenActive: isFullscreen, toggleFullscreen, exitFullscreen } = useViewerFullscreen(viewerRef);
+  const isPortrait = useIsPortrait();
+  const isCoarse = useIsCoarsePointer();
   const [isLaser, setIsLaser] = useState(false);
   const [laserPos, setLaserPos] = useState({ x: 0, y: 0 });
   const [isOverSlide, setIsOverSlide] = useState(false);
@@ -139,23 +142,13 @@ export function ShareViewer() {
 
   // ── フルスクリーン ───────────────────────────────────────────────────────
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handler);
-    return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
-
-  useEffect(() => {
     if (!isFullscreen) setShowFollowPanel(false);
   }, [isFullscreen]);
-
-  const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) viewerRef.current?.requestFullscreen().catch(() => {});
-    else document.exitFullscreen().catch(() => {});
-  }, []);
 
   // ── ナビゲーション ───────────────────────────────────────────────────────
   const prev = useCallback(() => setCurrent(s => Math.max(0, s - 1)), []);
   const next = useCallback(() => setCurrent(s => Math.min(total - 1, s + 1)), [total]);
+  const { swipeHandlers, suppressClickRef } = useSwipeNav(prev, next);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -229,7 +222,7 @@ export function ShareViewer() {
         }`}
       >
         <Users className="w-3.5 h-3.5" />
-        {syncMode === 'follower' ? '追従中' : 'プレゼン追従'}
+        <span className="hidden sm:inline">{syncMode === 'follower' ? '追従中' : 'プレゼン追従'}</span>
       </button>
 
       {showFollowPanel && syncMode === 'off' && (
@@ -292,13 +285,15 @@ export function ShareViewer() {
         </span>
       )}
       {followPanel}
-      <button
-        onClick={() => setIsLaser(v => !v)}
-        title="レーザーポインター (L)"
-        className={`p-2 rounded-lg transition-colors ${isLaser ? 'bg-red-500 text-white' : 'hover:bg-white/10 text-white/60 hover:text-white'}`}
-      >
-        <Crosshair className="w-5 h-5" />
-      </button>
+      {!isCoarse && (
+        <button
+          onClick={() => setIsLaser(v => !v)}
+          title="レーザーポインター (L)"
+          className={`p-2 rounded-lg transition-colors ${isLaser ? 'bg-red-500 text-white' : 'hover:bg-white/10 text-white/60 hover:text-white'}`}
+        >
+          <Crosshair className="w-5 h-5" />
+        </button>
+      )}
       <button onClick={toggleFullscreen} title="全画面 (F)" className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white">
         {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
       </button>
@@ -321,6 +316,15 @@ export function ShareViewer() {
     </div>
   );
 
+  // ── 端末を横向きに促すヒント（タッチ端末・縦持ち・全画面時のみ）──────────
+  const orientationHint = isCoarse && isPortrait && isFullscreen && (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)', pointerEvents: 'none', textAlign: 'center', padding: 24 }}>
+      <RotateCw className="w-12 h-12 text-white/90 animate-pulse" />
+      <div style={{ color: 'white', fontSize: 15, fontWeight: 600 }}>端末を横向きにしてください</div>
+      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, lineHeight: 1.6 }}>横向きにすると<br />スライドが大きく見やすく表示されます</div>
+    </div>
+  );
+
   // ── フルスクリーン表示 ───────────────────────────────────────────────────
   if (isFullscreen) {
     return (
@@ -328,22 +332,23 @@ export function ShareViewer() {
         {showLaser && (
           <div style={{ position: 'fixed', left: laserPos.x - 8, top: laserPos.y - 8, width: 16, height: 16, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', boxShadow: '0 0 14px 5px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 9999 }} />
         )}
-        <div className="flex items-center justify-between px-6 py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10">
-          <h2 className="font-semibold text-white/80 text-base truncate max-w-sm">{presentation.meta.title}</h2>
+        <div className="flex items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3 flex-shrink-0 bg-gradient-to-b from-black/60 to-transparent absolute inset-x-0 top-0 z-10">
+          <h2 className="font-semibold text-white/80 text-sm sm:text-base truncate max-w-[40vw] sm:max-w-sm">{presentation.meta.title}</h2>
           {controlBar}
         </div>
         <div className="flex-1 flex min-h-0">
           <div className="flex-1 flex items-center justify-center relative">
-            <button onClick={prev} disabled={current === 0} className="absolute left-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 text-white">
+            {!isCoarse && <button onClick={prev} disabled={current === 0} className="absolute left-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 text-white">
               <ChevronLeft className="w-8 h-8" />
-            </button>
+            </button>}
             <div
               ref={slideAreaRef}
+              {...swipeHandlers}
               onMouseMove={e => setLaserPos({ x: e.clientX, y: e.clientY })}
               onMouseEnter={() => setIsOverSlide(true)}
               onMouseLeave={() => setIsOverSlide(false)}
-              onClick={e => { const r = e.currentTarget.getBoundingClientRect(); if (e.clientX - r.left < r.width / 2) prev(); else next(); }}
-              style={{ width: 'min(100%, calc(100vh * 16 / 9))', height: 'min(100%, calc(100vw * 9 / 16))', background: 'white', overflow: 'hidden', position: 'relative' }}
+              onClick={e => { if (suppressClickRef.current) return; const r = e.currentTarget.getBoundingClientRect(); if (e.clientX - r.left < r.width / 2) prev(); else next(); }}
+              style={{ width: 'min(100%, calc(100dvh * 16 / 9))', height: 'min(100%, calc(100dvw * 9 / 16))', background: 'white', overflow: 'hidden', position: 'relative', touchAction: 'manipulation' }}
             >
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>
                 {slideEl}
@@ -352,16 +357,17 @@ export function ShareViewer() {
                 <div style={{ position: 'absolute', left: `${syncLaser.x * 100}%`, top: `${syncLaser.y * 100}%`, width: 18, height: 18, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', transform: 'translate(-50%,-50%)', boxShadow: '0 0 16px 6px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 100 }} />
               )}
             </div>
-            <button onClick={next} disabled={current === total - 1} className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 text-white">
+            {!isCoarse && <button onClick={next} disabled={current === total - 1} className="absolute right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 text-white">
               <ChevronRight className="w-8 h-8" />
-            </button>
+            </button>}
           </div>
         </div>
-        <div className="pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0">
+        <div className="pb-3 sm:pb-4 flex items-center justify-center gap-2 flex-shrink-0 absolute bottom-0 inset-x-0 px-4 overflow-x-auto">
           {presentation.slides.map((_, i) => (
-            <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />
+            <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 flex-shrink-0 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />
           ))}
         </div>
+        {orientationHint}
         {expiredOverlay}
       </div>
     );
@@ -373,26 +379,28 @@ export function ShareViewer() {
       {showLaser && (
         <div style={{ position: 'fixed', left: laserPos.x - 8, top: laserPos.y - 8, width: 16, height: 16, borderRadius: '50%', background: 'rgba(255,30,30,0.9)', boxShadow: '0 0 14px 5px rgba(255,30,30,0.45)', pointerEvents: 'none', zIndex: 9999 }} />
       )}
-      <div className="flex items-center justify-between px-8 py-4 text-white flex-shrink-0">
-        <div>
-          <h2 className="font-semibold text-lg">{presentation.meta.title}</h2>
-          <p className="text-sm text-white/50">{presentation.meta.author}</p>
+      <div className="flex items-center justify-between gap-2 flex-wrap px-4 sm:px-8 py-3 sm:py-4 text-white flex-shrink-0">
+        <div className="min-w-0">
+          <h2 className="font-semibold text-base sm:text-lg truncate">{presentation.meta.title}</h2>
+          <p className="text-xs sm:text-sm text-white/50 truncate">{presentation.meta.author}</p>
         </div>
         {controlBar}
       </div>
-      <div className="flex-1 flex min-h-0 px-8 pb-4 gap-6 items-center">
-        <button onClick={prev} disabled={current === 0} className="p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0">
+      <div className="flex-1 flex min-h-0 px-2 sm:px-8 pb-4 gap-2 sm:gap-6 items-center">
+        {!isCoarse && <button onClick={prev} disabled={current === 0} className="p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0">
           <ChevronLeft className="w-8 h-8" />
-        </button>
+        </button>}
         <div className="flex-1 max-w-5xl min-w-0">
           <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
             <div
               className="absolute inset-0 bg-white rounded-xl overflow-hidden shadow-2xl"
               ref={slideAreaRef}
+              {...swipeHandlers}
               onMouseMove={e => setLaserPos({ x: e.clientX, y: e.clientY })}
               onMouseEnter={() => setIsOverSlide(true)}
               onMouseLeave={() => setIsOverSlide(false)}
-              onClick={e => { const r = e.currentTarget.getBoundingClientRect(); if (e.clientX - r.left < r.width / 2) prev(); else next(); }}
+              onClick={e => { if (suppressClickRef.current) return; const r = e.currentTarget.getBoundingClientRect(); if (e.clientX - r.left < r.width / 2) prev(); else next(); }}
+              style={{ touchAction: 'manipulation' }}
             >
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: '1280px', height: '720px', transform: `translate(-50%, -50%) scale(${S})`, pointerEvents: 'none', visibility: slideScale === null ? 'hidden' : 'visible' }}>
                 {slideEl}
@@ -403,13 +411,13 @@ export function ShareViewer() {
             </div>
           </div>
         </div>
-        <button onClick={next} disabled={current === total - 1} className="p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0">
+        {!isCoarse && <button onClick={next} disabled={current === total - 1} className="p-3 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-20 disabled:cursor-not-allowed text-white flex-shrink-0">
           <ChevronRight className="w-8 h-8" />
-        </button>
+        </button>}
       </div>
-      <div className="pb-6 flex items-center justify-center gap-2 flex-shrink-0">
+      <div className="pb-4 sm:pb-6 flex items-center justify-center gap-2 flex-shrink-0 overflow-x-auto px-4 max-w-full">
         {presentation.slides.map((_, i) => (
-          <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />
+          <button key={i} onClick={() => setCurrent(i)} className={`rounded-full transition-all duration-200 flex-shrink-0 ${i === current ? 'w-6 h-3 bg-white' : 'w-3 h-3 bg-white/30 hover:bg-white/60'}`} />
         ))}
       </div>
       {expiredOverlay}

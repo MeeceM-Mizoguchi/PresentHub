@@ -3,7 +3,7 @@ import { useDrop } from 'react-dnd';
 import {
   LayoutDashboard, FolderOpen, Folder, FileText,
   Settings, LogOut, ChevronRight, ChevronDown, User, Users, UserPlus,
-  FolderPlus, Trash2, Pencil,
+  FolderPlus, Trash2, Pencil, X,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,10 @@ interface SidebarProps {
   onViewChange: (view: string) => void;
   onAddFolder: (parentFolderId: string | null) => void;
   onFileClick?: (fileId: string) => void;
+  /** モバイルドロワーの開閉状態（デスクトップでは無視される） */
+  isOpen?: boolean;
+  /** ドロワーを閉じる（モバイルのナビ操作後などに呼ぶ） */
+  onClose?: () => void;
 }
 
 interface SidebarFolderRowProps {
@@ -86,7 +90,7 @@ type ContextMenuState = {
   folderName: string;
 } | null;
 
-export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }: SidebarProps) {
+export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, isOpen = false, onClose }: SidebarProps) {
   const { items, setCurrentFolder, currentFolderId, deleteFolder, renameFolder } = useApp();
   const { profile, isAdmin, signOut } = useAuth();
   const { confirm } = useConfirm();
@@ -118,7 +122,11 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }:
   const handleFolderClick = (folderId: string) => {
     setCurrentFolder(folderId);
     onViewChange('folder');
+    onClose?.();
   };
+
+  // ナビ操作したらモバイルドロワーを閉じる
+  const go = (view: string) => { onViewChange(view); onClose?.(); };
 
   const handleContextMenu = (e: React.MouseEvent, item: Item) => {
     if (item.type !== 'folder') return;
@@ -182,7 +190,7 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }:
             onToggle={(e) => toggleFolder(e, item.id)}
             onClick={() => {
               if (item.type === 'folder') handleFolderClick(item.id);
-              else if (item.type === 'file') onFileClick?.(item.id);
+              else if (item.type === 'file') { onFileClick?.(item.id); onClose?.(); }
             }}
             onContextMenu={(e) => handleContextMenu(e, item)}
           />
@@ -197,7 +205,7 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }:
   const navItem = (view: string, icon: React.ReactNode, label: string) => (
     <button
       key={view}
-      onClick={() => onViewChange(view)}
+      onClick={() => go(view)}
       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
         currentView === view
           ? 'bg-gradient-to-r from-violet-100 to-pink-100 text-violet-700'
@@ -211,9 +219,18 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }:
 
   return (
     <>
-      <div className="w-64 h-full bg-white/80 backdrop-blur-md border-r border-violet-100 flex flex-col">
+      {/* モバイル: 背景オーバーレイ */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={onClose} />
+      )}
+      <div
+        className={`w-64 h-full bg-white/95 lg:bg-white/80 backdrop-blur-md border-r border-violet-100 flex flex-col
+          fixed lg:static inset-y-0 left-0 z-50 max-w-[80vw]
+          transition-transform duration-300 lg:transition-none
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      >
         {/* Logo */}
-        <div className="p-4 border-b border-violet-100">
+        <div className="p-4 border-b border-violet-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="bg-gradient-to-br from-violet-500 to-pink-500 p-2 rounded-xl">
               <LayoutDashboard className="w-5 h-5 text-white" />
@@ -222,6 +239,10 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }:
               プレゼン管理
             </span>
           </div>
+          {/* モバイル: 閉じるボタン */}
+          <button onClick={onClose} className="lg:hidden p-1.5 rounded-lg hover:bg-violet-50 text-gray-500">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -251,7 +272,7 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }:
         {/* User profile + logout */}
         <div className="border-t border-violet-200 p-3 space-y-1">
           <button
-            onClick={() => onViewChange('account')}
+            onClick={() => go('account')}
             className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
               currentView === 'account' ? 'bg-gradient-to-r from-violet-100 to-pink-100' : 'hover:bg-violet-50'
             }`}
@@ -285,8 +306,8 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick }:
 
       {/* Rename Dialog */}
       {renamingFolder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setRenamingFolder(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-80" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setRenamingFolder(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xs" onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-semibold text-gray-800 mb-4">フォルダ名を変更</h3>
             <input
               type="text"

@@ -20,6 +20,7 @@ import {
   X,
   Plus,
   Download,
+  Menu,
 } from 'lucide-react';
 import { exportPdf } from '../lib/exportPdf';
 import { Sidebar } from './Sidebar';
@@ -81,6 +82,7 @@ export function DashboardPage() {
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState('');
   const [pdfExportingId, setPdfExportingId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleExportPdfFromMenu = async (fileId: string) => {
     const pres = presentationRegistry.find(p => p.meta.id === fileId);
@@ -389,8 +391,8 @@ export function DashboardPage() {
   const renderDashboard = () => (
     <>
       {/* Actions Bar */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex gap-3">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex gap-2 sm:gap-3 flex-wrap">
           {([
             { key: 'starred', label: 'お気に入り', icon: Star },
             { key: 'recent',  label: '最近使用',   icon: Clock },
@@ -410,10 +412,10 @@ export function DashboardPage() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 justify-between sm:justify-end">
           <button
             onClick={() => setShowCreateFolder(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-200 text-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white rounded-xl hover:shadow-xl hover:scale-[1.02] transition-all duration-200 text-sm whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             フォルダを作成
@@ -493,7 +495,7 @@ export function DashboardPage() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-6 py-8">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 sm:py-8">
           {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
@@ -574,12 +576,21 @@ export function DashboardPage() {
         onViewChange={handleViewChange}
         onAddFolder={(parentId) => { setCreateFolderParentId(parentId); setShowCreateFolder(true); }}
         onFileClick={(fileId) => { setViewingFileId(fileId); }}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white/80 backdrop-blur-md border-b border-violet-100">
-          <div className="px-6 py-4 flex items-center gap-4">
-            <h1 className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent flex-shrink-0">
+          <div className="px-4 sm:px-6 py-4 flex items-center gap-2 sm:gap-4">
+            <button
+              onClick={(e) => { e.stopPropagation(); setSidebarOpen(true); }}
+              className="lg:hidden p-2 -ml-1 rounded-lg hover:bg-violet-50 text-gray-600 flex-shrink-0"
+              aria-label="メニューを開く"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent flex-shrink-0 hidden sm:block">
               {currentView === 'dashboard' && 'ダッシュボード'}
               {currentView === 'folder' && 'フォルダ'}
               {currentView === 'shared' && '共有管理'}
@@ -648,7 +659,7 @@ export function DashboardPage() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-6 py-8">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 sm:py-8">
           {currentView === 'dashboard' && renderDashboard()}
           {currentView === 'folder' && (
             <FolderView
