@@ -3203,72 +3203,162 @@ const SlideLOIReport = (
     {/* Header */}
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 40px', borderBottom: '1px solid #F1F5F9', flexShrink: 0 }}>
       <div>
-        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#111827', lineHeight: 1 }}>意向表明の受領状況と選定</h2>
-        <p style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>面談締め切り時点で2社より受領 — 2軸で比較しSICグループを応諾</p>
+        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#111827', lineHeight: 1 }}>意向表明の受領状況と選定の観点</h2>
+        <p style={{ fontSize: 12, color: '#6B7280', marginTop: 4 }}>面談締め切り時点で2社より受領 — 「金額・条件面」「社長様との相性」の2軸で評価</p>
       </div>
-      <span style={{ fontSize: 12, fontWeight: 700, color: '#5B21B6', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '4px 14px', borderRadius: 999 }}>応諾先決定</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '4px 14px', borderRadius: 999 }}>受領 2社で選定</span>
     </div>
 
-    <div style={{ display: 'flex', flex: 1, minHeight: 0, padding: '16px 40px', gap: 24 }}>
-      {/* LEFT: 受領状況 */}
-      <div style={{ width: '34%', display: 'flex', flexDirection: 'column' }}>
-        <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.12em', marginBottom: 12 }}>受領状況（5社）</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+    <div style={{ display: 'flex', flex: 1, minHeight: 0, padding: '14px 40px', gap: 22 }}>
+      {/* LEFT: 受領状況 + 選定プロセス */}
+      <div style={{ width: '33%', display: 'flex', flexDirection: 'column' }}>
+        <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.12em', marginBottom: 10 }}>受領状況（5社）</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
           {[
-            { name: 'オープングループ', state: '受領', got: true },
-            { name: 'SICグループ', state: '受領 → 応諾', got: true, win: true },
-            { name: 'Kubell', state: '表明遅延・対象外', got: false },
-            { name: 'Townlife', state: '表明遅延・対象外', got: false },
-            { name: 'Give', state: '表明遅延・対象外', got: false },
-          ].map(({ name, state, got, win }) => (
-            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12, background: win ? 'linear-gradient(135deg, #F5F3FF, #EDE9FE)' : got ? '#FFFBEB' : '#F8FAFC', border: win ? '1px solid #C4B5FD' : got ? '1px solid #FDE68A' : '1px solid #E2E8F0', borderRadius: 12, padding: '12px 14px', flex: 1 }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13, background: win ? '#7C3AED' : got ? '#F59E0B' : '#E2E8F0', color: got || win ? 'white' : '#94A3B8' }}>{got ? '✓' : '—'}</div>
+            { name: 'オープングループ', state: '意向表明 受領', got: true },
+            { name: 'SICグループ', state: '意向表明 受領', got: true },
+            { name: 'Kubell', state: '表明遅延・選定対象外', got: false },
+            { name: 'Townlife', state: '表明遅延・選定対象外', got: false },
+            { name: 'Give', state: '表明遅延・選定対象外', got: false },
+          ].map(({ name, state, got }) => (
+            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12, background: got ? '#FFFBEB' : '#F8FAFC', border: got ? '1px solid #FDE68A' : '1px solid #E2E8F0', borderRadius: 12, padding: '10px 14px', flex: 1 }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 13, background: got ? '#F59E0B' : '#E2E8F0', color: got ? 'white' : '#94A3B8' }}>{got ? '✓' : '—'}</div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 14, fontWeight: 800, color: win ? '#5B21B6' : got ? '#92400E' : '#94A3B8' }}>{name}</p>
-                <p style={{ fontSize: 11, color: win ? '#7C3AED' : got ? '#B45309' : '#CBD5E1', marginTop: 1 }}>{state}</p>
+                <p style={{ fontSize: 14, fontWeight: 800, color: got ? '#92400E' : '#94A3B8' }}>{name}</p>
+                <p style={{ fontSize: 11, color: got ? '#B45309' : '#CBD5E1', marginTop: 1 }}>{state}</p>
               </div>
-              {win && <span style={{ fontSize: 16 }}>🏆</span>}
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 10, background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '10px 14px' }}>
-          <p style={{ fontSize: 11, color: '#92400E', lineHeight: 1.6 }}>他3社は意向表明の提出が遅く、面談を締め切った時点で受領済みの<b>2社で選定</b>することとした。</p>
+        <div style={{ marginTop: 8, background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '9px 14px' }}>
+          <p style={{ fontSize: 11, color: '#92400E', lineHeight: 1.55 }}>他3社は意向表明の提出が遅く、面談を締め切った時点で<b>受領済みの2社で選定</b>することとした。</p>
+        </div>
+        {/* 選定プロセス mini steps */}
+        <div style={{ marginTop: 8 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.12em', marginBottom: 8 }}>選定プロセス</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {['面談締め切り', '2社を比較', '2軸で評価', '応諾先を決定'].map((s, i, a) => (
+              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#5B21B6', background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 7, padding: '5px 9px', whiteSpace: 'nowrap' }}>{s}</span>
+                {i < a.length - 1 && <span style={{ color: '#C4B5FD', fontSize: 11 }}>›</span>}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* CENTER: 2軸比較 */}
+      {/* RIGHT: 選定の観点（どこを見て決めたか） */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.12em', marginBottom: 12 }}>選定の判断軸（2点）</p>
+        <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.12em', marginBottom: 10 }}>選定のポイント — どこを見て判断したか</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
           {[
-            { icon: '💰', axis: '金額・条件面', og: 'オープングループ：条件提示あり', sic: '対価6,000万円を基準・処遇/雇用継続・スケジュール明確で条件面の納得感が高い', winner: 'SIC' },
-            { icon: '🤝', axis: '社長様との相性', og: 'オープングループ：相性良好', sic: 'AI駆動開発・新規事業への価値観/ビジョンが一致。グループAI化の牽引役として相互に共感', winner: 'SIC' },
-          ].map(({ icon, axis, og, sic, winner }) => (
-            <div key={axis} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 14, padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            {
+              icon: '💰', axis: '金額・条件面', tone: '#0E7490', bg: '#F0F9FF', bd: '#BAE6FD',
+              lead: '譲渡対価の水準だけでなく、参画後の処遇・体制まで含めた条件全体の納得感を重視',
+              items: [
+                { k: '譲渡対価の水準', v: '提示額と算定根拠の妥当性・納得感' },
+                { k: '経営者・社員の処遇', v: '代表としての継続、従業員の雇用・条件の維持' },
+                { k: 'スケジュールの確実性', v: 'DD〜契約〜クロージングまでの現実的な工程' },
+                { k: '付帯条件のバランス', v: '独占交渉権など条件全体の整合性' },
+              ],
+            },
+            {
+              icon: '🤝', axis: '社長様との相性', tone: '#7C3AED', bg: '#FAF5FF', bd: '#DDD6FE',
+              lead: '中長期で「共に歩める」か — 事業観・価値観・意思決定スピードの一致度を重視',
+              items: [
+                { k: '事業ビジョンの一致', v: 'AI駆動開発・新規事業の方向性の重なり' },
+                { k: '価値観・哲学の共鳴', v: 'M&A後も共に成長する姿勢への共感' },
+                { k: '参画後の役割イメージ', v: '裁量・牽引役としての期待値のすり合わせ' },
+                { k: '意思決定のスピード感', v: '話の通じやすさ・推進力・本気度' },
+              ],
+            },
+          ].map(({ icon, axis, tone, bg, bd, lead, items }) => (
+            <div key={axis} style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: 14, padding: '12px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <span style={{ fontSize: 18 }}>{icon}</span>
                 <p style={{ fontSize: 15, fontWeight: 900, color: '#111827' }}>{axis}</p>
-                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 800, color: '#5B21B6', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '3px 10px', borderRadius: 999 }}>SIC 優位</span>
+                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: tone, background: bg, border: `1px solid ${bd}`, padding: '3px 10px', borderRadius: 999 }}>判断軸</span>
               </div>
-              <div style={{ display: 'flex', gap: 10, flex: 1 }}>
-                <div style={{ flex: 1, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, padding: '8px 12px' }}>
-                  <p style={{ fontSize: 9, fontWeight: 700, color: '#94A3B8', marginBottom: 4 }}>オープングループ</p>
-                  <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.55 }}>{og}</p>
-                </div>
-                <div style={{ flex: 1.4, background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 10, padding: '8px 12px' }}>
-                  <p style={{ fontSize: 9, fontWeight: 700, color: '#7C3AED', marginBottom: 4 }}>SICグループ ✓</p>
-                  <p style={{ fontSize: 11, color: '#5B21B6', lineHeight: 1.55, fontWeight: 600 }}>{sic}</p>
-                </div>
+              <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5, marginBottom: 8 }}>{lead}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, flex: 1 }}>
+                {items.map(({ k, v }) => (
+                  <div key={k} style={{ background: bg, border: `1px solid ${bd}`, borderRadius: 10, padding: '8px 11px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <span style={{ color: tone, fontWeight: 900, fontSize: 12 }}>✓</span>
+                      <p style={{ fontSize: 12, fontWeight: 800, color: tone }}>{k}</p>
+                    </div>
+                    <p style={{ fontSize: 10.5, color: '#475569', lineHeight: 1.45 }}>{v}</p>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
         </div>
-        {/* Conclusion */}
-        <div style={{ marginTop: 12, background: 'linear-gradient(135deg, #7C3AED, #5B21B6)', borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 24 }}>✍️</span>
-          <div>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginBottom: 2 }}>結論</p>
-            <p style={{ fontSize: 16, fontWeight: 900, color: 'white' }}>金額・条件面／社長様との相性の2軸で、SICグループの意向表明を応諾</p>
+      </div>
+    </div>
+  </div>
+);
+
+const SlideLOIDecision = (
+  <div key="s-loi-decision" className="w-full h-[720px] relative overflow-hidden flex flex-col" style={{ background: 'linear-gradient(135deg, #1E0A3C 0%, #2D1B69 45%, #3B0764 100%)' }}>
+    {/* concentric ring decoration */}
+    <div style={{ position: 'absolute', inset: 0, opacity: 0.08 }}>
+      {[...Array(9)].map((_, i) => (
+        <div key={i} style={{ position: 'absolute', borderRadius: '50%', border: '1px solid #A78BFA', width: 140 + i * 90, height: 140 + i * 90, top: '42%', left: '50%', transform: 'translate(-50%,-50%)' }} />
+      ))}
+    </div>
+    {/* glow orbs */}
+    <div className="absolute rounded-full pointer-events-none" style={{ width: 460, height: 460, top: -140, right: -80, background: 'radial-gradient(circle, rgba(167,139,250,0.20) 0%, transparent 70%)' }} />
+    <div className="absolute rounded-full pointer-events-none" style={{ width: 360, height: 360, bottom: -90, left: -60, background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)' }} />
+
+    <div className="relative z-10 flex flex-col h-full px-16 py-9">
+      {/* Top bar */}
+      <div className="flex items-center justify-between" style={{ flexShrink: 0 }}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-lg" style={{ background: '#F59E0B', color: '#080e1a' }}>M</div>
+          <span className="text-white font-semibold tracking-widest text-xs opacity-80">Meece株式会社</span>
+        </div>
+        <div className="px-3 py-1 rounded text-xs font-bold tracking-widest" style={{ border: '1px solid rgba(167,139,250,0.5)', color: '#C4B5FD', background: 'rgba(167,139,250,0.1)' }}>DECISION</div>
+      </div>
+
+      {/* Center headline */}
+      <div className="flex-1 flex flex-col justify-center" style={{ minHeight: 0 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#F59E0B', letterSpacing: 6, marginBottom: 14 }}>FINAL DECISION — 応諾先の決定</p>
+        <h1 className="font-black" style={{ fontSize: 80, color: 'white', lineHeight: 1.05, letterSpacing: '-0.02em' }}>
+          <span style={{ background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SICグループ</span>様
+          <br />
+          に応諾を決定
+        </h1>
+        <div style={{ height: 4, width: 280, background: 'linear-gradient(to right, #F59E0B, #A78BFA, transparent)', borderRadius: 2, margin: '20px 0' }} />
+        <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.72)', maxWidth: 760, lineHeight: 1.7 }}>
+          受領した2社の意向表明を比較し、<b style={{ color: 'white' }}>金額・条件面</b>と<b style={{ color: 'white' }}>社長様との相性</b>の両面で評価。SICグループの意向表明を応諾することを決定しました。
+        </p>
+      </div>
+
+      {/* Bottom: 決め手 + 主要条件 */}
+      <div style={{ flexShrink: 0, display: 'flex', gap: 16 }}>
+        {/* 決め手 */}
+        <div style={{ flex: 1.4, display: 'flex', gap: 12 }}>
+          {[
+            { icon: '💰', t: '金額・条件面', d: '対価水準に加え、代表継続・雇用継続・明確なスケジュールで条件全体の納得感が高い' },
+            { icon: '🤝', t: '社長様との相性', d: 'AI駆動開発・新規事業への価値観が一致。グループAI化の牽引役として相互に共感' },
+          ].map(({ icon, t, d }) => (
+            <div key={t} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 14, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 18 }}>{icon}</span>
+                <p style={{ fontSize: 13, fontWeight: 800, color: '#C4B5FD' }}>{t}</p>
+              </div>
+              <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.7)', lineHeight: 1.55 }}>{d}</p>
+            </div>
+          ))}
+        </div>
+        {/* 主要条件 chips */}
+        <div style={{ flex: 1, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 14, padding: '14px 16px' }}>
+          <p style={{ fontSize: 10, fontWeight: 800, color: '#F59E0B', letterSpacing: 1, marginBottom: 10 }}>応諾した主要条件</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {['株式譲渡（全株取得）', '対価 6,000万円 基準', '代表として継続', '従業員 雇用継続', '8月下旬 クロージング'].map((c) => (
+              <span key={c} style={{ fontSize: 11, fontWeight: 700, color: '#FDE68A', background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 999, padding: '5px 11px' }}>{c}</span>
+            ))}
           </div>
         </div>
       </div>
@@ -3318,9 +3408,9 @@ const SlideLOITerms = (
         <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.12em', marginBottom: 12 }}>想定スケジュール</p>
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
           {[
-            { phase: 'デューデリジェンス', when: '〜7月末', desc: '財務・契約・組織を確認' },
-            { phase: '契約書の条文すり合わせ', when: '〜8月中旬', desc: '最終契約の中身を詰めて締結' },
-            { phase: 'クロージング（実行）', when: '8月下旬', desc: 'グループ参画' },
+            { phase: 'デューデリジェンス', when: '〜7月末', desc: '財務・契約・組織の状況を確認。社内中心に進め、必要に応じ税理士・弁護士など外部専門家も活用する。' },
+            { phase: '契約書の条文すり合わせ', when: '〜8月中旬', desc: '対価6,000万円を基準とした条件をもとに最終契約の条文を詰め、双方合意のうえ締結する。' },
+            { phase: 'クロージング（実行）', when: '8月下旬', desc: '最終条件の合意を経て契約を実行。SICグループへ正式参画し、代表として開発を牽引する。' },
           ].map(({ phase, when, desc }, i, arr) => (
             <div key={phase} style={{ display: 'flex', gap: 12, flex: 1 }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
@@ -3485,6 +3575,6 @@ export const maStatus2026Presentation: PresentationEntry = {
     SlideTownlifeTitle, SlideTownlifeIntro, SlideTownlifeOverview, SlideTownlifeMeeting, SlideTownlifeNext,
     SlideSICTitle, SlideSICIntro, SlideSICOverview, SlideSICMeeting, SlideSICNext,
     SlideGiveTitle, SlideGiveIntro, SlideGiveOverview, SlideGiveMeeting, SlideGiveNext,
-    SlideLOITitle, SlideLOIReport, SlideLOITerms, SlideLOIDiscussion, SlideLOINext,
+    SlideLOITitle, SlideLOIReport, SlideLOIDecision, SlideLOITerms, SlideLOIDiscussion, SlideLOINext,
   ],
 };
