@@ -86,7 +86,8 @@ export default defineConfig({
   },
 
   server: {
-    open: true,
+    // npm run dev でログインページ（非公開パス）を直接開く
+    open: '/admin/a9c2b7',
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
