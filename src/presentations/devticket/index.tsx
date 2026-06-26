@@ -43,6 +43,11 @@ import {
   ClipboardList,
   BookOpen,
   ArrowRightLeft,
+  Workflow,
+  Gauge,
+  Wallet,
+  Boxes,
+  Puzzle,
 } from 'lucide-react';
 import type { PresentationEntry } from '../registry';
 
@@ -2315,6 +2320,441 @@ const SlideOnboarding = (
   </div>
 );
 
+// ── 他システム連携スライド（16↔17の間に挿入） ────────────────────────────────
+
+type ChipColor = { bg: string; border: string; text: string; sub: string };
+const CHIP_DT: ChipColor = { bg: '#ECFDF5', border: '#A7F3D0', text: '#047857', sub: '#059669' };
+const CHIP_ENG: ChipColor = { bg: '#EFF6FF', border: '#BFDBFE', text: '#1D4ED8', sub: '#2563EB' };
+const CHIP_SYS: ChipColor = { bg: '#F8FAFC', border: '#E2E8F0', text: '#475569', sub: '#94A3B8' };
+const CHIP_LINK: ChipColor = { bg: '#FFFBEB', border: '#FDE68A', text: '#B45309', sub: '#D97706' };
+
+function FlowStep({ n, name, role, icon: Icon, c }: { n: number; name: string; role: string; icon: typeof Ticket; c: ChipColor }) {
+  return (
+    <div className="flex-1 min-w-0 rounded-xl flex flex-col items-center text-center" style={{ padding: '11px 4px 10px', background: c.bg, border: `1px solid ${c.border}`, minHeight: 94 }}>
+      <div className="rounded-full flex items-center justify-center mb-1.5" style={{ width: 18, height: 18, background: c.text }}>
+        <span style={{ fontSize: 9, fontWeight: 900, color: '#fff' }}>{n}</span>
+      </div>
+      <Icon className="w-4 h-4 mb-1.5" style={{ color: c.sub }} />
+      <span style={{ fontSize: 10.5, fontWeight: 800, color: c.text, lineHeight: 1.15 }}>{name}</span>
+      <span style={{ fontSize: 7.5, fontWeight: 700, color: c.sub, marginTop: 3, lineHeight: 1.2 }}>{role}</span>
+    </div>
+  );
+}
+
+const FLOW_DT = [
+  { name: 'リソース募集', role: 'Dev Ticket', icon: Search, c: CHIP_DT },
+  { name: 'エントリー', role: 'エンジニア', icon: Users, c: CHIP_ENG },
+  { name: '承諾', role: 'Dev Ticket', icon: CheckCircle2, c: CHIP_DT },
+  { name: '契約書発行', role: 'システム自動', icon: ClipboardList, c: CHIP_SYS },
+  { name: '合意処理', role: 'エンジニア', icon: CheckCheck, c: CHIP_ENG },
+  { name: '締結・対応', role: 'Dev Ticket / Eng', icon: Link2, c: CHIP_DT },
+  { name: '納品', role: 'エンジニア', icon: Paperclip, c: CHIP_ENG },
+  { name: 'レビュー', role: 'Dev Ticket', icon: GitPullRequest, c: CHIP_DT },
+  { name: '承認', role: 'Dev Ticket', icon: Shield, c: CHIP_DT },
+];
+const FLOW_BILLING = [
+  { name: '請求書発行', role: 'オムニスクエア', icon: ClipboardList, c: CHIP_LINK },
+  { name: '請求書検収', role: 'Dev Ticket', icon: CheckCheck, c: CHIP_LINK },
+  { name: '振込', role: 'ペイアシスト', icon: Wallet, c: CHIP_LINK },
+];
+
+const SlideIntegrationIntro = (
+  <div key="s-integration-intro" className="w-full h-[720px] relative overflow-hidden" style={{ background: 'linear-gradient(150deg, #052e26 0%, #064e3b 42%, #0d9488 100%)' }}>
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute -top-40 -right-32 w-[560px] h-[560px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(52,211,153,0.25) 0%, transparent 65%)' }} />
+      <div className="absolute -bottom-44 -left-32 w-[480px] h-[480px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 65%)' }} />
+    </div>
+    <div className="relative h-full flex flex-col items-center justify-center text-center" style={{ padding: '56px 72px' }}>
+      <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-7" style={{ background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', letterSpacing: '0.08em' }}>
+        <Workflow className="w-3.5 h-3.5" />
+        他システム連携 ・ PARTNERSHIP
+      </div>
+      <h2 className="font-black text-white mb-5" style={{ fontSize: 46, lineHeight: 1.25, letterSpacing: '-0.02em' }}>
+        SES稼働を、<span style={{ color: '#6EE7B7' }}>最大効率化</span>する。
+      </h2>
+      <p className="text-white/80 mb-10" style={{ fontSize: 16, lineHeight: 1.75, maxWidth: 780 }}>
+        <b className="text-white">情報戦略テクノロジー</b> × <b className="text-white">Whitebox</b> とのシステム連携で、<br />
+        SES業務を「募集から支払まで」ワンストップで自動化します。
+      </p>
+
+      {/* 連携体制 */}
+      <div className="flex items-center justify-center gap-5">
+        <div className="rounded-2xl flex flex-col items-center justify-center" style={{ background: 'rgba(255,255,255,0.97)', padding: '20px 30px', minWidth: 200, boxShadow: '0 12px 34px rgba(0,0,0,0.22)' }}>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-2.5" style={{ background: '#ECFDF5' }}>
+            <Ticket className="w-6 h-6" style={{ color: '#059669' }} />
+          </div>
+          <span className="font-black text-slate-900 text-base">Dev Ticket</span>
+          <span className="text-[10px] font-bold text-slate-400 mt-0.5">Meece株式会社</span>
+        </div>
+
+        <span className="text-white/55 font-thin" style={{ fontSize: 34, lineHeight: 1 }}>×</span>
+
+        <div className="rounded-2xl flex flex-col items-center justify-center" style={{ background: 'rgba(255,255,255,0.97)', padding: '20px 30px', minWidth: 260, boxShadow: '0 12px 34px rgba(0,0,0,0.22)' }}>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-2.5" style={{ background: '#EFF6FF' }}>
+            <Boxes className="w-6 h-6" style={{ color: '#2563EB' }} />
+          </div>
+          <span className="font-black text-slate-900 text-base">Whitebox</span>
+          <span className="text-[10px] font-bold text-slate-400 mt-0.5">情報戦略テクノロジーグループ</span>
+          <div className="flex items-center gap-1.5 mt-2.5">
+            <span className="rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: '#EFF6FF', color: '#2563EB' }}>オムニスクエア</span>
+            <span className="rounded-full px-2.5 py-1 text-[10px] font-bold" style={{ background: '#F5F3FF', color: '#7C3AED' }}>ペイアシスト</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const SlideSESFlow = (
+  <div key="s-ses-flow" className="w-full h-[720px] relative overflow-hidden" style={{ background: '#fff' }}>
+    <div className="h-full flex flex-col justify-between" style={{ padding: '40px 56px' }}>
+      {/* ヘッダー */}
+      <div className="text-center">
+        <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-3" style={{ background: '#ECFDF5', border: '1px solid #BBF7D0', color: '#059669' }}>
+          <Workflow className="w-3.5 h-3.5" />
+          他システム連携
+        </div>
+        <h2 className="text-3xl font-black text-slate-900 mb-1">
+          SES業務フロー<span style={{ color: '#059669' }}>全体図</span>
+        </h2>
+        <p className="text-slate-500 text-sm">Dev Ticketは<b className="text-slate-700">リソース募集〜承認</b>までをカバー。<b className="text-slate-700">請求・支払</b>はグループシステムと連携し、募集から振込まで一気通貫で自動化します。</p>
+      </div>
+
+      {/* フロー canvas */}
+      <div className="rounded-2xl" style={{ background: 'linear-gradient(180deg, #FAFAF9 0%, #F4F6F5 100%)', border: '1px solid #ECEEEC', padding: '24px 26px' }}>
+        <div className="flex items-stretch" style={{ gap: 10 }}>
+          {/* Dev Ticket 領域 */}
+          <div className="flex flex-col" style={{ flex: '9 1 0', minWidth: 0 }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: 'linear-gradient(135deg, #0d9488, #059669)', boxShadow: '0 3px 10px rgba(5,150,105,0.25)' }}>
+                <Ticket className="w-3 h-3 text-white" />
+                <span className="text-[10px] font-bold text-white">Dev Ticket がカバー</span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-400">受発注〜承認の9工程</span>
+            </div>
+            <div className="flex items-center" style={{ gap: 3 }}>
+              {FLOW_DT.flatMap((s, i) => {
+                const chip = <FlowStep key={`dt-${i}`} n={i + 1} name={s.name} role={s.role} icon={s.icon} c={s.c} />;
+                return i < FLOW_DT.length - 1
+                  ? [chip, <ChevronRight key={`dta-${i}`} className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#CBD5E1' }} />]
+                  : [chip];
+              })}
+            </div>
+          </div>
+
+          {/* コネクタ */}
+          <div className="flex flex-col items-center justify-center flex-shrink-0" style={{ width: 30, paddingTop: 30 }}>
+            <ArrowRight className="w-5 h-5" style={{ color: '#D97706' }} />
+          </div>
+
+          {/* 連携領域 */}
+          <div className="flex flex-col" style={{ flex: '3 1 0', minWidth: 0 }}>
+            <div className="flex items-center mb-3">
+              <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                <Link2 className="w-3 h-3" style={{ color: '#D97706' }} />
+                <span className="text-[10px] font-bold" style={{ color: '#B45309' }}>連携で自動化</span>
+              </div>
+            </div>
+            <div className="rounded-xl flex items-center flex-1" style={{ gap: 3, padding: 7, background: '#FFFCF5', border: '1.5px dashed #FCD34D' }}>
+              {FLOW_BILLING.flatMap((s, i) => {
+                const chip = <FlowStep key={`bl-${i}`} n={FLOW_DT.length + i + 1} name={s.name} role={s.role} icon={s.icon} c={s.c} />;
+                return i < FLOW_BILLING.length - 1
+                  ? [chip, <ChevronRight key={`bla-${i}`} className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#FBBF24' }} />]
+                  : [chip];
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2領域の意味づけ */}
+      <div className="grid grid-cols-2 gap-5">
+        <div className="rounded-2xl p-5" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#059669' }}>
+              <Ticket className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900">Dev Ticket がカバーする範囲</h3>
+          </div>
+          <div className="space-y-2">
+            {[
+              '契約書はあらかじめ設定したフォーマットで自動生成',
+              '納品はチケットへの添付 / 招待GitHubへのPRで完結',
+              'レビュー〜承認までをチケット内で一気通貫',
+            ].map(t => (
+              <div key={t} className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#059669' }} />
+                <span className="text-[11px] font-bold text-slate-700 leading-snug">{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl p-5" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#D97706' }}>
+              <ArrowRightLeft className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="text-sm font-black text-slate-900">グループ連携で自動化する範囲</h3>
+          </div>
+          <div className="space-y-2">
+            {[
+              '稼働・案件データを自動で引き継ぎ、転記作業をゼロに',
+              '請求書発行〜請求管理を「オムニスクエア」が自動化',
+              '振込は「ペイアシスト」が代行し手数料・負担を削減',
+            ].map(t => (
+              <div key={t} className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+                <span className="text-[11px] font-bold text-slate-700 leading-snug">{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const SlidePlatformArch = (
+  <div key="s-platform-arch" className="w-full h-[720px] relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #f8fafc 0%, #f0fdfa 60%, #fff 100%)' }}>
+    <div className="h-full flex flex-col justify-between" style={{ padding: '44px 56px' }}>
+      {/* ヘッダー */}
+      <div className="text-center">
+        <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-3" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#2563EB' }}>
+          <Workflow className="w-3.5 h-3.5" />
+          連携アーキテクチャ
+        </div>
+        <h2 className="text-3xl font-black text-slate-900 mb-1">
+          3つのシステムで<span style={{ color: '#059669' }}>SES業務を全自動化</span>
+        </h2>
+        <p className="text-slate-500 text-sm">Dev Ticketを起点に、<b className="text-slate-700">稼働・請求管理をオムニスクエア</b>、<b className="text-slate-700">支払・振込をペイアシスト</b>へ。データを引き継ぎ、転記なしで連携します。</p>
+      </div>
+
+      {/* 3システム連携図 */}
+      <div className="flex items-stretch">
+        {[
+          { name: 'Dev Ticket', tag: '受発注・開発進行管理', desc: 'リソース募集〜契約〜開発〜承認までを一元管理。案件・稼働データの起点となります。', icon: Ticket, color: '#059669', bg: '#ECFDF5', maker: 'Meece株式会社' },
+          { name: 'オムニスクエア', tag: '稼働管理・請求管理', desc: 'SESの事務作業をAIでまるごと自動化。稼働集計から請求書作成までを担います。', icon: Gauge, color: '#2563EB', bg: '#EFF6FF', maker: '株式会社Whitebox' },
+          { name: 'ペイアシスト', tag: '支払代行・振込', desc: '振込手数料・業務負担を削減し、キャッシュフローを改善する支払代行サービス。', icon: Wallet, color: '#7C3AED', bg: '#F5F3FF', maker: '株式会社Whitebox' },
+        ].flatMap((s, i, arr) => {
+          const Icon = s.icon;
+          const card = (
+            <div key={`sys-${i}`} className="flex-1 rounded-2xl overflow-hidden" style={{ background: '#fff', border: `1px solid ${s.color}22`, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+              <div style={{ height: 4, background: s.color }} />
+              <div className="p-5 flex flex-col" style={{ minHeight: 232 }}>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style={{ background: s.bg }}>
+                  <Icon className="w-6 h-6" style={{ color: s.color }} />
+                </div>
+                <h3 className="text-lg font-black text-slate-900 leading-tight">{s.name}</h3>
+                <div className="inline-flex self-start rounded-full px-2.5 py-1 text-[10px] font-bold mt-1.5 mb-2.5" style={{ background: s.bg, color: s.color }}>{s.tag}</div>
+                <p className="text-xs text-slate-500 leading-relaxed flex-1">{s.desc}</p>
+                <p className="text-[9px] text-slate-400 mt-3 pt-2.5" style={{ borderTop: '1px solid #F1F5F9' }}>提供：{s.maker}</p>
+              </div>
+            </div>
+          );
+          if (i >= arr.length - 1) return [card];
+          const label = i === 0 ? '案件・稼働データ' : '請求データ';
+          const connector = (
+            <div key={`conn-${i}`} className="flex flex-col items-center justify-center flex-shrink-0" style={{ width: 104, paddingTop: 4 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#94A3B8', marginBottom: 5, whiteSpace: 'nowrap' }}>{label}</span>
+              <ArrowRight className="w-7 h-7" style={{ color: '#CBD5E1' }} />
+            </div>
+          );
+          return [card, connector];
+        })}
+      </div>
+
+      {/* 統合プラットフォーム帯 */}
+      <div className="rounded-2xl flex items-center gap-4" style={{ background: 'linear-gradient(135deg, #064e3b, #0d9488 55%, #0ea5e9)', padding: '18px 28px', boxShadow: '0 8px 30px rgba(13,148,136,0.25)' }}>
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.15)' }}>
+          <Boxes className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex-1">
+          <p className="text-white font-black text-base">ホワイトボックス・プラットフォーム</p>
+          <p className="text-white/75 text-xs mt-0.5">3つのシステムが連携し、募集から支払まで SES業務をワンストップで提供</p>
+        </div>
+        <ArrowRightLeft className="w-7 h-7 text-white/70 flex-shrink-0" />
+      </div>
+    </div>
+  </div>
+);
+
+const SlidePartnerServices = (
+  <div key="s-partner-services" className="w-full h-[720px] relative overflow-hidden" style={{ background: '#fff' }}>
+    <div className="h-full flex flex-col" style={{ padding: '44px 56px' }}>
+      {/* ヘッダー */}
+      <div className="text-center mb-5">
+        <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-3" style={{ background: '#F5F3FF', border: '1px solid #DDD6FE', color: '#7C3AED' }}>
+          <Puzzle className="w-3.5 h-3.5" />
+          連携パートナー
+        </div>
+        <h2 className="text-3xl font-black text-slate-900 mb-1">
+          グループの<span style={{ color: '#059669' }}>専門システム</span>と連携
+        </h2>
+        <p className="text-slate-500 text-sm">情報戦略テクノロジーグループ（Whitebox）が提供する2つのSaaSと連携し、Dev Ticket単体では担えない領域をカバーします。</p>
+      </div>
+
+      {/* 2サービス */}
+      <div className="flex-1 flex items-stretch gap-6">
+        {[
+          {
+            name: 'オムニスクエア', icon: Gauge, color: '#2563EB', bg: '#EFF6FF',
+            lead: 'SESの事務作業をAIでまるごと自動化・効率化するクラウドサービス（SaaS）。',
+            features: ['稼働管理', '請求管理', '事務作業の自動化'],
+            points: [
+              { icon: Activity, title: '稼働実績の自動集計', desc: '勤怠・工数を取り込み、稼働データを自動で集計' },
+              { icon: ClipboardList, title: '請求書の自動発行', desc: '集計結果をもとに請求書を自動作成・送付' },
+              { icon: Bot, title: 'AIで事務作業を効率化', desc: 'SES特有の煩雑なバックオフィス業務を自動化' },
+            ],
+            link: 'Dev Ticketの案件・稼働データを引き継ぎ、稼働集計から請求書作成までを自動化します。',
+          },
+          {
+            name: 'ペイアシスト', icon: Wallet, color: '#7C3AED', bg: '#F5F3FF',
+            lead: '振込手数料や業務負担を削減し、キャッシュフローを改善できる支払い代行サービス。',
+            features: ['支払代行', '振込', 'キャッシュフロー改善'],
+            points: [
+              { icon: ArrowRightLeft, title: '報酬の振込を代行', desc: 'エンジニアへの支払業務をまとめて代行' },
+              { icon: TrendingUp, title: '振込手数料を削減', desc: '振込をまとめることでコスト・事務負担を圧縮' },
+              { icon: Timer, title: '入金サイクルを短縮', desc: '支払を平準化し、資金繰り・キャッシュフローを改善' },
+            ],
+            link: '請求確定後の振込を代行。手数料・事務負担を削減し、入金サイクルを改善します。',
+          },
+        ].map(s => {
+          const Icon = s.icon;
+          return (
+            <div key={s.name} className="flex-1 rounded-2xl overflow-hidden flex flex-col" style={{ background: '#fff', border: `1px solid ${s.color}22`, boxShadow: '0 6px 30px rgba(0,0,0,0.07)' }}>
+              <div className="flex items-center gap-3" style={{ padding: '20px 24px', background: s.bg, borderBottom: `1px solid ${s.color}18` }}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#fff', boxShadow: `0 2px 10px ${s.color}25` }}>
+                  <Icon className="w-6 h-6" style={{ color: s.color }} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">{s.name}</h3>
+                  <p className="text-[10px] font-bold mt-0.5" style={{ color: s.color }}>株式会社Whitebox（情報戦略テクノロジーグループ）</p>
+                </div>
+              </div>
+              <div className="px-6 py-5 flex flex-col flex-1">
+                <p className="text-[13px] text-slate-600 leading-relaxed mb-2.5">{s.lead}</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {s.features.map(f => (
+                    <span key={f} className="rounded-full px-3 py-1.5 text-[11px] font-bold" style={{ background: s.bg, color: s.color, border: `1px solid ${s.color}25` }}>{f}</span>
+                  ))}
+                </div>
+                {/* 主な機能 */}
+                <div className="flex items-center gap-2 mb-2.5">
+                  <div className="h-px flex-1" style={{ background: `${s.color}22` }} />
+                  <span className="text-[10px] font-black tracking-wider" style={{ color: s.color }}>主な機能・提供価値</span>
+                  <div className="h-px flex-1" style={{ background: `${s.color}22` }} />
+                </div>
+                <div className="space-y-2 mb-4">
+                  {s.points.map(({ icon: PIcon, title, desc }) => (
+                    <div key={title} className="flex items-start gap-2.5 rounded-xl p-2.5" style={{ background: s.bg, border: `1px solid ${s.color}1A` }}>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#fff', boxShadow: `0 1px 6px ${s.color}20` }}>
+                        <PIcon className="w-3.5 h-3.5" style={{ color: s.color }} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-slate-800 leading-tight">{title}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-xl p-3.5 mt-auto" style={{ background: `${s.color}0A`, border: `1px solid ${s.color}20` }}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Link2 className="w-3.5 h-3.5" style={{ color: s.color }} />
+                    <span className="text-[11px] font-black" style={{ color: s.color }}>Dev Ticketとの連携</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">{s.link}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+);
+
+const SlidePlatformVision = (
+  <div key="s-platform-vision" className="w-full h-[720px] relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #064e3b 0%, #0d9488 45%, #0f766e 100%)' }}>
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute -top-32 -right-32 w-[520px] h-[520px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(52,211,153,0.22) 0%, transparent 65%)' }} />
+      <div className="absolute -bottom-40 -left-24 w-[420px] h-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 65%)' }} />
+    </div>
+    <div className="relative h-full flex flex-col justify-between" style={{ padding: '48px 56px' }}>
+      {/* ヘッダー */}
+      <div className="text-center">
+        <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-3" style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff' }}>
+          <Rocket className="w-3.5 h-3.5" />
+          将来構想
+        </div>
+        <h2 className="text-3xl font-black text-white mb-1.5">
+          ホワイトボックス・<span style={{ color: '#6EE7B7' }}>統合プラットフォーム</span>構想
+        </h2>
+        <p className="text-white/75 text-sm">Dev Ticketを開発・受発注のハブに据え、SES業務を「募集から支払まで」ワンストップで完結させる統合プラットフォームを目指します。</p>
+      </div>
+
+      {/* 価値カード4つ */}
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { icon: Workflow, title: 'ワンストップ', desc: '募集→契約→開発→検収→請求→振込まで一気通貫で完結', color: '#059669' },
+          { icon: Zap, title: '二重入力ゼロ', desc: 'システム間のデータ連携で転記・再入力の事務作業を排除', color: '#2563EB' },
+          { icon: TrendingUp, title: '入金を早期化', desc: '請求〜振込の自動化と支払代行でキャッシュフローを改善', color: '#7C3AED' },
+          { icon: Puzzle, title: '拡張するプラットフォーム', desc: '専門SaaSを組み合わせ、SES業務の対応領域を継続的に拡張', color: '#D97706' },
+        ].map(({ icon: Icon, title, desc, color }) => (
+          <div key={title} className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.97)', boxShadow: '0 8px 30px rgba(0,0,0,0.18)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: `${color}15` }}>
+              <Icon className="w-5 h-5" style={{ color }} />
+            </div>
+            <h3 className="text-sm font-black text-slate-900 mb-1.5 leading-tight">{title}</h3>
+            <p className="text-[11px] text-slate-500 leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ロードマップ：3つの連携ステップ ＝ 統合プラットフォーム */}
+      <div className="rounded-2xl" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', padding: '16px 24px' }}>
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarRange className="w-4 h-4 text-white/80" />
+          <span className="text-xs font-bold text-white/90">プラットフォーム拡充のステップ</span>
+          <span className="text-[10px] text-white/55">— 3つの連携を積み上げ、統合プラットフォームへ</span>
+        </div>
+        {/* STEP1 ＋ STEP2 ＋ STEP3 ＝ 統合プラットフォーム（均等配置の式） */}
+        <div className="flex items-center">
+          {[
+            { kind: 'step', label: 'Dev Ticket', sub: '受発注・開発進行', status: '提供中', color: '#6EE7B7' },
+            { kind: 'step', label: 'オムニスクエア連携', sub: '稼働管理・請求管理', status: '連携予定', color: '#93C5FD' },
+            { kind: 'step', label: 'ペイアシスト連携', sub: '支払代行・振込', status: '連携予定', color: '#C4B5FD' },
+            { kind: 'goal', label: '統合プラットフォーム', sub: 'SES業務をワンストップ提供', status: 'GOAL', color: '#FCD34D' },
+          ].flatMap((p, i, arr) => {
+            const node = p.kind === 'goal' ? (
+              <div key="goal" className="flex-1 flex justify-center" style={{ minWidth: 0 }}>
+                <div className="rounded-xl flex flex-col items-center justify-center text-center" style={{ width: 210, padding: '12px 16px', background: 'linear-gradient(135deg, rgba(252,211,77,0.24), rgba(251,191,36,0.12))', border: '1.5px solid rgba(252,211,77,0.6)' }}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Rocket className="w-3.5 h-3.5" style={{ color: '#FCD34D' }} />
+                    <span className="rounded-full px-2 py-0.5 text-[8px] font-black tracking-widest" style={{ background: 'rgba(252,211,77,0.25)', color: '#FCD34D' }}>{p.status}</span>
+                  </div>
+                  <span className="text-sm font-black text-white leading-tight">{p.label}</span>
+                  <span className="text-[9px] text-white/70 mt-0.5 leading-tight">{p.sub}</span>
+                </div>
+              </div>
+            ) : (
+              <div key={`ph-${i}`} className="flex-1 flex flex-col items-center justify-center text-center" style={{ minWidth: 0 }}>
+                <span className="rounded-full px-2.5 py-0.5 text-[9px] font-black mb-1.5" style={{ background: `${p.color}22`, color: p.color, border: `1px solid ${p.color}55` }}>{p.status}</span>
+                <span className="text-xs font-black text-white leading-tight">{p.label}</span>
+                <span className="text-[9px] text-white/60 mt-0.5 leading-tight">{p.sub}</span>
+              </div>
+            );
+            if (i >= arr.length - 1) return [node];
+            const op = i < arr.length - 2
+              ? <Plus key={`op-${i}`} className="w-4 h-4 flex-shrink-0 text-white/40" />
+              : <span key={`op-${i}`} className="font-black text-white/55 flex-shrink-0" style={{ fontSize: 26, lineHeight: 1 }}>=</span>;
+            return [node, op];
+          })}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export const devticketPresentation: PresentationEntry = {
   meta: {
     id: 'devticket-2026',
@@ -2341,8 +2781,13 @@ export const devticketPresentation: PresentationEntry = {
     SlideSecurity,    // 14. セキュリティ・権限
     SlideComparison,  // 15. 他社サービス比較
     SlideROI,         // 16. 導入効果・ROI
-    SlideOnboarding,  // 17. 導入ステップ
-    Slide8,           // 18. 料金
-    Slide9,           // 19. CTA
+    SlideIntegrationIntro, // 17. 連携セクション扉（情報戦略テクノロジー×Whitebox）
+    SlideSESFlow,          // 18. SES業務フロー全体図（連携）
+    SlidePlatformArch,     // 19. 3システム連携アーキテクチャ
+    SlidePartnerServices,  // 20. 連携サービス紹介
+    SlidePlatformVision,   // 21. 統合プラットフォーム構想
+    SlideOnboarding,  // 22. 導入ステップ
+    Slide8,           // 23. 料金
+    Slide9,           // 24. CTA
   ],
 };
