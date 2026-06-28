@@ -48,6 +48,14 @@ import {
   Wallet,
   Boxes,
   Puzzle,
+  Fingerprint,
+  Monitor,
+  Tablet,
+  Smartphone,
+  Command,
+  FileText,
+  PieChart,
+  AppWindow,
 } from 'lucide-react';
 import type { PresentationEntry } from '../registry';
 
@@ -687,7 +695,7 @@ const Slide2 = (
             color: '#059669', bg: '#ECFDF5', border: '#BBF7D0',
             title: 'プロジェクト管理',
             desc: 'ダッシュボードでチーム全体を俯瞰。プロジェクト・クライアント・メンバーを一元管理できます。',
-            points: ['プロジェクト進捗の可視化', 'クライアント情報の紐付け', 'メンバーの権限・ロール管理', 'チケット一括作成・CSV取込', 'Myフィルタ機能', 'リリースノート管理'],
+            points: ['プロジェクト進捗の可視化', '管理者レポート・PDF出力', 'メンバーの権限・ロール管理', 'チケット一括作成・CSV取込', 'Myフィルタ機能', 'リリースノート管理'],
             extra: '複数プロジェクトを横断して状況を把握できるため、PMのオーバーヘッドを大幅削減。',
           },
           {
@@ -1082,7 +1090,7 @@ const Slide7 = (
           豊富な機能
         </div>
         <h2 className="text-3xl font-black text-slate-900 mb-1">
-          開発チームが本当に欲しい<span style={{ color: '#059669' }}>25以上の機能</span>
+          開発チームが本当に欲しい<span style={{ color: '#059669' }}>28以上の機能</span>
         </h2>
         <p className="text-slate-500 text-sm">すぐに使い始められるシンプルさと、大規模チームにも対応できるパワーを両立</p>
       </div>
@@ -1215,6 +1223,9 @@ const Slide7 = (
           { icon: CalendarRange, label: 'アサイン計画', color: '#6366F1' },
           { icon: UserCog, label: 'ロール設定', color: '#64748B' },
           { icon: Paperclip, label: 'ファイル添付', color: '#71717A' },
+          { icon: BarChart3, label: '管理者レポート', color: '#0891B2' },
+          { icon: Fingerprint, label: '生体認証ログイン', color: '#059669' },
+          { icon: Smartphone, label: 'Mac/iPadアプリ', color: '#6366F1' },
         ].map(({ icon: Icon, label, color }) => (
           <div key={label} className="flex items-center gap-1.5 rounded-lg px-2.5 py-2" style={{ background: '#F9FAFB', border: '1px solid #F0F0F0' }}>
             <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: `${color}15` }}>
@@ -2198,7 +2209,7 @@ const SlideSecurity = (
               <span className="text-xs font-black text-purple-900">セキュリティポリシー</span>
             </div>
             <ul className="space-y-1">
-              {['招待リンクは24時間で失効', 'プロジェクト外のデータは非表示', '全操作を監査ログに記録'].map(p => (
+              {['招待リンクは24時間で失効', 'プロジェクト外のデータは非表示', '生体認証ログイン（Passkey / Face ID）対応'].map(p => (
                 <li key={p} className="text-[9px] text-purple-700 flex items-center gap-1.5">
                   <CheckCheck className="w-3 h-3 flex-shrink-0" />{p}
                 </li>
@@ -2755,6 +2766,257 @@ const SlidePlatformVision = (
   </div>
 );
 
+// ── 管理者レポート機能（新機能） ─────────────────────────────────────────────
+const SlideAdminReport = (
+  <div key="s-admin-report" className="w-full h-[720px] relative overflow-hidden" style={{ background: '#F8FAFB' }}>
+    <div className="h-full flex flex-col" style={{ padding: '40px 56px' }}>
+      {/* ヘッダー */}
+      <div className="mb-5 flex items-end justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-3" style={{ background: '#ECFEFF', border: '1px solid #A5F3FC', color: '#0891B2' }}>
+            <BarChart3 className="w-3.5 h-3.5" />
+            管理者レポート
+            <span className="ml-1 px-1.5 py-0.5 rounded-md text-[9px] font-black" style={{ background: '#0891B2', color: '#fff' }}>NEW</span>
+          </div>
+          <h2 className="text-3xl font-black text-slate-900 mb-2">
+            チームの生産性を<span style={{ color: '#0891B2' }}>自動で見える化</span>
+          </h2>
+          <p className="text-slate-500 text-sm">期間・プロジェクト単位でKPIを自動集計。ワンクリックでPDF業務レポートを出力できます。</p>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold flex-shrink-0" style={{ background: '#fff', border: '1px solid #E2E8F0', color: '#64748B' }}>
+          <Lock className="w-3 h-3" style={{ color: '#0891B2' }} />
+          管理者・PMのみ閲覧可
+        </div>
+      </div>
+      {/* 本体: 左モック / 右 指標リスト */}
+      <div className="grid gap-5 flex-1 min-h-0" style={{ gridTemplateColumns: '1.35fr 1fr' }}>
+        {/* 左: レポートモック */}
+        <div className="rounded-2xl bg-white p-4 flex flex-col" style={{ border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+          {/* 期間切替 */}
+          <div className="flex items-center justify-between mb-3 flex-shrink-0">
+            <div className="flex gap-1.5">
+              {['週次', '月次', '任意期間'].map((l, i) => (
+                <span key={l} className="text-[10px] font-bold px-2.5 py-1 rounded-md" style={{ background: i === 1 ? '#0891B2' : '#F1F5F9', color: i === 1 ? '#fff' : '#94A3B8' }}>{l}</span>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-md" style={{ background: '#ECFEFF', color: '#0891B2' }}>
+              <FileText className="w-3 h-3" />PDF出力
+            </div>
+          </div>
+          {/* KPIタイル */}
+          <div className="grid grid-cols-4 gap-2 mb-3 flex-shrink-0">
+            {[
+              { icon: CheckCircle2, label: '完了チケット', value: '48', sub: '+12%', accent: '#059669', bg: '#ECFDF5' },
+              { icon: Gauge,        label: '完了率',       value: '72%', sub: '順調', accent: '#0891B2', bg: '#ECFEFF' },
+              { icon: Timer,        label: '平均サイクル', value: '3.4', sub: '日/件', accent: '#7C3AED', bg: '#F5F3FF' },
+              { icon: Clock,        label: '総工数',       value: '64', sub: '人日', accent: '#D97706', bg: '#FFFBEB' },
+            ].map(({ icon: Icon, label, value, sub, accent, bg }) => (
+              <div key={label} className="rounded-xl p-2.5" style={{ background: bg, border: `1px solid ${accent}1f` }}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Icon className="w-3.5 h-3.5" style={{ color: accent }} />
+                  <span className="text-[8px] font-bold" style={{ color: accent }}>{sub}</span>
+                </div>
+                <div className="text-lg font-black leading-none" style={{ color: '#1A1714' }}>{value}</div>
+                <div className="text-[8px] mt-1" style={{ color: '#94A3B8' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          {/* ステータス内訳バー */}
+          <div className="mb-3 flex-shrink-0">
+            <p className="text-[9px] font-bold text-slate-400 mb-2">ステータス内訳</p>
+            <div className="flex h-4 rounded-md overflow-hidden gap-px">
+              {[
+                { c: '#059669', w: 36 }, { c: '#D97706', w: 20 }, { c: '#2563EB', w: 14 },
+                { c: '#7C3AED', w: 10 }, { c: '#EA580C', w: 8 }, { c: '#E2E8F0', w: 12 },
+              ].map((s, i) => <div key={i} style={{ width: `${s.w}%`, background: s.c }} />)}
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+              {[['#059669','完了'],['#D97706','進行中'],['#2563EB','レビュー'],['#7C3AED','STG'],['#EA580C','UAT'],['#E2E8F0','未着手']].map(([c,l]) => (
+                <span key={l} className="text-[8px] flex items-center gap-1" style={{ color: '#64748B' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 2, background: c, display: 'inline-block' }} />{l}
+                </span>
+              ))}
+            </div>
+          </div>
+          {/* メンバー別生産性テーブル */}
+          <div className="flex-1 min-h-0 flex flex-col">
+            <p className="text-[9px] font-bold text-slate-400 mb-1.5">メンバー別生産性</p>
+            <div className="rounded-lg overflow-hidden flex-1" style={{ border: '1px solid #EEF2F6' }}>
+              <div className="grid items-center px-2.5 py-1.5" style={{ gridTemplateColumns: '1fr 44px 44px 52px', background: '#F8FAFC', fontSize: 8, fontWeight: 700, color: '#94A3B8' }}>
+                <span>メンバー</span><span className="text-right">完了</span><span className="text-right">人日</span><span className="text-right">サイクル</span>
+              </div>
+              {[
+                { ini: '田', n: '田中太郎', ac: '#059669', done: 18, pd: 22, cy: '3.1' },
+                { ini: '鈴', n: '鈴木花子', ac: '#0284C7', done: 14, pd: 19, cy: '3.6' },
+                { ini: '佐', n: '佐藤健',   ac: '#7C3AED', done: 11, pd: 14, cy: '2.9' },
+                { ini: '山', n: '山田優',   ac: '#D97706', done: 5,  pd: 9,  cy: '4.8' },
+              ].map((m, i) => (
+                <div key={m.n} className="grid items-center px-2.5 py-1.5" style={{ gridTemplateColumns: '1fr 44px 44px 52px', background: i % 2 ? '#FAFCFE' : '#fff', fontSize: 9 }}>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div style={{ width: 16, height: 16, borderRadius: 8, background: m.ac, color: '#fff', fontSize: 7, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{m.ini}</div>
+                    <span className="truncate text-slate-700">{m.n}</span>
+                  </div>
+                  <span className="text-right font-bold text-slate-800">{m.done}</span>
+                  <span className="text-right text-slate-500">{m.pd}</span>
+                  <span className="text-right font-mono text-slate-500">{m.cy}日</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* 右: 集計指標 + 機能 */}
+        <div className="flex flex-col gap-3 min-h-0">
+          <div className="rounded-2xl bg-white p-4" style={{ border: '1px solid #E2E8F0' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#ECFEFF' }}>
+                <PieChart className="w-4 h-4" style={{ color: '#0891B2' }} />
+              </div>
+              <h3 className="text-sm font-black text-slate-900">自動集計する指標</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {['完了率・スループット', '平均サイクルタイム', '平均リードタイム', '見積精度（実績/見積）', '1件あたり工数', 'メンバー別生産性', 'スループット推移(8週)', '遅延・期限間近の検出'].map(p => (
+                <div key={p} className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#0891B2' }} />
+                  <span className="text-[10px] text-slate-700 leading-tight">{p}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white p-4" style={{ border: '1px solid #E2E8F0' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#F0FDF4' }}>
+                <SlidersHorizontal className="w-4 h-4" style={{ color: '#059669' }} />
+              </div>
+              <h3 className="text-sm font-black text-slate-900">柔軟な集計とビュー</h3>
+            </div>
+            <div className="space-y-2">
+              {[
+                { icon: CalendarRange, t: '週次 / 月次 / 任意期間', d: '期間を選ぶだけで自動再集計' },
+                { icon: Building2, t: '組織全体 / プロジェクト別', d: 'スコープを切り替えて分析' },
+                { icon: BarChart2, t: 'ガント図でスプリント俯瞰', d: '完了・進行中・遅延を色分け表示' },
+                { icon: Zap, t: '課題と対策を自動抽出', d: '遅延・偏り・見積ズレをアラート' },
+              ].map(({ icon: Icon, t, d }) => (
+                <div key={t} className="flex items-start gap-2.5 rounded-xl p-2" style={{ background: '#F9FAFB', border: '1px solid #EEF2F6' }}>
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#ECFDF5' }}>
+                    <Icon className="w-3.5 h-3.5" style={{ color: '#059669' }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-slate-800 leading-tight">{t}</p>
+                    <p className="text-[9px] text-slate-400 mt-0.5 leading-snug">{d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl p-3 flex items-center gap-2.5 mt-auto" style={{ background: 'linear-gradient(135deg, #083344, #0e7490)' }}>
+            <FileText className="w-4 h-4 text-cyan-200 flex-shrink-0" />
+            <p className="text-[10px] text-cyan-50 leading-snug">
+              <span className="font-black">日本語フォント埋め込みのPDF</span>を1セクション1ページで出力。報告文のワンクリックコピーにも対応。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ── Mac / iPad ネイティブアプリ（開発中） ──────────────────────────────────────
+const SlideNativeApp = (
+  <div key="s-native-app" className="w-full h-[720px] relative overflow-hidden flex" style={{ background: 'linear-gradient(160deg, #0f172a 0%, #134e4a 55%, #115e59 100%)' }}>
+    {/* 背景デコ */}
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full" style={{ background: 'radial-gradient(circle, rgba(52,211,153,0.16) 0%, transparent 65%)' }} />
+      <div className="absolute bottom-0 left-1/3 w-80 h-80 rounded-full" style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 65%)' }} />
+    </div>
+    {/* 左: 説明 */}
+    <div className="relative z-10 flex flex-col justify-center" style={{ width: '46%', padding: '48px 52px' }}>
+      <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-5 w-fit" style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', color: '#FCD34D' }}>
+        <Rocket className="w-3.5 h-3.5" />
+        開発中 — まもなく登場
+      </div>
+      <h2 className="text-white font-black leading-tight mb-4" style={{ fontSize: 34 }}>
+        Dev Ticketを<br /><span style={{ color: '#34D399' }}>Mac・iPad</span>アプリで
+      </h2>
+      <p className="text-base leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.75)' }}>
+        Capacitorで構築するネイティブアプリを開発中。ブラウザを開かずに起動でき、デスクトップ／タブレットに最適化したUIを提供します。主要機能はすでに実装済みです。
+      </p>
+      {/* 対応プラットフォーム */}
+      <div className="flex gap-2.5 mb-6">
+        {[
+          { icon: Monitor, label: 'macOS', status: '対応', ok: true },
+          { icon: Tablet, label: 'iPadOS', status: '対応', ok: true },
+          { icon: Smartphone, label: 'iPhone', status: '対象外', ok: false },
+        ].map(({ icon: Icon, label, status, ok }) => (
+          <div key={label} className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: ok ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${ok ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.1)'}` }}>
+            <Icon className="w-5 h-5 mx-auto mb-1.5" style={{ color: ok ? '#34D399' : 'rgba(255,255,255,0.4)' }} />
+            <p className="text-xs font-bold text-white">{label}</p>
+            <p className="text-[9px] mt-0.5" style={{ color: ok ? '#6EE7B7' : 'rgba(255,255,255,0.4)' }}>{status}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <AppWindow className="w-3.5 h-3.5" />
+        App ID: io.meece.devticket
+      </div>
+    </div>
+    {/* 右: モック + 実装状況 */}
+    <div className="relative z-10 flex-1 flex flex-col justify-center" style={{ padding: '44px 52px 44px 0' }}>
+      {/* Macウィンドウ風モック（マルチタブUI） */}
+      <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}>
+        {/* タイトルバー */}
+        <div className="flex items-center gap-2 px-3 py-2" style={{ background: '#1e293b' }}>
+          <div className="flex gap-1.5">
+            {['#FF5F57', '#FEBC2E', '#28C840'].map(c => <span key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c, display: 'inline-block' }} />)}
+          </div>
+          {/* タブ */}
+          <div className="flex gap-1 ml-2">
+            {[{ l: 'ダッシュボード', a: true }, { l: 'スプリント', a: false }, { l: 'レポート', a: false }].map(t => (
+              <div key={t.l} className="flex items-center gap-1 px-2.5 py-1 rounded-t-md" style={{ background: t.a ? '#0f172a' : 'transparent' }}>
+                <span className="text-[9px] font-medium" style={{ color: t.a ? '#34D399' : 'rgba(255,255,255,0.4)' }}>{t.l}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-center px-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <Plus className="w-3 h-3" />
+            </div>
+          </div>
+          <div className="ml-auto flex items-center gap-1 text-[8px] font-mono" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <Command className="w-2.5 h-2.5" />T
+          </div>
+        </div>
+        {/* 中身（ダッシュボードモック） */}
+        <div style={{ height: 188, overflow: 'hidden', background: '#F4F5F6' }}>
+          <MockDashboard fillHeight />
+        </div>
+      </div>
+      {/* 実装済み機能 */}
+      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
+        <p className="text-[10px] font-black mb-3 flex items-center gap-1.5" style={{ color: '#6EE7B7' }}>
+          <CheckCheck className="w-3.5 h-3.5" />実装済みの機能
+        </p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+          {[
+            { icon: Fingerprint, t: 'Face ID / Touch ID ログイン' },
+            { icon: BellRing, t: 'プッシュ通知（APNs）' },
+            { icon: AppWindow, t: 'マルチタブUI（⌘T / ⌘W / ⌘1〜9）' },
+            { icon: Rocket, t: 'アプリアイコン・起動画面' },
+          ].map(({ icon: Icon, t }) => (
+            <div key={t} className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(52,211,153,0.15)' }}>
+                <Icon className="w-3.5 h-3.5" style={{ color: '#34D399' }} />
+              </div>
+              <span className="text-[10px] font-medium leading-tight" style={{ color: 'rgba(255,255,255,0.88)' }}>{t}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <Clock className="w-3 h-3 flex-shrink-0" style={{ color: '#FCD34D' }} />
+          <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.55)' }}>開発中：実機検証・App Store配信準備を進行中</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export const devticketPresentation: PresentationEntry = {
   meta: {
     id: 'devticket-2026',
@@ -2778,8 +3040,10 @@ export const devticketPresentation: PresentationEntry = {
     Slide6,           // 11. リソース調達フロー
     Slide7,           // 12. 機能一覧
     SlideMilestone,   // 13. 実績追跡・マイルストーン
-    SlideSecurity,    // 14. セキュリティ・権限
-    SlideComparison,  // 15. 他社サービス比較
+    SlideAdminReport, // 14. 管理者レポート（新機能）
+    SlideSecurity,    // 15. セキュリティ・権限
+    SlideNativeApp,   // 16. Mac/iPadネイティブアプリ（開発中）
+    SlideComparison,  // 17. 他社サービス比較
     SlideROI,         // 16. 導入効果・ROI
     SlideIntegrationIntro, // 17. 連携セクション扉（情報戦略テクノロジー×Whitebox）
     SlideSESFlow,          // 18. SES業務フロー全体図（連携）
