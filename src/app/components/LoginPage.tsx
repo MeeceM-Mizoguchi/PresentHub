@@ -1,15 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, Presentation, Sparkles, Loader2 } from 'lucide-react';
+import { LogIn, Presentation, Sparkles, Loader2, Fingerprint } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { biometricAuth } from '../../lib/biometricAuth';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const [bioAvailable, setBioAvailable] = useState(false);
+  const [bioLoading, setBioLoading] = useState(false);
+  const { signIn, loginWithBiometric } = useAuth();
   const navigate = useNavigate();
+
+  // この端末で生体認証が利用可能（対応 & 登録済み）かを判定
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [supported, registered] = await Promise.all([
+        biometricAuth.isSupported(),
+        biometricAuth.isRegisteredOnThisDevice(),
+      ]);
+      if (!cancelled) setBioAvailable(supported && registered);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +35,18 @@ export function LoginPage() {
     setIsLoading(false);
     if (error) {
       setError('メールアドレスまたはパスワードが正しくありません。');
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleBioLogin = async () => {
+    setError(null);
+    setBioLoading(true);
+    const { error } = await loginWithBiometric();
+    setBioLoading(false);
+    if (error) {
+      setError(error);
     } else {
       navigate('/');
     }
@@ -91,12 +119,31 @@ export function LoginPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || bioLoading}
               className="w-full bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 text-white py-3 rounded-xl hover:shadow-xl hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
               {isLoading ? 'ログイン中...' : 'ログイン'}
             </button>
+
+            {bioAvailable && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-400">または</span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBioLogin}
+                  disabled={isLoading || bioLoading}
+                  className="w-full bg-white border-2 border-violet-200 text-violet-700 py-3 rounded-xl hover:bg-violet-50 hover:border-violet-300 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+                >
+                  {bioLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Fingerprint className="w-5 h-5" />}
+                  {bioLoading ? '認証中...' : '生体認証でログイン'}
+                </button>
+              </>
+            )}
 
             <div className="text-center">
               <Link

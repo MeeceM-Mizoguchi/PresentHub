@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { biometricAuth } from '../../lib/biometricAuth';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -20,6 +21,7 @@ interface AuthContextType {
   isGuest: boolean;  // true = invited user (sees guest view)
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  loginWithBiometric: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updateProfile: (updates: Partial<Pick<UserProfile, 'name'>>) => Promise<string | null>;
@@ -188,6 +190,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const loginWithBiometric = async () => {
+    const r = await biometricAuth.loginWithBiometric();
+    // verifyOtp 成功時は onAuthStateChange が発火し、プロフィール/権限が自動反映される
+    return { error: r.ok ? null : (r.error ?? '生体認証に失敗しました。') };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -214,7 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin: profile?.role === 'admin',
       isGuest,
       isLoading,
-      signIn, signOut, resetPassword, updateProfile,
+      signIn, loginWithBiometric, signOut, resetPassword, updateProfile,
     }}>
       {children}
     </AuthContext.Provider>
