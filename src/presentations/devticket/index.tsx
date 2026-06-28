@@ -2921,34 +2921,52 @@ const SlideAdminReport = (
 );
 
 // ── デバイスフレーム（MacBook / iPad イラスト） ──────────────────────────────
-function MacBookFrame({ width = 460 }: { width?: number }) {
+// 固定px指定のダッシュボードを設計解像度(16:10)で描画してから transform:scale で縮小する。
+// 小さな枠に直接押し込むと文字が巨大化して見切れるため、実スクショを縮小したような見た目にする。
+function ScaledDashboard({ screenW }: { screenW: number }) {
+  const DW = 1180, DH = 738; // 設計解像度（16:10）
+  const scale = screenW / DW;
   return (
-    <div style={{ width }}>
-      {/* 画面（液晶パネル + ベゼル） */}
-      <div style={{ position: 'relative', background: 'linear-gradient(180deg,#2b2c30,#161618)', borderRadius: '14px 14px 5px 5px', padding: '11px 11px 12px', boxShadow: '0 28px 60px rgba(0,0,0,0.5)' }}>
-        {/* インカメラ */}
-        <div style={{ position: 'absolute', top: 5, left: '50%', transform: 'translateX(-50%)', width: 5, height: 5, borderRadius: '50%', background: '#0b0b0d', border: '1px solid #2c2c2e' }} />
-        {/* スクリーン中身 */}
-        <div style={{ borderRadius: 4, overflow: 'hidden', aspectRatio: '16 / 10', background: '#F4F5F6' }}>
-          <MockDashboard fillHeight />
-        </div>
-      </div>
-      {/* ヒンジ・底面（画面より少し広い台形風） */}
-      <div style={{ position: 'relative', width: '113%', marginLeft: '-6.5%', height: 16, background: 'linear-gradient(180deg,#d9dce1,#a7abb2)', borderRadius: '0 0 11px 11px', boxShadow: '0 18px 26px rgba(0,0,0,0.4)' }}>
-        {/* ノッチ（開閉用くぼみ） */}
-        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 96, height: 7, background: 'linear-gradient(180deg,#8d9198,#c0c4ca)', borderRadius: '0 0 8px 8px' }} />
+    <div style={{ width: screenW, height: Math.round(screenW * (DH / DW)), overflow: 'hidden', background: '#F4F5F6' }}>
+      <div style={{ width: DW, height: DH, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        <MockDashboard fillHeight />
       </div>
     </div>
   );
 }
 
-function IPadFrame({ width = 168 }: { width?: number }) {
+function MacBookFrame({ width = 488 }: { width?: number }) {
+  const pad = 12;
+  const screenW = width - pad * 2;
   return (
-    <div style={{ width, position: 'relative', background: 'linear-gradient(135deg,#36373b,#161618)', borderRadius: 18, padding: 8, boxShadow: '0 26px 50px rgba(0,0,0,0.5)' }}>
-      {/* インカメラ（横向き時：左辺中央） */}
-      <div style={{ position: 'absolute', top: '50%', left: 3, transform: 'translateY(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#0b0b0d' }} />
-      <div style={{ borderRadius: 9, overflow: 'hidden', aspectRatio: '16 / 10', background: '#F4F5F6' }}>
-        <MockDashboard fillHeight />
+    <div style={{ width }}>
+      {/* 画面（液晶パネル + ベゼル） */}
+      <div style={{ position: 'relative', background: 'linear-gradient(180deg,#2b2c30,#141416)', borderRadius: '16px 16px 5px 5px', padding: `14px ${pad}px 15px`, boxShadow: '0 30px 64px rgba(0,0,0,0.5)' }}>
+        {/* インカメラ */}
+        <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', width: 5, height: 5, borderRadius: '50%', background: '#0b0b0d', border: '1px solid #2c2c2e' }} />
+        {/* スクリーン中身 */}
+        <div style={{ borderRadius: 4, overflow: 'hidden' }}>
+          <ScaledDashboard screenW={screenW} />
+        </div>
+      </div>
+      {/* ヒンジ・底面（画面より少し広い） */}
+      <div style={{ position: 'relative', width: '113%', marginLeft: '-6.5%', height: 17, background: 'linear-gradient(180deg,#dadde2,#a6aab1)', borderRadius: '0 0 12px 12px', boxShadow: '0 20px 28px rgba(0,0,0,0.4)' }}>
+        {/* ノッチ（開閉用くぼみ） */}
+        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 112, height: 8, background: 'linear-gradient(180deg,#8d9198,#c2c6cc)', borderRadius: '0 0 9px 9px' }} />
+      </div>
+    </div>
+  );
+}
+
+function IPadFrame({ width = 244 }: { width?: number }) {
+  const pad = 11;
+  const screenW = width - pad * 2;
+  return (
+    <div style={{ width, position: 'relative', background: 'linear-gradient(150deg,#3a3b3f,#141416)', borderRadius: 22, padding: pad, boxShadow: '0 28px 56px rgba(0,0,0,0.55)' }}>
+      {/* インカメラ（横向き時：上辺中央） */}
+      <div style={{ position: 'absolute', top: 4.5, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#0b0b0d' }} />
+      <div style={{ borderRadius: 11, overflow: 'hidden' }}>
+        <ScaledDashboard screenW={screenW} />
       </div>
     </div>
   );
@@ -3018,12 +3036,12 @@ const SlideNativeApp = (
       </div>
     </div>
     {/* 右: MacBook + iPad 実機イラスト */}
-    <div className="relative z-10 flex-1 flex items-center justify-center" style={{ padding: '44px 48px 44px 8px' }}>
+    <div className="relative z-10 flex-1 flex items-center justify-center" style={{ padding: '44px 60px 44px 4px' }}>
       <div style={{ position: 'relative' }}>
-        <MacBookFrame width={452} />
+        <MacBookFrame width={492} />
         {/* iPad を手前右下にオーバーラップ */}
-        <div style={{ position: 'absolute', right: -44, bottom: 6 }}>
-          <IPadFrame width={158} />
+        <div style={{ position: 'absolute', right: -66, bottom: -10 }}>
+          <IPadFrame width={246} />
         </div>
       </div>
     </div>
