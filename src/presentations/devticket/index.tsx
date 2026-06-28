@@ -2920,6 +2920,40 @@ const SlideAdminReport = (
   </div>
 );
 
+// ── デバイスフレーム（MacBook / iPad イラスト） ──────────────────────────────
+function MacBookFrame({ width = 460 }: { width?: number }) {
+  return (
+    <div style={{ width }}>
+      {/* 画面（液晶パネル + ベゼル） */}
+      <div style={{ position: 'relative', background: 'linear-gradient(180deg,#2b2c30,#161618)', borderRadius: '14px 14px 5px 5px', padding: '11px 11px 12px', boxShadow: '0 28px 60px rgba(0,0,0,0.5)' }}>
+        {/* インカメラ */}
+        <div style={{ position: 'absolute', top: 5, left: '50%', transform: 'translateX(-50%)', width: 5, height: 5, borderRadius: '50%', background: '#0b0b0d', border: '1px solid #2c2c2e' }} />
+        {/* スクリーン中身 */}
+        <div style={{ borderRadius: 4, overflow: 'hidden', aspectRatio: '16 / 10', background: '#F4F5F6' }}>
+          <MockDashboard fillHeight />
+        </div>
+      </div>
+      {/* ヒンジ・底面（画面より少し広い台形風） */}
+      <div style={{ position: 'relative', width: '113%', marginLeft: '-6.5%', height: 16, background: 'linear-gradient(180deg,#d9dce1,#a7abb2)', borderRadius: '0 0 11px 11px', boxShadow: '0 18px 26px rgba(0,0,0,0.4)' }}>
+        {/* ノッチ（開閉用くぼみ） */}
+        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 96, height: 7, background: 'linear-gradient(180deg,#8d9198,#c0c4ca)', borderRadius: '0 0 8px 8px' }} />
+      </div>
+    </div>
+  );
+}
+
+function IPadFrame({ width = 168 }: { width?: number }) {
+  return (
+    <div style={{ width, position: 'relative', background: 'linear-gradient(135deg,#36373b,#161618)', borderRadius: 18, padding: 8, boxShadow: '0 26px 50px rgba(0,0,0,0.5)' }}>
+      {/* インカメラ（横向き時：左辺中央） */}
+      <div style={{ position: 'absolute', top: '50%', left: 3, transform: 'translateY(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#0b0b0d' }} />
+      <div style={{ borderRadius: 9, overflow: 'hidden', aspectRatio: '16 / 10', background: '#F4F5F6' }}>
+        <MockDashboard fillHeight />
+      </div>
+    </div>
+  );
+}
+
 // ── Mac / iPad ネイティブアプリ（開発中） ──────────────────────────────────────
 const SlideNativeApp = (
   <div key="s-native-app" className="w-full h-[720px] relative overflow-hidden flex" style={{ background: 'linear-gradient(160deg, #0f172a 0%, #134e4a 55%, #115e59 100%)' }}>
@@ -2928,89 +2962,68 @@ const SlideNativeApp = (
       <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full" style={{ background: 'radial-gradient(circle, rgba(52,211,153,0.16) 0%, transparent 65%)' }} />
       <div className="absolute bottom-0 left-1/3 w-80 h-80 rounded-full" style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 65%)' }} />
     </div>
-    {/* 左: 説明 */}
-    <div className="relative z-10 flex flex-col justify-center" style={{ width: '46%', padding: '48px 52px' }}>
-      <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-5 w-fit" style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', color: '#FCD34D' }}>
+    {/* 左: 説明 + 実装済み機能 */}
+    <div className="relative z-10 flex flex-col justify-center" style={{ width: '43%', padding: '44px 28px 44px 52px' }}>
+      <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold mb-4 w-fit" style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.4)', color: '#FCD34D' }}>
         <Rocket className="w-3.5 h-3.5" />
         開発中 — まもなく登場
       </div>
-      <h2 className="text-white font-black leading-tight mb-4" style={{ fontSize: 34 }}>
+      <h2 className="text-white font-black leading-tight mb-3" style={{ fontSize: 33 }}>
         Dev Ticketを<br /><span style={{ color: '#34D399' }}>Mac・iPad</span>アプリで
       </h2>
-      <p className="text-base leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.75)' }}>
-        Capacitorで構築するネイティブアプリを開発中。ブラウザを開かずに起動でき、デスクトップ／タブレットに最適化したUIを提供します。主要機能はすでに実装済みです。
+      <p className="text-sm leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.72)' }}>
+        Capacitorで構築するネイティブアプリを開発中。ブラウザを開かずに起動でき、デスクトップ／タブレットに最適化したUIを提供します。
       </p>
-      {/* 対応プラットフォーム */}
-      <div className="flex gap-2.5 mb-6">
-        {[
-          { icon: Monitor, label: 'macOS', status: '対応', ok: true },
-          { icon: Tablet, label: 'iPadOS', status: '対応', ok: true },
-          { icon: Smartphone, label: 'iPhone', status: '対象外', ok: false },
-        ].map(({ icon: Icon, label, status, ok }) => (
-          <div key={label} className="flex-1 rounded-xl px-3 py-2.5 text-center" style={{ background: ok ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${ok ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.1)'}` }}>
-            <Icon className="w-5 h-5 mx-auto mb-1.5" style={{ color: ok ? '#34D399' : 'rgba(255,255,255,0.4)' }} />
-            <p className="text-xs font-bold text-white">{label}</p>
-            <p className="text-[9px] mt-0.5" style={{ color: ok ? '#6EE7B7' : 'rgba(255,255,255,0.4)' }}>{status}</p>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-2 text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.45)' }}>
-        <AppWindow className="w-3.5 h-3.5" />
-        App ID: io.meece.devticket
-      </div>
-    </div>
-    {/* 右: モック + 実装状況 */}
-    <div className="relative z-10 flex-1 flex flex-col justify-center" style={{ padding: '44px 52px 44px 0' }}>
-      {/* Macウィンドウ風モック（マルチタブUI） */}
-      <div className="rounded-2xl overflow-hidden mb-4" style={{ border: '1px solid rgba(255,255,255,0.12)', boxShadow: '0 24px 60px rgba(0,0,0,0.4)' }}>
-        {/* タイトルバー */}
-        <div className="flex items-center gap-2 px-3 py-2" style={{ background: '#1e293b' }}>
-          <div className="flex gap-1.5">
-            {['#FF5F57', '#FEBC2E', '#28C840'].map(c => <span key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c, display: 'inline-block' }} />)}
-          </div>
-          {/* タブ */}
-          <div className="flex gap-1 ml-2">
-            {[{ l: 'ダッシュボード', a: true }, { l: 'スプリント', a: false }, { l: 'レポート', a: false }].map(t => (
-              <div key={t.l} className="flex items-center gap-1 px-2.5 py-1 rounded-t-md" style={{ background: t.a ? '#0f172a' : 'transparent' }}>
-                <span className="text-[9px] font-medium" style={{ color: t.a ? '#34D399' : 'rgba(255,255,255,0.4)' }}>{t.l}</span>
-              </div>
-            ))}
-            <div className="flex items-center justify-center px-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              <Plus className="w-3 h-3" />
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-1 text-[8px] font-mono" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            <Command className="w-2.5 h-2.5" />T
-          </div>
-        </div>
-        {/* 中身（ダッシュボードモック） */}
-        <div style={{ height: 188, overflow: 'hidden', background: '#F4F5F6' }}>
-          <MockDashboard fillHeight />
-        </div>
-      </div>
       {/* 実装済み機能 */}
-      <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)' }}>
+      <div className="rounded-2xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
         <p className="text-[10px] font-black mb-3 flex items-center gap-1.5" style={{ color: '#6EE7B7' }}>
           <CheckCheck className="w-3.5 h-3.5" />実装済みの機能
         </p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+        <div className="space-y-2.5">
           {[
             { icon: Fingerprint, t: 'Face ID / Touch ID ログイン' },
             { icon: BellRing, t: 'プッシュ通知（APNs）' },
             { icon: AppWindow, t: 'マルチタブUI（⌘T / ⌘W / ⌘1〜9）' },
             { icon: Rocket, t: 'アプリアイコン・起動画面' },
           ].map(({ icon: Icon, t }) => (
-            <div key={t} className="flex items-center gap-2">
+            <div key={t} className="flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(52,211,153,0.15)' }}>
                 <Icon className="w-3.5 h-3.5" style={{ color: '#34D399' }} />
               </div>
-              <span className="text-[10px] font-medium leading-tight" style={{ color: 'rgba(255,255,255,0.88)' }}>{t}</span>
+              <span className="text-[11px] font-medium leading-tight" style={{ color: 'rgba(255,255,255,0.9)' }}>{t}</span>
             </div>
           ))}
         </div>
         <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <Clock className="w-3 h-3 flex-shrink-0" style={{ color: '#FCD34D' }} />
           <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.55)' }}>開発中：実機検証・App Store配信準備を進行中</span>
+        </div>
+      </div>
+      {/* 対応プラットフォーム + App ID */}
+      <div className="flex items-center gap-2 mb-3">
+        {[
+          { icon: Monitor, label: 'macOS', ok: true },
+          { icon: Tablet, label: 'iPadOS', ok: true },
+          { icon: Smartphone, label: 'iPhone 対象外', ok: false },
+        ].map(({ icon: Icon, label, ok }) => (
+          <div key={label} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5" style={{ background: ok ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${ok ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.1)'}` }}>
+            <Icon className="w-3.5 h-3.5" style={{ color: ok ? '#34D399' : 'rgba(255,255,255,0.4)' }} />
+            <span className="text-[10px] font-bold" style={{ color: ok ? '#fff' : 'rgba(255,255,255,0.5)' }}>{label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.42)' }}>
+        <AppWindow className="w-3.5 h-3.5" />
+        App ID: io.meece.devticket
+      </div>
+    </div>
+    {/* 右: MacBook + iPad 実機イラスト */}
+    <div className="relative z-10 flex-1 flex items-center justify-center" style={{ padding: '44px 48px 44px 8px' }}>
+      <div style={{ position: 'relative' }}>
+        <MacBookFrame width={452} />
+        {/* iPad を手前右下にオーバーラップ */}
+        <div style={{ position: 'absolute', right: -44, bottom: 6 }}>
+          <IPadFrame width={158} />
         </div>
       </div>
     </div>
