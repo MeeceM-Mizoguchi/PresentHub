@@ -3017,8 +3017,8 @@ const SlideNativeApp = (
           <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.55)' }}>開発中：実機検証・App Store配信準備を進行中</span>
         </div>
       </div>
-      {/* 対応プラットフォーム + App ID */}
-      <div className="flex items-center gap-2 mb-3">
+      {/* 対応プラットフォーム */}
+      <div className="flex items-center gap-2">
         {[
           { icon: Monitor, label: 'macOS', ok: true },
           { icon: Tablet, label: 'iPadOS', ok: true },
@@ -3029,10 +3029,6 @@ const SlideNativeApp = (
             <span className="text-[10px] font-bold" style={{ color: ok ? '#fff' : 'rgba(255,255,255,0.5)' }}>{label}</span>
           </div>
         ))}
-      </div>
-      <div className="flex items-center gap-2 text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.42)' }}>
-        <AppWindow className="w-3.5 h-3.5" />
-        App ID: io.meece.devticket
       </div>
     </div>
     {/* 右: MacBook + iPad 実機イラスト */}
