@@ -36,6 +36,10 @@ import {
   Bell,
   Settings,
   Clock,
+  Wallet,
+  Ticket,
+  LayoutDashboard,
+  FolderKanban,
 } from 'lucide-react';
 import type { PresentationEntry } from '../registry';
 
@@ -2084,6 +2088,231 @@ const Slide11 = (
   </div>
 );
 
+/* ===== SERVICES: サービスラインナップ ===== */
+const SlideServices = (
+  <div key="s-services" className="w-full h-[720px] bg-white p-10 relative overflow-hidden">
+    <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-cyan-400/10 to-transparent rounded-full blur-3xl" />
+    <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-pink-400/10 to-transparent rounded-full blur-3xl" />
+
+    <div className="relative z-10 h-full flex flex-col gap-5">
+      <div>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-14 h-1 bg-cyan-500" />
+          <span className="text-cyan-600 font-bold tracking-wider text-sm">Our Services</span>
+        </div>
+        <h2 className="text-4xl font-black text-slate-800">3つの事業で、課題に応える。</h2>
+        <p className="text-slate-500 text-sm mt-2">本格的なAI開発から、少額DX、自社プロダクトまで。お客様のフェーズに、最適な一手を。</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-6 flex-1">
+        {[
+          {
+            icon: Rocket, en: 'AI DEVELOPMENT LAB', title: 'AI開発ラボ',
+            lead: '本格的なAI駆動開発',
+            desc: '独自のAI駆動エンジンで、従来比87.5%の工期削減を実現。アイデアを最速で「動くプロダクト」へ変えます。',
+            points: ['最短24時間〜2週間で実装', '要件定義から実装・QAまで一気通貫', '開発規模の上限なし'],
+            grad: 'from-cyan-500 to-blue-500', text: 'text-cyan-600', dot: 'text-cyan-500',
+          },
+          {
+            icon: Wallet, en: 'SMALL PROJECT', title: '少額案件償却プロジェクト',
+            lead: '100万円・最短1ヶ月から',
+            desc: '「1,000万円から」だったシステム開発の常識を塗り替える新スキーム。中小企業のDXを、補助金活用でさらに身軽に。',
+            points: ['本格システムを100万円〜', '補助金と好相性・申請サポートも', '中小企業のDXを後押し'],
+            grad: 'from-violet-500 to-purple-500', text: 'text-violet-600', dot: 'text-violet-500',
+          },
+          {
+            icon: Ticket, en: 'OWN PRODUCT', title: '自社プロダクト Dev Ticket',
+            lead: '開発現場発のSaaS',
+            desc: 'プロジェクト・スプリント・リソース調達を一元化する次世代プロジェクト管理ツール。現場の課題を、自ら解く。',
+            points: ['プロジェクト・スプリント一元管理', '4ルートのリソース調達機能', 'Slack通知・25以上の機能'],
+            grad: 'from-pink-500 to-rose-500', text: 'text-pink-600', dot: 'text-pink-500',
+          },
+        ].map((s, idx) => (
+          <div key={idx} className="flex flex-col bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-300">
+            <div className={`bg-gradient-to-br ${s.grad} p-6 text-white relative overflow-hidden`}>
+              <div className="absolute -top-6 -right-6 opacity-20">
+                <s.icon className="w-28 h-28" />
+              </div>
+              <s.icon className="w-9 h-9 mb-4 relative z-10" />
+              <div className="text-[10px] font-bold tracking-widest opacity-80 mb-1 relative z-10">{s.en}</div>
+              <div className="text-lg font-black leading-tight relative z-10">{s.title}</div>
+            </div>
+            <div className="p-6 flex flex-col flex-1">
+              <div className={`text-sm font-black ${s.text} mb-2`}>{s.lead}</div>
+              <p className="text-xs text-slate-600 leading-relaxed mb-4">{s.desc}</p>
+              <div className="space-y-2 mt-auto">
+                {s.points.map((p, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <CheckCircle2 className={`w-4 h-4 ${s.dot} flex-shrink-0 mt-0.5`} />
+                    <span className="text-xs text-slate-700 leading-snug">{p}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-gradient-to-r from-cyan-500 via-violet-500 to-pink-500 rounded-xl p-4 text-white text-center">
+        <p className="font-bold text-sm tracking-wide">必要なときに、必要な規模で、最適な一手を。— Meeceの事業ポートフォリオ</p>
+      </div>
+    </div>
+  </div>
+);
+
+/* ===== SERVICE DETAIL: 少額案件償却プロジェクト ===== */
+const SlideSmallProject = (
+  <div key="s-smallproj" className="w-full h-[720px] bg-gradient-to-br from-white to-slate-50 p-10 relative overflow-hidden">
+    <div className="absolute top-10 right-10 w-72 h-72 bg-violet-400/10 rounded-full blur-3xl" />
+    <div className="absolute bottom-10 left-10 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl" />
+
+    <div className="relative z-10 h-full flex flex-col">
+      <div className="mb-5">
+        <div className="flex items-center gap-3 mb-3">
+          <span className="px-3 py-1 bg-violet-500 text-white rounded-full text-xs font-bold">SERVICE</span>
+          <span className="text-violet-600 font-bold tracking-wider text-sm">少額案件償却プロジェクト</span>
+        </div>
+        <h2 className="text-3xl font-black text-slate-800">予算が足りない、を諦める理由にしない。</h2>
+        <p className="text-slate-600 text-sm mt-2">
+          システム開発「1,000万円から」の常識を、AIの力で塗り替える。
+          <span className="font-bold text-slate-800">100万円から、最短1ヶ月。</span>
+        </p>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        {[
+          { icon: Wallet, value: '100万円〜', label: '受注可能（上限なし）', color: 'text-cyan-500', bg: 'bg-cyan-50' },
+          { icon: Clock, value: '最短1ヶ月', label: 'スピード納品', color: 'text-violet-500', bg: 'bg-violet-50' },
+          { icon: Cpu, value: 'AI駆動', label: '低コスト × 高品質', color: 'text-pink-500', bg: 'bg-pink-50' },
+          { icon: PiggyBank, value: '補助金活用', label: '実質負担をさらに圧縮', color: 'text-amber-500', bg: 'bg-amber-50' },
+        ].map((s, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-slate-200 p-4 hover:shadow-lg transition-all duration-300">
+            <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
+              <s.icon className={`w-5 h-5 ${s.color}`} />
+            </div>
+            <div className="text-lg font-black text-slate-800">{s.value}</div>
+            <div className="text-xs text-slate-500 mt-0.5">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex-1 flex flex-col">
+        <div className="text-xs font-black text-slate-500 tracking-widest mb-3">TRACK RECORD — この金額・この期間で、実現しています</div>
+        <div className="grid grid-cols-3 gap-4 flex-1">
+          {[
+            { icon: Box, title: 'EC在庫一元管理システム', desc: '複数ECに出品する商品の在庫・価格を、1つのシステムで一元管理。', price: '400万円', period: '1.5ヶ月', color: 'text-cyan-600', border: 'border-cyan-300' },
+            { icon: Layers, title: '情報マッチングシステム', desc: 'さまざまな情報とニーズを、自動でマッチング。', price: '200万円', period: '1ヶ月', color: 'text-violet-600', border: 'border-violet-300' },
+            { icon: ClipboardCheck, title: '社内ワークフローシステム', desc: '自社独自のルール・文化に沿った業務フローを構築・運用。', price: '300万円', period: '2ヶ月', color: 'text-pink-600', border: 'border-pink-300' },
+          ].map((c, i) => (
+            <div key={i} className={`bg-white rounded-2xl border-t-4 ${c.border} border border-slate-100 p-5 flex flex-col`}>
+              <c.icon className={`w-6 h-6 ${c.color} mb-3`} />
+              <h3 className="font-bold text-slate-800 text-sm mb-1.5 leading-snug">{c.title}</h3>
+              <p className="text-xs text-slate-500 leading-relaxed flex-1">{c.desc}</p>
+              <div className="flex gap-2 mt-3">
+                <div className="flex-1 bg-slate-50 rounded-lg py-2 text-center">
+                  <div className="text-[10px] text-slate-400 font-bold">費用</div>
+                  <div className={`text-base font-black ${c.color}`}>{c.price}</div>
+                </div>
+                <div className="flex-1 bg-slate-50 rounded-lg py-2 text-center">
+                  <div className="text-[10px] text-slate-400 font-bold">期間</div>
+                  <div className="text-base font-black text-slate-800">{c.period}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5 bg-slate-900 rounded-2xl px-6 py-4 flex items-center justify-between gap-4">
+        <p className="text-white text-sm font-bold">本来なら数千万円規模の開発を、<span className="text-cyan-400">約1/5以下のコスト</span>で実現。</p>
+        <p className="text-slate-400 text-xs whitespace-nowrap">中小企業を支えることは、日本を支えること。</p>
+      </div>
+    </div>
+  </div>
+);
+
+/* ===== SERVICE DETAIL: 自社プロダクト Dev Ticket ===== */
+const SlideDevTicket = (
+  <div key="s-devticket" className="w-full h-[720px] relative overflow-hidden flex">
+    {/* 左: ブランドパネル */}
+    <div className="relative z-10 flex flex-col justify-between" style={{ width: '42%', background: 'linear-gradient(160deg, #064e3b 0%, #065f46 45%, #0d9488 100%)', padding: '48px 44px' }}>
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full" style={{ background: 'radial-gradient(circle, rgba(52,211,153,0.18) 0%, transparent 65%)' }} />
+        <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full" style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 65%)' }} />
+      </div>
+      <div className="relative flex items-center gap-3">
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(145deg, #34D399, #059669)', boxShadow: '0 4px 16px rgba(5,150,105,0.5)' }}>
+          <Ticket className="w-6 h-6 text-white" />
+        </div>
+        <span className="text-white text-xl font-bold">Dev Ticket</span>
+      </div>
+      <div className="relative">
+        <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-5 text-xs font-bold" style={{ background: 'rgba(52,211,153,0.2)', border: '1px solid rgba(52,211,153,0.35)', color: '#6EE7B7' }}>
+          <Rocket className="w-3.5 h-3.5" />
+          自社プロダクト / 2026年6月リリース
+        </div>
+        <h2 className="text-white font-black leading-tight mb-4 text-3xl">
+          プロジェクトを、<br />
+          <span style={{ color: '#34D399' }}>スマートに。</span>
+        </h2>
+        <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.78)' }}>
+          AI開発ラボで培った技術を、自らの現場課題へ。チケット・スプリント・メンバーを一元管理し、チームの生産性を最大化する次世代ツールです。
+        </p>
+      </div>
+      <div className="relative space-y-3">
+        {[
+          { icon: LayoutDashboard, text: 'プロジェクト・スプリント一元管理' },
+          { icon: Users, text: '4ルートのリソース調達機能' },
+          { icon: Bell, text: 'Slack通知・権限管理・25以上の機能' },
+        ].map(({ icon: Icon, text }) => (
+          <div key={text} className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(52,211,153,0.2)', border: '1px solid rgba(52,211,153,0.3)' }}>
+              <Icon className="w-3.5 h-3.5" style={{ color: '#34D399' }} />
+            </div>
+            <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.88)' }}>{text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* 右: 3本柱 */}
+    <div className="flex-1 bg-white p-10 flex flex-col">
+      <div className="mb-5">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-1 bg-emerald-500" />
+          <span className="text-emerald-600 font-bold tracking-wider text-sm">Product Overview</span>
+        </div>
+        <h3 className="text-2xl font-black text-slate-800">開発チームに必要なすべてを、一つに。</h3>
+      </div>
+      <div className="grid grid-cols-1 gap-4 flex-1">
+        {[
+          { icon: LayoutDashboard, color: '#059669', bg: '#ECFDF5', title: 'プロジェクト管理', desc: 'ダッシュボードでチーム全体を俯瞰。プロジェクト・クライアント・メンバーを一元管理。', points: ['進捗の可視化・管理者レポート', '権限・ロール管理', 'チケット一括作成・CSV取込'] },
+          { icon: FolderKanban, color: '#0284C7', bg: '#EFF6FF', title: 'スプリント管理', desc: 'リスト・ボード・ガントの3ビュー。アジャイル開発に完全対応。', points: ['3ビュー切替・優先度マトリックス', 'マイルストーン自動記録（6工程）', 'バックログ・議事録・Wiki'] },
+          { icon: Users, color: '#7C3AED', bg: '#F5F3FF', title: 'リソース調達', desc: 'チケット単位で担当エンジニアを調達。グループ・会員・パートナー・エージェントの4ルート。', points: ['他ツールにない独自機能', 'スキル・稼働条件マッチング', '成果物の受取まで一元管理'] },
+        ].map((c, i) => (
+          <div key={i} className="flex gap-4 bg-white rounded-2xl border border-slate-200 p-4 hover:shadow-lg transition-all duration-300">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: c.bg }}>
+              <c.icon className="w-6 h-6" style={{ color: c.color }} />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-black text-slate-800 text-base mb-1">{c.title}</h4>
+              <p className="text-xs text-slate-500 leading-relaxed mb-2">{c.desc}</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {c.points.map((p, j) => (
+                  <div key={j} className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: c.color }} />
+                    <span className="text-xs text-slate-600">{p}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 export const meeceIntroPresentation: PresentationEntry = {
   meta: {
     id: 'meece-intro',
@@ -2093,5 +2322,5 @@ export const meeceIntroPresentation: PresentationEntry = {
     author: '溝口 雅登',
     createdAt: '2026-05-19',
   },
-  slides: [Slide1, Slide2, SlideWhatIsMeece, SlideDCF, Slide3, Slide4, Slide5, Slide6, Slide7, Slide8, Slide9, SlideCaseIntro, SlideSESCase, SlidePetSalon, SlidePurchaseCase, SlideHealthCase, SlideAIMD, SlideLooop, SlideTenant, Slide10, Slide11],
+  slides: [Slide1, Slide2, SlideWhatIsMeece, SlideDCF, Slide3, Slide4, Slide5, Slide6, Slide7, Slide8, SlideServices, SlideSmallProject, SlideDevTicket, Slide9, SlideCaseIntro, SlideSESCase, SlidePetSalon, SlidePurchaseCase, SlideHealthCase, SlideAIMD, SlideLooop, SlideTenant, Slide10, Slide11],
 };

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
@@ -79,6 +80,7 @@ export function DashboardPage() {
   const [viewingFileId, setViewingFileId] = useState<string | null>(null);
   const [movingFile, setMovingFile] = useState<FileItem | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
   const [renamingFileId, setRenamingFileId] = useState<string | null>(null);
   const [renameVal, setRenameVal] = useState('');
   const [pdfExportingId, setPdfExportingId] = useState<string | null>(null);
@@ -158,9 +160,79 @@ export function DashboardPage() {
     setViewingFileId(file.id);
   };
 
+  const closeMenu = () => { setOpenMenuId(null); setMenuAnchor(null); };
+
   const handleMenuToggle = (e: React.MouseEvent, fileId: string) => {
     e.stopPropagation();
-    setOpenMenuId(prev => prev === fileId ? null : fileId);
+    if (openMenuId === fileId) {
+      closeMenu();
+    } else {
+      setMenuAnchor((e.currentTarget as HTMLElement).getBoundingClientRect());
+      setOpenMenuId(fileId);
+    }
+  };
+
+  // メニューを開いている間にスクロール／リサイズしたら閉じる（位置ズレ防止）
+  useEffect(() => {
+    if (!openMenuId) return;
+    const close = () => closeMenu();
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [openMenuId]);
+
+  // 3点リーダーのドロップダウンを portal で描画（カードの overflow-hidden に切られないように）
+  const renderFileMenu = (file: FileItem) => {
+    if (!menuAnchor) return null;
+    const isPdf = presentationRegistry.some(p => p.meta.id === file.id);
+    const estHeight = (3 + (isPdf ? 1 : 0)) * 44 + 8;
+    const openUp = menuAnchor.bottom + estHeight + 8 > window.innerHeight;
+    const top = openUp ? Math.max(8, menuAnchor.top - estHeight - 8) : menuAnchor.bottom + 8;
+    const right = Math.max(8, window.innerWidth - menuAnchor.right);
+    return createPortal(
+      <div
+        className="fixed w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-[60] py-1"
+        style={{ top, right }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={() => { setRenamingFileId(file.id); setRenameVal(file.name); closeMenu(); }}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+        >
+          <Pencil className="w-4 h-4 text-violet-500" />名前を変更
+        </button>
+        <button
+          onClick={() => { toggleStar(file.id); closeMenu(); }}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+        >
+          <Star className="w-4 h-4 text-yellow-500" />
+          {file.starred ? 'お気に入り解除' : 'お気に入り'}
+        </button>
+        <button
+          onClick={() => { setMovingFile(file); closeMenu(); }}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+        >
+          <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
+        </button>
+        {isPdf && (
+          <button
+            onClick={() => handleExportPdfFromMenu(file.id)}
+            disabled={!!pdfExportingId}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors disabled:opacity-40"
+          >
+            {pdfExportingId === file.id
+              ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
+              : <Download className="w-4 h-4 text-violet-500" />
+            }
+            PDF出力
+          </button>
+        )}
+      </div>,
+      document.body
+    );
   };
 
   const renderFileCard = (file: FileItem) => {
@@ -208,45 +280,7 @@ export function DashboardPage() {
             >
               <MoreVertical className="w-4 h-4 text-gray-600" />
             </button>
-            {openMenuId === file.id && (
-              <div
-                className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-10 py-1"
-                onClick={e => e.stopPropagation()}
-              >
-                <button
-                  onClick={() => { setRenamingFileId(file.id); setRenameVal(file.name); setOpenMenuId(null); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-                >
-                  <Pencil className="w-4 h-4 text-violet-500" />名前を変更
-                </button>
-                <button
-                  onClick={() => { toggleStar(file.id); setOpenMenuId(null); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-                >
-                  <Star className="w-4 h-4 text-yellow-500" />
-                  {file.starred ? 'お気に入り解除' : 'お気に入り'}
-                </button>
-                <button
-                  onClick={() => { setMovingFile(file); setOpenMenuId(null); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-                >
-                  <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
-                </button>
-                {presentationRegistry.some(p => p.meta.id === file.id) && (
-                  <button
-                    onClick={() => handleExportPdfFromMenu(file.id)}
-                    disabled={!!pdfExportingId}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors disabled:opacity-40"
-                  >
-                    {pdfExportingId === file.id
-                      ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
-                      : <Download className="w-4 h-4 text-violet-500" />
-                    }
-                    PDF出力
-                  </button>
-                )}
-              </div>
-            )}
+            {openMenuId === file.id && renderFileMenu(file)}
           </div>
         </div>
       </div>
@@ -343,45 +377,7 @@ export function DashboardPage() {
           >
             <MoreVertical className="w-5 h-5 text-gray-600" />
           </button>
-          {openMenuId === `list-${file.id}` && (
-            <div
-              className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-10 py-1"
-              onClick={e => e.stopPropagation()}
-            >
-              <button
-                onClick={() => { setRenamingFileId(file.id); setRenameVal(file.name); setOpenMenuId(null); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-              >
-                <Pencil className="w-4 h-4 text-violet-500" />名前を変更
-              </button>
-              <button
-                onClick={() => { toggleStar(file.id); setOpenMenuId(null); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-              >
-                <Star className="w-4 h-4 text-yellow-500" />
-                {file.starred ? 'お気に入り解除' : 'お気に入り'}
-              </button>
-              <button
-                onClick={() => { setMovingFile(file); setOpenMenuId(null); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-              >
-                <FolderInput className="w-4 h-4 text-violet-500" />フォルダに移動
-              </button>
-              {presentationRegistry.some(p => p.meta.id === file.id) && (
-                <button
-                  onClick={() => handleExportPdfFromMenu(file.id)}
-                  disabled={!!pdfExportingId}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-violet-50 transition-colors disabled:opacity-40"
-                >
-                  {pdfExportingId === file.id
-                    ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
-                    : <Download className="w-4 h-4 text-violet-500" />
-                  }
-                  PDF出力
-                </button>
-              )}
-            </div>
-          )}
+          {openMenuId === `list-${file.id}` && renderFileMenu(file)}
         </div>
       </div>
     </div>
