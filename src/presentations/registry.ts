@@ -20,6 +20,7 @@ import { aiLabPresentation } from './ai-lab';
 import { devticketPresentation } from './devticket';
 import { smallProjectPresentation } from './small-project';
 import { cadchangePresentation } from './cadchange';
+import { wealthadvisorPresentation } from './wealthadvisor';
 
 export const presentationRegistry: PresentationEntry[] = [
   meeceIntroPresentation,
@@ -28,4 +29,5 @@ export const presentationRegistry: PresentationEntry[] = [
   devticketPresentation,
   smallProjectPresentation,
   cadchangePresentation,
+  wealthadvisorPresentation,
 ];
