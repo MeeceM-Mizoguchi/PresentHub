@@ -22,6 +22,7 @@ import { smallProjectPresentation } from './small-project';
 import { cadchangePresentation } from './cadchange';
 import { wealthadvisorPresentation } from './wealthadvisor';
 import { wealthadvisorV2Presentation } from './wealthadvisor-v2';
+import { asahiKaseiTenantDxPresentation } from './asahi-kasei-tenant-dx';
 
 export const presentationRegistry: PresentationEntry[] = [
   meeceIntroPresentation,
@@ -32,4 +33,5 @@ export const presentationRegistry: PresentationEntry[] = [
   cadchangePresentation,
   wealthadvisorPresentation,
   wealthadvisorV2Presentation,
+  asahiKaseiTenantDxPresentation,
 ];
