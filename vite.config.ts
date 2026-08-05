@@ -90,6 +90,13 @@ export default defineConfig({
     open: '/admin/a9c2b7',
   },
 
+  optimizeDeps: {
+    // PDF エクスポートは動的 import なので、事前バンドルしておかないと
+    // 初回クリック時に依存最適化が走り、ページリロードと競合して
+    // "Failed to fetch dynamically imported module" になる
+    include: ['jspdf', 'html-to-image'],
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

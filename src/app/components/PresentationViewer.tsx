@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, Crosshair, MessageSquare, Trash2, Check, Pencil, CornerDownRight, Radio, Users, Share2, Download, RotateCw } from 'lucide-react';
 import type { PresentationEntry } from '../../presentations/registry';
 import { exportPdf } from '../lib/exportPdf';
+import { toast } from '../lib/toast';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { ShareDialog } from './ShareDialog';
@@ -170,6 +171,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
       await exportPdf(presentation, (current, t) => setPdfProgress({ current, total: t }));
     } catch (e) {
       console.error('[PDF export]', e);
+      toast.error(e instanceof Error ? e.message : 'PDFの生成に失敗しました');
     } finally {
       setPdfProgress(null);
     }
