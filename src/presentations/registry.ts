@@ -23,6 +23,7 @@ import { cadchangePresentation } from './cadchange';
 import { wealthadvisorPresentation } from './wealthadvisor';
 import { wealthadvisorV2Presentation } from './wealthadvisor-v2';
 import { asahiKaseiTenantDxPresentation } from './asahi-kasei-tenant-dx';
+import { mpCorePresentation } from './mp-core';
 
 export const presentationRegistry: PresentationEntry[] = [
   meeceIntroPresentation,
@@ -34,4 +35,5 @@ export const presentationRegistry: PresentationEntry[] = [
   wealthadvisorPresentation,
   wealthadvisorV2Presentation,
   asahiKaseiTenantDxPresentation,
+  mpCorePresentation,
 ];
