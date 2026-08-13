@@ -22,6 +22,8 @@ import {
   Flag,
   ShieldCheck,
   X,
+  CalendarClock,
+  Split,
 } from 'lucide-react';
 import type { PresentationEntry } from '../registry';
 
@@ -70,7 +72,7 @@ const SANS =
 const SLIDE = 'w-full h-[720px] relative overflow-hidden';
 const DECK_TAG = '基幹システム「MP Core」フルスクラッチ開発プロジェクト';
 const PAD_X = 58;
-const TOTAL = 8;
+const TOTAL = 9;
 
 /* ---------------- 三角モチーフ ---------------- */
 
@@ -2241,10 +2243,311 @@ const Slide7 = (
 );
 
 /* ============================================================
-   08 ／ まとめ
+   08 ／ フロント側の I/F 開発
    ============================================================ */
 
 const DH8 = 410;
+
+/** 連携先ボックス。dark=現行稼働 / blue=新系統 / dim=連携を閉じた状態 */
+function EndBox({
+  x,
+  y,
+  name,
+  sub,
+  variant,
+  badge,
+  badgeBg,
+  badgeFg,
+}: {
+  x: number;
+  y: number;
+  name: string;
+  sub: string;
+  variant: 'dark' | 'blue' | 'dim';
+  badge?: string;
+  badgeBg?: string;
+  badgeFg?: string;
+}) {
+  const dim = variant === 'dim';
+  const bg = variant === 'dark' ? INK : variant === 'blue' ? BLUE : WHITE;
+  const fg = dim ? MUTE : WHITE;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        width: 186,
+        height: 58,
+        boxSizing: 'border-box',
+        background: bg,
+        border: dim ? `2px dashed #C4C8CE` : 'none',
+        borderRadius: 10,
+        padding: '0 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 9,
+        zIndex: 3,
+      }}
+    >
+      <span style={{ fontSize: 17, fontWeight: 900, color: fg, letterSpacing: '-0.01em', lineHeight: 1, whiteSpace: 'nowrap' }}>
+        {name}
+      </span>
+      <span
+        style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          color: dim ? '#C4C8CE' : 'rgba(255,255,255,0.72)',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {sub}
+      </span>
+      {badge && (
+        <>
+          <span style={{ flex: 1 }} />
+          <span
+            style={{
+              fontSize: 9.5,
+              fontWeight: 800,
+              color: badgeFg,
+              background: badgeBg,
+              borderRadius: 999,
+              padding: '4px 9px',
+              lineHeight: 1,
+              letterSpacing: '0.04em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {badge}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** フロントシステム（＝モバイル・プランニング社が手を入れる側） */
+function FrontBox({ x }: { x: number }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: 178,
+        width: 136,
+        height: 66,
+        boxSizing: 'border-box',
+        background: WHITE,
+        border: `1px solid ${LINE}`,
+        borderRadius: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        zIndex: 3,
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1 }}>フロントシステム</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: SUB, lineHeight: 1 }}>EC・モール等</span>
+    </div>
+  );
+}
+
+/** パネル右上の実施タイミング */
+function TimingPill({ right, label }: { right: number; label: string }) {
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        right,
+        top: 12,
+        height: 26,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 7,
+        background: WHITE,
+        borderRadius: 999,
+        padding: '0 13px',
+        fontSize: 11,
+        fontWeight: 800,
+        color: INK,
+        lineHeight: 1,
+        letterSpacing: '0.04em',
+        whiteSpace: 'nowrap',
+        zIndex: 3,
+      }}
+    >
+      <CalendarClock size={13} color={BLUE} strokeWidth={2.4} />
+      {label}
+    </span>
+  );
+}
+
+const Slide8 = (
+  <Frame n={8}>
+    <Head
+      en="INTERFACE"
+      ja="フロント側の I/F 開発"
+      aside={
+        <HeadMeta
+          items={[
+            ['OWNER', 'モバイル・プランニング社 領域'],
+            ['COUNT', 'I/F 開発 2回'],
+          ]}
+        />
+      }
+      lead={
+        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
+          フロントシステム側では、並行稼働の開始時と終了時の
+          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>計2回の I/F 開発</span>
+          が発生する。
+        </p>
+      }
+    />
+
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH8, flexShrink: 0 }}>
+      {/* ── 1回目：向き先の追加 ───────────────────── */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: PANEL_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <PanelHead x={0} kicker="STEP 01" ja="1回目：向き先の追加" accent={BLUE} />
+      <TimingPill right={1164 - (PANEL_W - PAD_IN)} label="並行稼働の開始時" />
+
+      <p
+        style={{
+          position: 'absolute',
+          left: PAD_IN,
+          top: 66,
+          width: PANEL_W - PAD_IN * 2,
+          fontSize: 24,
+          fontWeight: 800,
+          color: INK,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.25,
+          zIndex: 2,
+        }}
+      >
+        MP Core にも
+        <span style={{ borderBottom: `3px solid ${YELLOW}` }}>データを流す</span>
+      </p>
+
+      <FrontBox x={PAD_IN} />
+      <EndBox x={330} y={140} name="G1" sub="現行システム" variant="dark" badge="継続" badgeBg="rgba(255,255,255,0.16)" badgeFg={WHITE} />
+      <EndBox x={330} y={226} name="MP Core" sub="新システム" variant="blue" badge="NEW" badgeBg={YELLOW} badgeFg={INK} />
+
+      {/* 追加する向き先のラベル */}
+      <span
+        style={{
+          position: 'absolute',
+          left: 254,
+          top: 230,
+          height: 22,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          background: BLUE,
+          borderRadius: 999,
+          padding: '0 9px',
+          fontSize: 10.5,
+          fontWeight: 800,
+          color: WHITE,
+          lineHeight: 1,
+          letterSpacing: '0.04em',
+          whiteSpace: 'nowrap',
+          zIndex: 4,
+        }}
+      >
+        <Plus size={11} color={WHITE} strokeWidth={3} />
+        追加
+      </span>
+
+      <PanelNote x={0} icon={<Split size={16} color={SUB} strokeWidth={2.3} />}>
+        現行の連携は残したまま、<span style={{ fontWeight: 800, color: INK }}>MP Core への向き先を追加</span>し、両系統へデータを流す
+      </PanelNote>
+
+      {/* ── 2回目：向き先を閉じる ─────────────────── */}
+      <div style={{ position: 'absolute', left: R_X, top: 0, width: PANEL_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <PanelHead x={R_X} kicker="STEP 02" ja="2回目：向き先を閉じる" accent={BLUE} />
+      <TimingPill right={PAD_IN} label="完全切替のタイミング" />
+
+      <p
+        style={{
+          position: 'absolute',
+          left: R_X + PAD_IN,
+          top: 66,
+          width: PANEL_W - PAD_IN * 2,
+          fontSize: 24,
+          fontWeight: 800,
+          color: INK,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.25,
+          zIndex: 2,
+        }}
+      >
+        G1 への
+        <span style={{ borderBottom: `3px solid ${YELLOW}` }}>連携を停止する</span>
+      </p>
+
+      <FrontBox x={R_X + PAD_IN} />
+      <EndBox x={934} y={140} name="G1" sub="現行システム" variant="dim" badge="連携停止" badgeBg={SURFACE} badgeFg={MUTE} />
+      <EndBox x={934} y={226} name="MP Core" sub="新システム" variant="blue" badge="一本化" badgeBg={YELLOW} badgeFg={INK} />
+
+      {/* 閉じる向き先のマーク */}
+      <span
+        style={{
+          position: 'absolute',
+          left: 874,
+          top: 157,
+          width: 24,
+          height: 24,
+          borderRadius: 999,
+          background: WHITE,
+          border: `2px solid ${INK}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 4,
+        }}
+      >
+        <X size={12} color={INK} strokeWidth={3.2} />
+      </span>
+
+      <PanelNote x={R_X} icon={<ShieldCheck size={16} color={SUB} strokeWidth={2.3} />}>
+        問題がないことを確認したうえで<span style={{ fontWeight: 800, color: INK }}>G1 への向き先を閉じ</span>、MP Core のみに一本化する
+      </PanelNote>
+
+      {/* 連携フロー */}
+      <svg width="100%" height={DH8} viewBox={`0 0 1164 ${DH8}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 2 }}>
+        {/* 1回目：既存の G1 系統は継続 */}
+        <g stroke="#B2B8C0" strokeWidth={1.6} fill="none">
+          <path d="M158,211 L244,211" />
+          <path d="M244,211 L244,169 L318,169" />
+        </g>
+        <polygon points="318,163 318,175 330,169" fill="#B2B8C0" />
+        {/* 1回目：MP Core 向きを新設 */}
+        <path d="M244,211 L244,255 L318,255" stroke={BLUE} strokeWidth={2.4} fill="none" />
+        <polygon points="318,248 318,262 331,255" fill={BLUE} />
+
+        {/* 2回目：G1 系統は閉じる（破線＋グレー） */}
+        <g stroke="#C4C8CE" strokeWidth={1.6} fill="none" strokeDasharray="5 4">
+          <path d="M762,211 L848,211" />
+          <path d="M848,211 L848,169 L922,169" />
+        </g>
+        <polygon points="922,163 922,175 934,169" fill="#C4C8CE" />
+        {/* 2回目：MP Core 一本 */}
+        <path d="M762,211 L848,211 L848,255 L922,255" stroke={BLUE} strokeWidth={2.4} fill="none" />
+        <polygon points="922,248 922,262 935,255" fill={BLUE} />
+      </svg>
+    </div>
+  </Frame>
+);
+
+/* ============================================================
+   09 ／ まとめ
+   ============================================================ */
+
+const DH9 = 410;
 
 const L_W = 660; // 左パネル（開発系）
 const C_X = 704; // 右パネル（コスト系）の左端
@@ -2402,8 +2705,8 @@ function KilledCost({ y, text }: { y: number; text: string }) {
 /* コスト推移グラフ（右肩上がり＝放置すると膨らむ、を形で示す） */
 const COST_BARS = [26, 38, 54, 72, 94];
 
-const Slide8 = (
-  <Frame n={8}>
+const Slide9 = (
+  <Frame n={9}>
     <Head
       en="SUMMARY"
       ja="まとめ"
@@ -2424,13 +2727,13 @@ const Slide8 = (
       }
     />
 
-    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH8, flexShrink: 0 }}>
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH9, flexShrink: 0 }}>
       {/* ── 左：開発系 ───────────────────────────── */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: L_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <div style={{ position: 'absolute', left: 0, top: 0, width: L_W, height: DH9, background: SURFACE, borderRadius: 16 }} />
       <PanelHead x={0} w={L_W} kicker="DEVELOPMENT" ja="開発系" accent={BLUE} />
 
       {/* 引き出し線・ノード間の結線 */}
-      <svg width="100%" height={DH8} viewBox={`0 0 1164 ${DH8}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
+      <svg width="100%" height={DH9} viewBox={`0 0 1164 ${DH9}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
         <g stroke="#B2B8C0" strokeWidth={1.4} fill="none">
           {/* フロント → 外部サービス */}
           <path d="M152,107 L210,107" />
@@ -2480,7 +2783,7 @@ const Slide8 = (
       />
 
       {/* ── 右：コスト系 ─────────────────────────── */}
-      <div style={{ position: 'absolute', left: C_X, top: 0, width: C_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <div style={{ position: 'absolute', left: C_X, top: 0, width: C_W, height: DH9, background: SURFACE, borderRadius: 16 }} />
       <PanelHead x={C_X} w={C_W} kicker="COST" ja="コスト系" accent={BLUE} />
 
       {/* コスト推移グラフ */}
@@ -2578,6 +2881,7 @@ export const mpCorePresentation: PresentationEntry = {
     Slide5, // 5 体制図
     Slide6, // 6 全体スケジュール
     Slide7, // 7 前提
-    Slide8, // 8 まとめ
+    Slide8, // 8 フロント側の I/F 開発
+    Slide9, // 9 まとめ
   ],
 };
