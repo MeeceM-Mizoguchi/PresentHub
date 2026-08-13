@@ -17,6 +17,11 @@ import {
   ArrowRightLeft,
   UserRound,
   Info,
+  Ban,
+  Check,
+  Flag,
+  ShieldCheck,
+  X,
 } from 'lucide-react';
 import type { PresentationEntry } from '../registry';
 
@@ -65,7 +70,7 @@ const SANS =
 const SLIDE = 'w-full h-[720px] relative overflow-hidden';
 const DECK_TAG = '基幹システム「MP Core」フルスクラッチ開発プロジェクト';
 const PAD_X = 58;
-const TOTAL = 6;
+const TOTAL = 8;
 
 /* ---------------- 三角モチーフ ---------------- */
 
@@ -236,6 +241,157 @@ function Head({ en, ja, aside, lead }: { en: string; ja: string; aside?: React.R
     </div>
   );
 }
+
+/* ============================================================
+   00 ／ 表紙（ページ番号なし）
+   ============================================================ */
+
+const CLIENT = '株式会社モバイル・プランニング';
+const COVER_PAD = 72;
+
+/** 表紙のブランドウェッジ（サムネイルと同じ イエロー→ティール→ブルー の対角3色） */
+function CoverWedge() {
+  return (
+    <svg width={1280} height={720} viewBox="0 0 1280 720" style={{ position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
+      <polygon points="1280,320 1280,380 940,720 880,720" fill={YELLOW} />
+      <polygon points="1280,380 1280,480 1040,720 940,720" fill={TEAL} />
+      <polygon points="1280,480 1280,720 1040,720" fill={BLUE} />
+    </svg>
+  );
+}
+
+const COVER_META: [string, string][] = [
+  ['ご提案先', `${CLIENT} 御中`],
+  ['ご提案元', 'Meece株式会社'],
+  ['DATE', '2026年8月'],
+];
+
+const SlideCover = (
+  <div className={SLIDE} style={{ background: WHITE, fontFamily: SANS }}>
+    <CoverWedge />
+
+    {/* 上部：ドキュメント種別 ／ 時期 */}
+    <div
+      style={{
+        position: 'absolute',
+        left: COVER_PAD,
+        right: COVER_PAD,
+        top: 52,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        zIndex: 2,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+        <span style={{ width: 9, height: 9, background: BLUE }} />
+        <span style={{ fontFamily: DISPLAY, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.22em', color: BLUE }}>
+          SYSTEM DEVELOPMENT PROPOSAL
+        </span>
+      </div>
+      <span style={{ fontFamily: DISPLAY, fontSize: 11.5, fontWeight: 700, letterSpacing: '0.14em', color: MUTE }}>2026.08</span>
+    </div>
+    <div style={{ position: 'absolute', left: COVER_PAD, top: 84, width: 1280 - COVER_PAD * 2, height: 1, background: HAIR, zIndex: 2 }} />
+
+    {/* 宛先 */}
+    <p
+      style={{
+        position: 'absolute',
+        left: COVER_PAD,
+        top: 194,
+        fontSize: 17,
+        fontWeight: 800,
+        color: INK,
+        letterSpacing: '0.04em',
+        lineHeight: 1,
+        zIndex: 2,
+      }}
+    >
+      {CLIENT} 御中
+    </p>
+
+    {/* 主題 */}
+    <h1
+      style={{
+        position: 'absolute',
+        left: COVER_PAD,
+        top: 238,
+        fontFamily: DISPLAY,
+        fontSize: 92,
+        fontWeight: 900,
+        color: INK,
+        letterSpacing: '-0.025em',
+        lineHeight: 1,
+        zIndex: 2,
+      }}
+    >
+      MP CORE
+    </h1>
+
+    <div
+      style={{
+        position: 'absolute',
+        left: COVER_PAD,
+        top: 358,
+        width: 76,
+        height: 4,
+        backgroundImage: `linear-gradient(90deg, ${YELLOW} 0%, ${TEAL} 50%, ${BLUE} 100%)`,
+        zIndex: 2,
+      }}
+    />
+
+    <p
+      style={{
+        position: 'absolute',
+        left: COVER_PAD,
+        top: 388,
+        fontSize: 25,
+        fontWeight: 800,
+        color: INK,
+        letterSpacing: '-0.01em',
+        lineHeight: 1.4,
+        zIndex: 2,
+      }}
+    >
+      基幹システム「MP Core」
+      <span style={{ borderBottom: `3px solid ${YELLOW}` }}>フルスクラッチ開発</span>
+      プロジェクト
+    </p>
+
+    <p
+      style={{
+        position: 'absolute',
+        left: COVER_PAD,
+        top: 438,
+        fontSize: 14.5,
+        fontWeight: 600,
+        color: BODY,
+        lineHeight: 1.8,
+        zIndex: 2,
+      }}
+    >
+      現行システム「G1」からの全面移行に向けたご提案
+    </p>
+
+    {/* 下部：提案先／提案元／時期 */}
+    <div style={{ position: 'absolute', left: COVER_PAD, top: 588, width: 868, height: 1, background: LINE, zIndex: 2 }} />
+    <div style={{ position: 'absolute', left: COVER_PAD, top: 610, display: 'flex', alignItems: 'stretch', zIndex: 2 }}>
+      {COVER_META.map(([k, v], i) => (
+        <div
+          key={k}
+          style={{
+            paddingLeft: i === 0 ? 0 : 30,
+            marginLeft: i === 0 ? 0 : 30,
+            borderLeft: i === 0 ? 'none' : `1px solid ${LINE}`,
+          }}
+        >
+          <p style={{ fontFamily: DISPLAY, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.20em', color: MUTE }}>{k}</p>
+          <p style={{ fontSize: 14.5, fontWeight: 800, color: INK, marginTop: 7, whiteSpace: 'nowrap' }}>{v}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 /* ============================================================
    01 ／ プロジェクト概要
@@ -1628,6 +1784,781 @@ const Slide6 = (
   </Frame>
 );
 
+/* ============================================================
+   07 ／ 前提
+   ============================================================ */
+
+const DH7 = 410;
+
+const PANEL_W = 560; // 前提パネル（左右2枚）の幅
+const PAD_IN = 22; // パネル内側の余白
+const R_X = 604; // 右パネルの左端
+
+/** パネル見出し（■ ＋ 英字キッカー ＋ 和文 ＋ 罫） */
+function PanelHead({
+  x,
+  kicker,
+  ja,
+  accent,
+  w = PANEL_W,
+}: {
+  x: number;
+  kicker: string;
+  ja: string;
+  accent: string;
+  w?: number;
+}) {
+  return (
+    <>
+      <div style={{ position: 'absolute', left: x + PAD_IN, top: 15, display: 'flex', alignItems: 'center', gap: 10, zIndex: 2 }}>
+        <span style={{ width: 8, height: 8, background: accent }} />
+        <span style={{ fontFamily: DISPLAY, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.20em', color: accent }}>{kicker}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: INK, letterSpacing: '0.04em' }}>{ja}</span>
+      </div>
+      <div style={{ position: 'absolute', left: x + PAD_IN, top: 44, width: w - PAD_IN * 2, height: 1, background: '#E1E1E1' }} />
+    </>
+  );
+}
+
+/** 制限量を示すゲージ（無料＝低い / 有料＝満たされている、を長さで対比する） */
+function Meter({ label, pct, color, track }: { label: string; pct: number; color: string; track: string }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: SUB, lineHeight: 1 }}>{label}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, color, letterSpacing: '0.04em', lineHeight: 1 }}>
+          {pct >= 100 ? '十分' : '不足'}
+        </span>
+      </div>
+      <div style={{ marginTop: 7, width: '100%', height: 8, borderRadius: 999, background: track, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+/** 料金プランの比較カード */
+function PlanCard({
+  x,
+  tag,
+  name,
+  icon,
+  iconBg,
+  accent,
+  track,
+  gauges,
+  verdict,
+  verdictColor,
+  dim,
+}: {
+  x: number;
+  tag: string;
+  name: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  accent: string;
+  track: string;
+  gauges: [string, number][];
+  verdict: string;
+  verdictColor: string;
+  dim?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: 116,
+        width: 250,
+        height: 196,
+        boxSizing: 'border-box',
+        background: WHITE,
+        border: dim ? `1px solid ${LINE}` : `2px solid ${accent}`,
+        borderRadius: 12,
+        padding: '15px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 2,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <span
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 999,
+            background: iconBg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </span>
+        <div>
+          <p style={{ fontFamily: DISPLAY, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.18em', color: accent, lineHeight: 1 }}>
+            {tag}
+          </p>
+          <p style={{ fontSize: 14.5, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1, marginTop: 6 }}>{name}</p>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 13 }}>
+        {gauges.map(([label, pct]) => (
+          <Meter key={label} label={label} pct={pct} color={accent} track={track} />
+        ))}
+      </div>
+
+      <span style={{ flex: 1 }} />
+
+      <div
+        style={{
+          height: 30,
+          borderRadius: 8,
+          background: dim ? SURFACE : BLUE_TINT,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: verdictColor, letterSpacing: '0.02em' }}>{verdict}</span>
+      </div>
+    </div>
+  );
+}
+
+/** パネル下部の注記（白カード） */
+function PanelNote({ x, icon, children }: { x: number; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x + PAD_IN,
+        top: 332,
+        width: PANEL_W - PAD_IN * 2,
+        height: 56,
+        boxSizing: 'border-box',
+        background: WHITE,
+        borderRadius: 10,
+        padding: '0 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 11,
+        zIndex: 2,
+      }}
+    >
+      <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
+      <p style={{ fontSize: 12.5, fontWeight: 700, color: BODY, lineHeight: 1.55 }}>{children}</p>
+    </div>
+  );
+}
+
+/* 並行運用タイムラインの座標（右パネル内の絶対座標） */
+const TL_L = R_X + PAD_IN; // 626
+const TL_R = R_X + PANEL_W - PAD_IN; // 1142
+const TL_SWITCH = 1000; // 完全切替の位置
+const TL_OVERLAP = 852; // 並行運用の開始位置
+
+const Slide7 = (
+  <Frame n={7}>
+    <Head
+      en="PREMISE"
+      ja="前提"
+      aside={
+        <HeadMeta
+          items={[
+            ['INFRA', 'AWS 有料プラン'],
+            ['SWITCHING', '数か月の並行運用'],
+          ]}
+        />
+      }
+      lead={
+        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
+          本プロジェクトは
+          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>2つの前提</span>
+          のもとで進める。
+        </p>
+      }
+    />
+
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH7, flexShrink: 0 }}>
+      {/* ── 左：開発を進めるうえでの前提 ───────────────── */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: PANEL_W, height: DH7, background: SURFACE, borderRadius: 16 }} />
+      <PanelHead x={0} kicker="PREMISE 01" ja="開発を進めるうえでの前提" accent={BLUE} />
+
+      <p
+        style={{
+          position: 'absolute',
+          left: PAD_IN,
+          top: 66,
+          width: PANEL_W - PAD_IN * 2,
+          fontSize: 24,
+          fontWeight: 800,
+          color: INK,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.25,
+          zIndex: 2,
+        }}
+      >
+        AWSアカウントは
+        <span style={{ borderBottom: `3px solid ${YELLOW}` }}>有料プラン</span>
+        が必要
+      </p>
+
+      {/* 無料プラン（不足）— 制限を長さで表現する */}
+      <PlanCard
+        x={PAD_IN}
+        tag="FREE"
+        name="無料プラン"
+        icon={<Ban size={15} color={MUTE} strokeWidth={2.4} />}
+        iconBg={SURFACE}
+        accent={MUTE}
+        track="#E4E4E4"
+        gauges={[
+          ['データ速度', 22],
+          ['データ量', 15],
+        ]}
+        verdict="テスト段階ですら使えない"
+        verdictColor={SUB}
+        dim
+      />
+
+      {/* 有料プラン（十分） */}
+      <PlanCard
+        x={288}
+        tag="PAID"
+        name="有料プラン"
+        icon={<Check size={16} color={BLUE} strokeWidth={3} />}
+        iconBg={BLUE_TINT}
+        accent={BLUE}
+        track="#D8E6F8"
+        gauges={[
+          ['データ速度', 100],
+          ['データ量', 100],
+        ]}
+        verdict="開発・テストに必要な性能"
+        verdictColor={BLUE}
+      />
+
+      {/* 2枚のカードの間：対比を示す記号 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 262,
+          top: 200,
+          width: 26,
+          height: 26,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 3,
+        }}
+      >
+        <span style={{ marginLeft: 2 }}>
+          <TriRight w={11} h={13} color={'#C4C8CE'} />
+        </span>
+      </div>
+
+      <PanelNote x={0} icon={<TriangleAlert size={16} color={SUB} strokeWidth={2.3} />}>
+        無料プランは<span style={{ fontWeight: 800, color: INK }}>データ速度・データ量の制限が非常に厳しい</span>ため、有料プランを前提とする
+      </PanelNote>
+
+      {/* ── 右：乗り換えるうえでの前提 ───────────────── */}
+      <div style={{ position: 'absolute', left: R_X, top: 0, width: PANEL_W, height: DH7, background: SURFACE, borderRadius: 16 }} />
+      <PanelHead x={R_X} kicker="PREMISE 02" ja="乗り換えるうえでの前提" accent={BLUE} />
+
+      <p
+        style={{
+          position: 'absolute',
+          left: R_X + PAD_IN,
+          top: 66,
+          width: PANEL_W - PAD_IN * 2,
+          fontSize: 24,
+          fontWeight: 800,
+          color: INK,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.25,
+          zIndex: 2,
+        }}
+      >
+        一括切替ではなく
+        <span style={{ borderBottom: `3px solid ${YELLOW}` }}>並行運用</span>
+        を挟む
+      </p>
+
+      {/* 並行運用ゾーン（2レーンにまたがる帯） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_OVERLAP,
+          top: 142,
+          width: TL_SWITCH - TL_OVERLAP,
+          height: 134,
+          background: '#E4EFFB',
+          borderRadius: 8,
+          zIndex: 1,
+        }}
+      />
+
+      {/* レーン1：G1（現行） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_L,
+          top: 176,
+          width: TL_SWITCH - TL_L,
+          height: 42,
+          boxSizing: 'border-box',
+          background: INK,
+          borderRadius: 8,
+          padding: '0 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 9,
+          zIndex: 2,
+        }}
+      >
+        <span style={{ fontSize: 16, fontWeight: 900, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1 }}>G1</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.72)', lineHeight: 1 }}>現行システム</span>
+      </div>
+
+      {/* レーン2：MP Core（新） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_OVERLAP,
+          top: 228,
+          width: TL_R - TL_OVERLAP,
+          height: 42,
+          boxSizing: 'border-box',
+          background: BLUE,
+          borderRadius: 8,
+          padding: '0 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 9,
+          zIndex: 2,
+        }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 900, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1, whiteSpace: 'nowrap' }}>
+          MP Core
+        </span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.78)', lineHeight: 1, whiteSpace: 'nowrap' }}>
+          新システム
+        </span>
+      </div>
+
+      {/* 並行運用ラベル */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_OVERLAP - 24,
+          top: 148,
+          width: TL_SWITCH - TL_OVERLAP + 48,
+          display: 'flex',
+          justifyContent: 'center',
+          zIndex: 3,
+        }}
+      >
+        <span
+          style={{
+            height: 22,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: BLUE,
+            borderRadius: 999,
+            padding: '0 11px',
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: WHITE,
+            lineHeight: 1,
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          並行運用（数か月）
+        </span>
+      </div>
+
+      {/* 切替ポイント（破線の頭に置く） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_SWITCH - 60,
+          top: 116,
+          width: 120,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          zIndex: 4,
+        }}
+      >
+        <Flag size={13} color={INK} strokeWidth={2.6} />
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: INK, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>完全切替</span>
+      </div>
+
+      {/* 切替ライン（MP Core バーの上だけ白で抜き、レーンを跨いでも読めるようにする） */}
+      <svg width="100%" height={DH7} viewBox={`0 0 1164 ${DH7}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 3 }}>
+        <circle cx={TL_SWITCH} cy={140} r={4} fill={INK} />
+        <path d={`M${TL_SWITCH},140 L${TL_SWITCH},228`} stroke={INK} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
+        <path d={`M${TL_SWITCH},228 L${TL_SWITCH},270`} stroke={WHITE} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
+        <path d={`M${TL_SWITCH},270 L${TL_SWITCH},282`} stroke={INK} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
+      </svg>
+
+      {/* 期間キャプション */}
+      {(
+        [
+          [TL_L, TL_OVERLAP, '現行のまま運用'],
+          [TL_OVERLAP, TL_SWITCH, '両システムを運用'],
+          [TL_SWITCH, TL_R, 'MP Core のみ'],
+        ] as [number, number, string][]
+      ).map(([from, to, label]) => (
+        <div
+          key={label}
+          style={{
+            position: 'absolute',
+            left: from,
+            top: 290,
+            width: to - from,
+            display: 'flex',
+            justifyContent: 'center',
+            zIndex: 2,
+          }}
+        >
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: SUB, whiteSpace: 'nowrap', lineHeight: 1 }}>{label}</span>
+        </div>
+      ))}
+
+      <PanelNote x={R_X} icon={<ShieldCheck size={16} color={SUB} strokeWidth={2.3} />}>
+        数か月間は両システムを並行運用し、<span style={{ fontWeight: 800, color: INK }}>問題がないことを確認できたら</span>完全に切り替える
+      </PanelNote>
+    </div>
+  </Frame>
+);
+
+/* ============================================================
+   08 ／ まとめ
+   ============================================================ */
+
+const DH8 = 410;
+
+const L_W = 660; // 左パネル（開発系）
+const C_X = 704; // 右パネル（コスト系）の左端
+const C_W = 460;
+
+/** まとめ図のノード。own=自社で持つ領域（ブルーの破線で囲って強調する） */
+function SumNode({
+  x,
+  y,
+  name,
+  sub,
+  own,
+}: {
+  x: number;
+  y: number;
+  name: string;
+  sub: string;
+  own?: boolean;
+}) {
+  return (
+    <>
+      {own && (
+        <div
+          style={{
+            position: 'absolute',
+            left: x - 9,
+            top: y - 9,
+            width: 118 + 18,
+            height: 62 + 18,
+            boxSizing: 'border-box',
+            border: `2px dashed ${BLUE}`,
+            borderRadius: 16,
+            zIndex: 2,
+          }}
+        />
+      )}
+      <div
+        style={{
+          position: 'absolute',
+          left: x,
+          top: y,
+          width: 118,
+          height: 62,
+          boxSizing: 'border-box',
+          background: own ? BLUE : WHITE,
+          border: own ? 'none' : `1px solid ${LINE}`,
+          borderRadius: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 5,
+          zIndex: 3,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12.5,
+            fontWeight: 800,
+            color: own ? WHITE : INK,
+            letterSpacing: '-0.01em',
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {name}
+        </span>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            color: own ? 'rgba(255,255,255,0.78)' : SUB,
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {sub}
+        </span>
+      </div>
+    </>
+  );
+}
+
+/** 右側の要点カード（図から引き出し線でつなぐ） */
+function PointCard({ y, no, text }: { y: number; no: string; text: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 362,
+        top: y,
+        width: 276,
+        height: 114,
+        boxSizing: 'border-box',
+        background: WHITE,
+        borderRadius: 12,
+        padding: '16px 18px',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 3,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
+        <span style={{ width: 7, height: 7, background: BLUE }} />
+        <span style={{ fontFamily: DISPLAY, fontSize: 10, fontWeight: 800, letterSpacing: '0.20em', color: BLUE }}>POINT {no}</span>
+      </div>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+        <p style={{ fontSize: 16.5, fontWeight: 800, color: INK, lineHeight: 1.6, letterSpacing: '-0.01em' }}>{text}</p>
+      </div>
+    </div>
+  );
+}
+
+/** 解消されるコスト要因（取り消し線で「無くす」ことを示す） */
+function KilledCost({ y, text }: { y: number; text: string }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: C_X + PAD_IN,
+        top: y,
+        width: C_W - PAD_IN * 2,
+        height: 36,
+        boxSizing: 'border-box',
+        background: WHITE,
+        borderRadius: 8,
+        padding: '0 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 11,
+        zIndex: 2,
+      }}
+    >
+      <span
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 999,
+          background: SURFACE,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <X size={12} color={MUTE} strokeWidth={3} />
+      </span>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: MUTE, textDecoration: 'line-through', textDecorationColor: MUTE }}>
+        {text}
+      </span>
+    </div>
+  );
+}
+
+/* コスト推移グラフ（右肩上がり＝放置すると膨らむ、を形で示す） */
+const COST_BARS = [26, 38, 54, 72, 94];
+
+const Slide8 = (
+  <Frame n={8}>
+    <Head
+      en="SUMMARY"
+      ja="まとめ"
+      aside={
+        <HeadMeta
+          items={[
+            ['DEVELOPMENT', 'コアを内製化'],
+            ['COST', '膨張要因を解消'],
+          ]}
+        />
+      }
+      lead={
+        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
+          MP Core によって、
+          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>開発面とコスト面の両方</span>
+          で効果が得られる。
+        </p>
+      }
+    />
+
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH8, flexShrink: 0 }}>
+      {/* ── 左：開発系 ───────────────────────────── */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: L_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <PanelHead x={0} w={L_W} kicker="DEVELOPMENT" ja="開発系" accent={BLUE} />
+
+      {/* 引き出し線・ノード間の結線 */}
+      <svg width="100%" height={DH8} viewBox={`0 0 1164 ${DH8}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
+        <g stroke="#B2B8C0" strokeWidth={1.4} fill="none">
+          {/* フロント → 外部サービス */}
+          <path d="M152,107 L210,107" />
+          {/* フロント → データ連携 → MP Core */}
+          <path d="M93,138 L93,176" />
+          <path d="M93,238 L93,267" />
+          {/* MP Core → 新機能（拡張は基幹の上に載る） */}
+          <path d="M146,267 L219,247" />
+        </g>
+        {/* 要点カードへの引き出し（強調枠の外側から出す） */}
+        <g stroke={BLUE} strokeWidth={1.4} fill="none">
+          <path d="M337,207 L349,207 L349,133 L362,133" />
+          <path d="M161,307 L349,307 L349,271 L362,271" />
+        </g>
+        <g fill={BLUE}>
+          <circle cx="337" cy="207" r="3" />
+          <circle cx="161" cy="307" r="3" />
+        </g>
+      </svg>
+
+      <SumNode x={34} y={76} name="フロント" sub="EC・モール" />
+      <SumNode x={210} y={76} name="外部サービス" sub="決済・回線" />
+      <SumNode x={34} y={176} name="データ連携" sub="API" />
+      <SumNode x={210} y={176} name="新機能・拡張" sub="汎用化" own />
+      <SumNode x={34} y={276} name="MP Core" sub="基幹システム" own />
+
+      <PointCard
+        y={76}
+        no="01"
+        text={
+          <>
+            新しい機能開発など
+            <span style={{ borderBottom: `3px solid ${YELLOW}` }}>汎用化がスムーズ</span>
+            に行える
+          </>
+        }
+      />
+      <PointCard
+        y={214}
+        no="02"
+        text={
+          <>
+            事業を支えるコア部分のシステムを
+            <span style={{ borderBottom: `3px solid ${YELLOW}` }}>完全に内製化</span>
+          </>
+        }
+      />
+
+      {/* ── 右：コスト系 ─────────────────────────── */}
+      <div style={{ position: 'absolute', left: C_X, top: 0, width: C_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <PanelHead x={C_X} w={C_W} kicker="COST" ja="コスト系" accent={BLUE} />
+
+      {/* コスト推移グラフ */}
+      <svg
+        width={168}
+        height={132}
+        viewBox="0 0 168 132"
+        style={{ position: 'absolute', left: C_X + PAD_IN, top: 74, zIndex: 2 }}
+      >
+        {/* 軸 */}
+        <g stroke="#C4C8CE" strokeWidth={1.3} fill="none">
+          <path d="M18,8 L18,112" />
+          <path d="M18,112 L164,112" />
+        </g>
+        {/* 積み上がるコスト */}
+        {COST_BARS.map((h, i) => (
+          <rect key={i} x={30 + i * 28} y={112 - h} width={18} height={h} rx={2} fill={YELLOW} />
+        ))}
+        {/* 右肩上がりのトレンド */}
+        <path d="M26,100 L145,20" stroke={INK} strokeWidth={2} fill="none" />
+        <polygon points="154,14 147,25 141,17" fill={INK} />
+        <text x={0} y={8} fontSize={9} fontWeight={700} fill={MUTE}>
+          コスト
+        </text>
+        <text x={140} y={126} fontSize={9} fontWeight={700} fill={MUTE}>
+          時間
+        </text>
+      </svg>
+
+      {/* グラフの読み方 */}
+      <div style={{ position: 'absolute', left: C_X + 208, top: 92, width: C_W - 208 - PAD_IN, zIndex: 2 }}>
+        <p style={{ fontSize: 16.5, fontWeight: 800, color: INK, lineHeight: 1.6, letterSpacing: '-0.01em' }}>
+          このままでは
+          <br />
+          コストが積み上がり続ける
+        </p>
+        <p style={{ fontSize: 11.5, fontWeight: 600, color: SUB, lineHeight: 1.7, marginTop: 10 }}>
+          改修のたびに費用が発生し、
+          <br />
+          年を追うごとに膨らんでいく。
+        </p>
+      </div>
+
+      {/* 無くすコスト要因 */}
+      <KilledCost y={228} text="メンテナンスに一定のコストがかかる" />
+      <KilledCost y={272} text="汎用開発にその都度コストがかかる" />
+
+      {/* 結論 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: C_X + PAD_IN,
+          top: 326,
+          width: C_W - PAD_IN * 2,
+          height: 62,
+          boxSizing: 'border-box',
+          background: BLUE,
+          borderRadius: 12,
+          padding: '0 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 8,
+          zIndex: 2,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ width: 7, height: 7, background: YELLOW, flexShrink: 0 }} />
+          <span style={{ fontFamily: DISPLAY, fontSize: 10, fontWeight: 800, letterSpacing: '0.20em', color: YELLOW }}>RESULT</span>
+        </div>
+        <p style={{ fontSize: 16.5, fontWeight: 800, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1 }}>
+          大きく膨れ上がるコスト要因を無くす
+        </p>
+      </div>
+    </div>
+  </Frame>
+);
+
 export const mpCorePresentation: PresentationEntry = {
   meta: {
     id: 'mp-core-2026',
@@ -1639,11 +2570,14 @@ export const mpCorePresentation: PresentationEntry = {
     createdAt: '2026-08-12',
   },
   slides: [
+    SlideCover, // 表紙（ページ番号なし）
     Slide1, // 1 プロジェクト概要
     Slide2, // 2 システム構成整理
     Slide3, // 3 プロジェクトの目的
     Slide4, // 4 開発要素
     Slide5, // 5 体制図
     Slide6, // 6 全体スケジュール
+    Slide7, // 7 前提
+    Slide8, // 8 まとめ
   ],
 };
