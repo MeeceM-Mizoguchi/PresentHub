@@ -72,7 +72,7 @@ const SANS =
 const SLIDE = 'w-full h-[720px] relative overflow-hidden';
 const DECK_TAG = '基幹システム「MP Core」フルスクラッチ開発プロジェクト';
 const PAD_X = 58;
-const TOTAL = 9;
+const TOTAL = 11;
 
 /* ---------------- 三角モチーフ ---------------- */
 
@@ -240,6 +240,64 @@ function Head({ en, ja, aside, lead }: { en: string; ja: string; aside?: React.R
       </div>
 
       {lead && <div style={{ marginTop: 26 }}>{lead}</div>}
+    </div>
+  );
+}
+
+/* ---------------- パネル共通パーツ（前提 / I/F 開発で共用） ---------------- */
+
+const PANEL_W = 560; // 前提パネル（左右2枚）の幅
+const PAD_IN = 22; // パネル内側の余白
+const R_X = 604; // 右パネルの左端
+
+/** パネル見出し（■ ＋ 英字キッカー ＋ 和文 ＋ 罫） */
+function PanelHead({
+  x,
+  kicker,
+  ja,
+  accent,
+  w = PANEL_W,
+}: {
+  x: number;
+  kicker: string;
+  ja: string;
+  accent: string;
+  w?: number;
+}) {
+  return (
+    <>
+      <div style={{ position: 'absolute', left: x + PAD_IN, top: 15, display: 'flex', alignItems: 'center', gap: 10, zIndex: 2 }}>
+        <span style={{ width: 8, height: 8, background: accent }} />
+        <span style={{ fontFamily: DISPLAY, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.20em', color: accent }}>{kicker}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: INK, letterSpacing: '0.04em' }}>{ja}</span>
+      </div>
+      <div style={{ position: 'absolute', left: x + PAD_IN, top: 44, width: w - PAD_IN * 2, height: 1, background: '#E1E1E1' }} />
+    </>
+  );
+}
+
+/** パネル下部の注記（白カード） */
+function PanelNote({ x, icon, children }: { x: number; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x + PAD_IN,
+        top: 332,
+        width: PANEL_W - PAD_IN * 2,
+        height: 56,
+        boxSizing: 'border-box',
+        background: WHITE,
+        borderRadius: 10,
+        padding: '0 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 11,
+        zIndex: 2,
+      }}
+    >
+      <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
+      <p style={{ fontSize: 12.5, fontWeight: 700, color: BODY, lineHeight: 1.55 }}>{children}</p>
     </div>
   );
 }
@@ -1405,848 +1463,750 @@ const Slide4 = (
 );
 
 /* ============================================================
-   05 ／ 体制図
+   05 ／ 現行システムからの変更点（ご提案）
    ============================================================ */
 
-const DH5 = 410;
+const DH5 = 430;
 
-/** 役割カード（帯の色に関わらず白カードで統一する） */
-function RoleCard({ x, y, w, label, line }: { x: number; y: number; w: number; label: string; line: string }) {
+const CMP_L_W = 600; // 左パネル（インフラ）
+const CMP_R_X = 624; // 右パネル（開発要素）の左端
+const CMP_R_W = 540;
+const CMP_PAD = 18; // パネル内側の余白
+const CMP_TOP = 50; // パネル内の表の開始 y
+const CMP_HEAD_H = 27; // 表の見出し行
+
+const NEXT_TINT = BLUE_TINT; // 新システム列（＝ご提案）の面
+const NEXT_TINT_HEAD = '#D9E7F9';
+const RULE = '#D8DDE4';
+
+type Mark = '○' | '×' | '△' | '?';
+
+type CmpCell = { mark: Mark; note?: string };
+
+type CmpRow = {
+  name: string;
+  badge?: 'new' | 'drop';
+  cur: CmpCell;
+  next: CmpCell;
+  desc: string;
+};
+
+/** 要素名の右に付く状態バッジ（新規＝イエロー / 廃止＝グレー） */
+function StateBadge({ kind }: { kind: 'new' | 'drop' }) {
+  const isNew = kind === 'new';
   return (
-    <div
+    <span
       style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        width: w,
-        height: 72,
-        boxSizing: 'border-box',
-        background: WHITE,
-        border: `1px solid ${line}`,
-        borderRadius: 10,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0 12px',
+        flexShrink: 0,
+        fontSize: 8.5,
+        fontWeight: 800,
+        lineHeight: 1,
+        letterSpacing: '0.04em',
+        color: isNew ? INK : MUTE,
+        background: isNew ? YELLOW : '#EFEFEF',
+        borderRadius: 3,
+        padding: '3px 5px',
+        whiteSpace: 'nowrap',
       }}
     >
-      <span style={{ fontSize: 14, fontWeight: 800, color: INK, letterSpacing: '-0.01em', textAlign: 'center', lineHeight: 1.45 }}>
-        {label}
-      </span>
-    </div>
+      {isNew ? '新規' : '廃止'}
+    </span>
   );
 }
 
-/** 組織帯の見出し（左端の社名ブロック）。両社は同格、アクセント色だけで識別する */
-function OrgLabel({ y, kicker, name, accent }: { y: number; kicker: string; name: string; accent: string }) {
+/** ○△×? のマーク。提案側の ○ だけブルーで立て、不採用・廃止はグレーに落とす */
+function MarkCell({ cell, strong }: { cell: CmpCell; strong?: boolean }) {
+  const color = cell.mark === '○' ? (strong ? BLUE : BODY) : cell.mark === '△' ? SUB : MUTE;
   return (
     <div
       style={{
-        position: 'absolute',
-        left: 24,
-        top: y,
-        width: 250,
-        height: 130,
         display: 'flex',
         flexDirection: 'column',
+        alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
+        gap: 3,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <span style={{ width: 8, height: 8, background: accent, flexShrink: 0 }} />
-        <span style={{ fontFamily: DISPLAY, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.20em', color: accent }}>
-          {kicker}
-        </span>
-      </div>
-      <span style={{ fontSize: 15, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1.5 }}>{name}</span>
+      <span style={{ fontSize: 12, fontWeight: 800, color, lineHeight: 1 }}>{cell.mark}</span>
+      {cell.note && (
+        <span style={{ fontSize: 8.5, fontWeight: 700, color: SUB, lineHeight: 1.3, textAlign: 'center' }}>{cell.note}</span>
+      )}
     </div>
   );
 }
 
-/** 代表窓口カード（各社のアクセント色でベタ塗り） */
-function ContactCard({ x, org, name, accent }: { x: number; org: string; name: string; accent: string }) {
+/** 比較表（要素 / 現行 / 新 / 変更点 の4列固定） */
+function CmpTable({
+  x,
+  w,
+  cols,
+  head,
+  rows,
+  rowH,
+  nameFont,
+  descFont,
+}: {
+  x: number;
+  w: number;
+  cols: [number, number, number, number];
+  head: [string, string, string, string];
+  rows: CmpRow[];
+  rowH: number;
+  nameFont: number;
+  descFont: number;
+}) {
+  const cell = (i: number): React.CSSProperties => ({
+    width: cols[i],
+    flexShrink: 0,
+    boxSizing: 'border-box',
+    padding: i === 0 || i === 3 ? '0 9px' : '0 4px',
+    background: i === 2 ? NEXT_TINT : 'transparent',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: i === 0 || i === 3 ? 'flex-start' : 'center',
+  });
+
   return (
     <div
       style={{
         position: 'absolute',
         left: x,
-        top: 296,
-        width: 570,
-        height: 114,
+        top: CMP_TOP,
+        width: w,
+        height: CMP_HEAD_H + rows.length * rowH,
         boxSizing: 'border-box',
-        background: accent,
-        borderRadius: 16,
-        padding: '0 26px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 20,
+        background: WHITE,
+        borderRadius: 10,
+        overflow: 'hidden',
+        zIndex: 2,
       }}
     >
-      <span
-        style={{
-          width: 54,
-          height: 54,
-          borderRadius: 999,
-          background: 'rgba(255,255,255,0.18)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <UserRound size={25} color={WHITE} strokeWidth={2.1} />
-      </span>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <span style={{ width: 8, height: 8, background: YELLOW, flexShrink: 0 }} />
-          <span style={{ fontFamily: DISPLAY, fontSize: 10, fontWeight: 800, letterSpacing: '0.20em', color: YELLOW }}>
-            CONTACT
-          </span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.78)' }}>{org}</span>
-        </div>
-        <p style={{ fontSize: 30, fontWeight: 900, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1.1, marginTop: 8 }}>
-          {name}
-        </p>
+      {/* 見出し行 */}
+      <div style={{ display: 'flex', height: CMP_HEAD_H, borderBottom: `1.5px solid ${RULE}` }}>
+        {head.map((label, i) => (
+          <div
+            key={label}
+            style={{
+              ...cell(i),
+              background: i === 2 ? NEXT_TINT_HEAD : SURFACE,
+              justifyContent: i === 0 || i === 3 ? 'flex-start' : 'center',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9.5,
+                fontWeight: 800,
+                color: i === 2 ? BLUE_DEEP : SUB,
+                letterSpacing: '0.04em',
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {label}
+            </span>
+          </div>
+        ))}
       </div>
+
+      {/* データ行 */}
+      {rows.map((r, i) => (
+        <div
+          key={r.name}
+          style={{
+            display: 'flex',
+            height: rowH,
+            borderTop: i === 0 ? 'none' : `1px solid ${HAIR}`,
+          }}
+        >
+          <div style={{ ...cell(0), gap: 5 }}>
+            {r.badge && <StateBadge kind={r.badge} />}
+            <span style={{ fontSize: nameFont, fontWeight: 800, color: INK, lineHeight: 1.3, letterSpacing: '-0.01em' }}>
+              {r.name}
+            </span>
+          </div>
+          <div style={cell(1)}>
+            <MarkCell cell={r.cur} />
+          </div>
+          <div style={cell(2)}>
+            <MarkCell cell={r.next} strong />
+          </div>
+          <div style={cell(3)}>
+            <span style={{ fontSize: descFont, fontWeight: 700, color: BODY, lineHeight: 1.4 }}>{r.desc}</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
+
+/** パネル見出し（■ ＋ 連番 ＋ 和文、右端に凡例） */
+function CmpPanelHead({ x, w, no, ja, legend }: { x: number; w: number; no: string; ja: string; legend?: boolean }) {
+  return (
+    <>
+      <div
+        style={{
+          position: 'absolute',
+          left: x + CMP_PAD,
+          top: 12,
+          width: w - CMP_PAD * 2,
+          height: 20,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          zIndex: 2,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ width: 8, height: 8, background: BLUE }} />
+          <span style={{ fontFamily: DISPLAY, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.20em', color: BLUE }}>{no}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 800, color: INK, letterSpacing: '0.04em' }}>{ja}</span>
+        </div>
+        {legend && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            {(
+              [
+                ['○', 'あり'],
+                ['△', '一部'],
+                ['×', 'なし'],
+                ['?', '未確認'],
+              ] as [string, string][]
+            ).map(([m, t]) => (
+              <span key={m} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: SUB, lineHeight: 1 }}>{m}</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, color: MUTE, lineHeight: 1 }}>{t}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ position: 'absolute', left: x + CMP_PAD, top: 40, width: w - CMP_PAD * 2, height: 1, background: '#E1E1E1', zIndex: 2 }} />
+    </>
+  );
+}
+
+/* 変更点の列は「1行で読み切れる長さ」に揃える（折り返すと一気に読みにくくなるため） */
+const CMP_INFRA: CmpRow[] = [
+  { name: 'VPC (ネットワーク)', cur: { mark: '○' }, next: { mark: '○' }, desc: 'パブリック/プライベート分離で多層防御' },
+  { name: 'EC2 (仮想マシン)', badge: 'drop', cur: { mark: '○' }, next: { mark: '×' }, desc: 'OS管理をなくしコンテナ(ECS)へ移行' },
+  { name: 'ECS on Fargate (コンテナ)', badge: 'new', cur: { mark: '×' }, next: { mark: '○' }, desc: '運用負荷の低いAPI・バッチ実行基盤' },
+  { name: 'ALB (ロードバランサー)', cur: { mark: '○', note: '(ELB)' }, next: { mark: '○' }, desc: 'ECSコンテナ群へのトラフィック分散' },
+  { name: 'WAF (ファイアウォール)', cur: { mark: '○' }, next: { mark: '○' }, desc: '不正アクセスやSQL攻撃を遮断' },
+  { name: 'CloudFront (CDN)', cur: { mark: '○' }, next: { mark: '○' }, desc: '管理画面(React)の静的配信を高速化' },
+  { name: 'S3 (ストレージ)', cur: { mark: '○' }, next: { mark: '○' }, desc: 'Reactアプリ・契約PDF・ログの保管' },
+  { name: 'RDS (PostgreSQL)', cur: { mark: '○' }, next: { mark: '○' }, desc: 'エンジンは維持、テーブル構造は刷新' },
+  { name: 'ElastiCache (Redis)', badge: 'drop', cur: { mark: '○' }, next: { mark: '×' }, desc: 'ステートレス認証(JWT)化により不要' },
+  { name: 'Cognito (ユーザー認証)', badge: 'new', cur: { mark: '×' }, next: { mark: '○' }, desc: '管理画面の認証・権限をマネージド化' },
+  { name: 'CloudWatch (ログ・監視)', cur: { mark: '○' }, next: { mark: '○' }, desc: '【必須】ログ集約・監視・エラー検知' },
+  { name: 'EventBridge (バッチ管理)', badge: 'new', cur: { mark: '×' }, next: { mark: '○' }, desc: 'バッチ実行のトリガー管理(cron廃止)' },
+];
+
+const CMP_APP: CmpRow[] = [
+  { name: 'フロントエンド', cur: { mark: '?' }, next: { mark: '○', note: '(React + TS)' }, desc: '完全新規開発。SPA化で大幅改善' },
+  { name: 'バックエンド (API)', cur: { mark: '?' }, next: { mark: '○', note: '(Node.js + TS)' }, desc: '完全新規開発。型を共有し効率化' },
+  {
+    name: 'データベース設計',
+    cur: { mark: '○', note: '(ECパッケージ)' },
+    next: { mark: '○', note: '(フルスクラッチ)' },
+    desc: '完全新規設計。契約/端末中心へ',
+  },
+  {
+    name: 'データ移行ツール',
+    badge: 'new',
+    cur: { mark: '×' },
+    next: { mark: '○', note: '(TS/Python等)' },
+    desc: '新規開発。242テーブルを変換',
+  },
+  { name: '外部決済API連携', cur: { mark: '○', note: '(ベイジェント)' }, next: { mark: '○' }, desc: '仕様は踏襲しセキュアに再実装' },
+  { name: 'ECモールAPI連携', cur: { mark: '○', note: '(CROSS MALL)' }, next: { mark: '○' }, desc: '受注・在庫連携をアダプタ層化' },
+  {
+    name: 'CI/CD (自動デプロイ)',
+    cur: { mark: '△', note: '(手動?)' },
+    next: { mark: '○', note: '(GitHub Actions)' },
+    desc: 'PushからAWSへ自動デプロイ',
+  },
+];
 
 const Slide5 = (
   <Frame n={5}>
     <Head
-      en="TEAM"
-      ja="体制図"
+      en="CHANGES"
+      ja="現行システムからの変更点（ご提案）"
       aside={
         <HeadMeta
           items={[
-            ['CLIENT', 'モバイル・プランニング 様'],
-            ['PARTNER', 'Meece株式会社'],
+            ['INFRA', 'AWS 構成を見直し'],
+            ['APPLICATION', '全面フルスクラッチ'],
           ]}
         />
       }
       lead={
-        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
-          両社に
-          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>代表窓口を1名ずつ</span>
-          置き、PM 同士の連携でプロジェクトを推進する。
+        <p style={{ fontSize: 16.5, lineHeight: 1.7, color: BODY, fontWeight: 600 }}>
+          現行システム（G1）からの変更点を、
+          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>インフラと開発要素の2軸</span>
+          で整理する。
         </p>
       }
     />
 
     <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH5, flexShrink: 0 }}>
-      {/* 帯：モバイル・プランニング様 */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: 1164,
-          height: 130,
-          boxSizing: 'border-box',
-          background: BLUE_TINT,
-          border: `1px solid ${BLUE_LINE}`,
-          borderRadius: 16,
-        }}
+      {/* ── 1. インフラ・AWSサービス ───────────────── */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: CMP_L_W, height: DH5, background: SURFACE, borderRadius: 16 }} />
+      <CmpPanelHead x={0} w={CMP_L_W} no="01" ja="インフラ・AWSサービス比較" legend />
+      <CmpTable
+        x={CMP_PAD}
+        w={CMP_L_W - CMP_PAD * 2}
+        cols={[186, 74, 84, 220]}
+        head={['AWSサービス / 要素', '現行 (G1)', '新 (Meece提案)', '用途・変更点']}
+        rows={CMP_INFRA}
+        rowH={28}
+        nameFont={10}
+        descFont={10}
       />
-      <OrgLabel y={0} kicker="CLIENT" name="株式会社モバイル・プランニング 様" accent={BLUE} />
-      <RoleCard x={286} y={29} w={276} label="PM" line={BLUE_LINE} />
-      <RoleCard x={576} y={29} w={276} label="開発" line={BLUE_LINE} />
-      <RoleCard x={866} y={29} w={276} label="事務" line={BLUE_LINE} />
 
-      {/* 帯：Meece */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 146,
-          width: 1164,
-          height: 130,
-          boxSizing: 'border-box',
-          background: TEAL_TINT,
-          border: `1px solid ${TEAL_LINE}`,
-          borderRadius: 16,
-        }}
+      {/* ── 2. 開発・アプリケーション要素 ──────────── */}
+      <div style={{ position: 'absolute', left: CMP_R_X, top: 0, width: CMP_R_W, height: DH5, background: SURFACE, borderRadius: 16 }} />
+      <CmpPanelHead x={CMP_R_X} w={CMP_R_W} no="02" ja="開発・アプリケーション要素比較" />
+      <CmpTable
+        x={CMP_R_X + CMP_PAD}
+        w={CMP_R_W - CMP_PAD * 2}
+        cols={[136, 80, 116, 172]}
+        head={['開発要素', '現行 (G1)', '新 (Meece提案)', '対応方針 / 詳細']}
+        rows={CMP_APP}
+        rowH={48}
+        nameFont={10}
+        descFont={10}
       />
-      <OrgLabel y={146} kicker="DEVELOPMENT PARTNER" name="Meece株式会社" accent={TEAL_INK} />
-      <RoleCard x={286} y={175} w={203} label="PM" line={TEAL_LINE} />
-      <RoleCard x={503} y={175} w={203} label="フロントエンドエンジニア" line={TEAL_LINE} />
-      <RoleCard x={720} y={175} w={203} label="バックエンドエンジニア" line={TEAL_LINE} />
-      <RoleCard x={937} y={175} w={203} label="インフラエンジニア" line={TEAL_LINE} />
-
-      {/* 代表窓口 */}
-      <ContactCard x={0} org="モバイル・プランニング 代表窓口" name="渡辺 様" accent={BLUE} />
-      <ContactCard x={594} org="Meece 代表窓口" name="溝口" accent={TEAL_INK} />
     </div>
   </Frame>
 );
 
 /* ============================================================
-   06 ／ 全体スケジュール
+   06 ／ ランニングコスト（概算）
    ============================================================ */
 
-const DH6 = 410;
+const DH6 = 430;
 
-const MONTHS = ['9月', '10月', '11月', '12月', '27年1月'];
-const COL_X = 304; // 月カラムの開始 x
-const COL_W = 172; // 月カラム幅（5列で 860 ＝ 1164 - 304）
-const ROW_TOP = 46;
-const ROW_H = 96;
+const COST_L_W = 700; // 左パネル（内訳表）
+const COST_R_X = 724; // 右パネル（サマリ）の左端
+const COST_R_W = 440;
+const COST_PAD = 18;
+const COST_TOP = 50; // パネル内の表の開始 y
+const COST_HEAD_H = 27;
 
-const PHASES = [
+type CostCell = { usd: string; jpy?: string; note?: string };
+
+type CostRow = {
+  name: string;
+  sub?: string; // 想定スペック等の補足
+  cur: CostCell;
+  next: CostCell;
+  diff: string;
+  same?: boolean; // 両案で共通の項目
+};
+
+/** 金額セル（USD ＋ 円換算 ＋ 構成メモ）。提案側はブルーで立てる */
+function CostAmount({ cell, strong, big }: { cell: CostCell; strong?: boolean; big?: boolean }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span style={{ fontSize: big ? 16 : 12.5, fontWeight: big ? 900 : 800, color: strong ? BLUE : INK, lineHeight: 1.2 }}>
+          {cell.usd}
+        </span>
+        {cell.jpy && (
+          <span style={{ fontSize: big ? 10 : 8.5, fontWeight: 700, color: strong ? BLUE_DEEP : SUB, lineHeight: 1.2 }}>
+            {cell.jpy}
+          </span>
+        )}
+      </span>
+      {cell.note && <span style={{ fontSize: 8, fontWeight: 700, color: MUTE, lineHeight: 1.2 }}>{cell.note}</span>}
+    </div>
+  );
+}
+
+/* 内訳表の列幅（コンポーネント / 現状維持 / 新提案 / 差分） */
+const COST_COLS: [number, number, number, number] = [210, 165, 165, 124];
+
+function costCell(i: number, tint = true): React.CSSProperties {
+  return {
+    width: COST_COLS[i],
+    flexShrink: 0,
+    boxSizing: 'border-box',
+    padding: i === 0 ? '0 9px' : '0 4px',
+    background: i === 2 && tint ? NEXT_TINT : 'transparent',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: i === 0 ? 'flex-start' : 'center',
+  };
+}
+
+const COST_ROWS: CostRow[] = [
   {
-    kicker: 'PHASE 1',
-    name: 'フェーズ1',
-    desc: '現在のシステム通りにトレース・入れ替え開発',
-    period: '9月 〜 11月',
-    barX: 312,
-    barW: 500,
-    color: BLUE,
+    name: 'API実行環境',
+    cur: { usd: '$170', jpy: '(約25,500円)', note: 'EC2 m5.large × 2台' },
+    next: { usd: '$100', jpy: '(約15,000円)', note: 'Fargate 2タスク' },
+    diff: '▲$70',
   },
   {
-    kicker: 'PHASE 1.5',
-    name: 'フェーズ1.5',
-    desc: '現在のデータを移行',
-    period: '12月',
-    barX: 828,
-    barW: 156,
-    color: TEAL_INK,
+    name: 'データベース (RDS)',
+    sub: 'PostgreSQL db.m5.large 想定',
+    cur: { usd: '$180', jpy: '(約27,000円)' },
+    next: { usd: '$180', jpy: '(約27,000円)' },
+    diff: '共通',
+    same: true,
   },
   {
-    kicker: 'PHASE 2',
-    name: 'フェーズ2',
-    desc: '汎用化開発',
-    period: '27年1月 〜',
-    barX: 1000,
-    barW: 164,
-    color: BLUE,
-    planned: true, // 別途計画＝破線
+    name: 'ロードバランサー (ALB)',
+    cur: { usd: '$25', jpy: '(約3,750円)' },
+    next: { usd: '$25', jpy: '(約3,750円)' },
+    diff: '共通',
+    same: true,
+  },
+  {
+    name: '画面配信 (CloudFront + S3)',
+    cur: { usd: '$10', jpy: '(約1,500円)' },
+    next: { usd: '$10', jpy: '(約1,500円)' },
+    diff: '共通',
+    same: true,
+  },
+  {
+    name: 'セキュリティ (WAF)',
+    cur: { usd: '$25', jpy: '(約3,750円)' },
+    next: { usd: '$25', jpy: '(約3,750円)' },
+    diff: '共通',
+    same: true,
+  },
+  {
+    name: 'ログ・監視 (CloudWatch)',
+    cur: { usd: '$15', jpy: '(約2,250円)' },
+    next: { usd: '$15', jpy: '(約2,250円)' },
+    diff: '共通',
+    same: true,
+  },
+  {
+    name: '認証とセッション',
+    cur: { usd: '$15', jpy: '(約2,250円)', note: 'ElastiCache / Redis' },
+    next: { usd: '$0', jpy: '(無料枠)', note: 'Cognito / JWT' },
+    diff: '▲$15',
   },
 ];
 
-const Slide6 = (
-  <Frame n={6}>
-    <Head
-      en="SCHEDULE"
-      ja="全体スケジュール"
-      aside={
-        <HeadMeta
-          items={[
-            ['PHASE 1', '9月〜11月'],
-            ['PHASE 1.5', '12月'],
-            ['PHASE 2', '27年1月〜'],
-          ]}
-        />
-      }
-      lead={
-        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
-          現行のトレース開発 → データ移行 → 汎用化開発の
-          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>3フェーズ</span>
-          で進める。
-        </p>
-      }
-    />
-
-    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH6, flexShrink: 0 }}>
-      {/* 月ヘッダー */}
-      <div
-        style={{
-          position: 'absolute',
-          left: COL_X,
-          top: 0,
-          width: COL_W * 5,
-          height: 40,
-          background: SURFACE,
-          borderRadius: 10,
-        }}
-      />
-      {MONTHS.map((m, i) => (
-        <div
-          key={m}
-          style={{
-            position: 'absolute',
-            left: COL_X + i * COL_W,
-            top: 0,
-            width: COL_W,
-            height: 40,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2,
-          }}
-        >
-          <span style={{ fontSize: 12.5, fontWeight: 800, color: INK, letterSpacing: '0.04em' }}>{m}</span>
-        </div>
-      ))}
-
-      {/* 罫線（縦のガイド ＋ 行の区切り） */}
-      <svg width="100%" height={DH6} viewBox={`0 0 1164 ${DH6}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
-        <g stroke="#E8E8E8" strokeWidth={1}>
-          {[1, 2, 3, 4].map(i => (
-            <path key={i} d={`M${COL_X + i * COL_W},${ROW_TOP} L${COL_X + i * COL_W},${ROW_TOP + ROW_H * 3}`} />
-          ))}
-        </g>
-        <g stroke="#E1E1E1" strokeWidth={1}>
-          <path d={`M0,${ROW_TOP} L1164,${ROW_TOP}`} />
-          <path d={`M0,${ROW_TOP + ROW_H} L1164,${ROW_TOP + ROW_H}`} />
-          <path d={`M0,${ROW_TOP + ROW_H * 2} L1164,${ROW_TOP + ROW_H * 2}`} />
-          <path d={`M0,${ROW_TOP + ROW_H * 3} L1164,${ROW_TOP + ROW_H * 3}`} />
-        </g>
-      </svg>
-
-      {/* 各フェーズ */}
-      {PHASES.map((p, i) => {
-        const top = ROW_TOP + i * ROW_H;
-        return (
-          <div key={p.name}>
-            {/* 左：フェーズ名 */}
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                top,
-                width: 288,
-                height: ROW_H,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                gap: 6,
-                zIndex: 2,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ width: 8, height: 8, background: p.color, flexShrink: 0 }} />
-                <span style={{ fontFamily: DISPLAY, fontSize: 10, fontWeight: 800, letterSpacing: '0.20em', color: p.color }}>
-                  {p.kicker}
-                </span>
-              </div>
-              <span style={{ fontSize: 17, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</span>
-              <span style={{ fontSize: 11.5, fontWeight: 600, color: SUB, lineHeight: 1.5 }}>{p.desc}</span>
-            </div>
-
-            {/* 右：バー */}
-            <div
-              style={{
-                position: 'absolute',
-                left: p.barX,
-                top: top + 28,
-                width: p.barW,
-                height: 40,
-                boxSizing: 'border-box',
-                background: p.planned ? BLUE_TINT : p.color,
-                border: p.planned ? `2px dashed ${p.color}` : 'none',
-                borderRadius: p.planned ? '10px 0 0 10px' : 10,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 2,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12.5,
-                  fontWeight: 800,
-                  color: p.planned ? p.color : WHITE,
-                  letterSpacing: '0.02em',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {p.period}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-
-      {/* 注記 */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 354,
-          width: 1164,
-          height: 56,
-          boxSizing: 'border-box',
-          background: SURFACE,
-          borderRadius: 14,
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
-        <Info size={17} color={SUB} strokeWidth={2.2} />
-        <p style={{ fontSize: 13.5, fontWeight: 700, color: BODY }}>
-          <span style={{ fontWeight: 800, color: INK }}>フェーズ2（汎用化開発）</span>
-          については、別途計画を策定する。
-        </p>
-      </div>
-    </div>
-  </Frame>
-);
-
-/* ============================================================
-   07 ／ 前提
-   ============================================================ */
-
-const DH7 = 410;
-
-const PANEL_W = 560; // 前提パネル（左右2枚）の幅
-const PAD_IN = 22; // パネル内側の余白
-const R_X = 604; // 右パネルの左端
-
-/** パネル見出し（■ ＋ 英字キッカー ＋ 和文 ＋ 罫） */
-function PanelHead({
-  x,
+/** 右パネルの合計カード */
+function TotalCard({
+  y,
+  h,
   kicker,
-  ja,
-  accent,
-  w = PANEL_W,
+  label,
+  usd,
+  jpy,
+  tone,
 }: {
-  x: number;
+  y: number;
+  h: number;
   kicker: string;
-  ja: string;
-  accent: string;
-  w?: number;
+  label: string;
+  usd: string;
+  jpy: string;
+  tone: 'current' | 'next';
 }) {
-  return (
-    <>
-      <div style={{ position: 'absolute', left: x + PAD_IN, top: 15, display: 'flex', alignItems: 'center', gap: 10, zIndex: 2 }}>
-        <span style={{ width: 8, height: 8, background: accent }} />
-        <span style={{ fontFamily: DISPLAY, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.20em', color: accent }}>{kicker}</span>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: INK, letterSpacing: '0.04em' }}>{ja}</span>
-      </div>
-      <div style={{ position: 'absolute', left: x + PAD_IN, top: 44, width: w - PAD_IN * 2, height: 1, background: '#E1E1E1' }} />
-    </>
-  );
-}
-
-/** 制限量を示すゲージ（無料＝低い / 有料＝満たされている、を長さで対比する） */
-function Meter({ label, pct, color, track }: { label: string; pct: number; color: string; track: string }) {
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: SUB, lineHeight: 1 }}>{label}</span>
-        <span style={{ fontSize: 10, fontWeight: 800, color, letterSpacing: '0.04em', lineHeight: 1 }}>
-          {pct >= 100 ? '十分' : '不足'}
-        </span>
-      </div>
-      <div style={{ marginTop: 7, width: '100%', height: 8, borderRadius: 999, background: track, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: color }} />
-      </div>
-    </div>
-  );
-}
-
-/** 料金プランの比較カード */
-function PlanCard({
-  x,
-  tag,
-  name,
-  icon,
-  iconBg,
-  accent,
-  track,
-  gauges,
-  verdict,
-  verdictColor,
-  dim,
-}: {
-  x: number;
-  tag: string;
-  name: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  accent: string;
-  track: string;
-  gauges: [string, number][];
-  verdict: string;
-  verdictColor: string;
-  dim?: boolean;
-}) {
+  const isNext = tone === 'next';
   return (
     <div
       style={{
         position: 'absolute',
-        left: x,
-        top: 116,
-        width: 250,
-        height: 196,
+        left: COST_R_X + COST_PAD,
+        top: y,
+        width: COST_R_W - COST_PAD * 2,
+        height: h,
         boxSizing: 'border-box',
-        background: WHITE,
-        border: dim ? `1px solid ${LINE}` : `2px solid ${accent}`,
+        background: isNext ? BLUE : WHITE,
+        border: isNext ? 'none' : `1px solid ${LINE}`,
         borderRadius: 12,
-        padding: '15px 16px',
+        padding: '0 20px',
         display: 'flex',
-        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         zIndex: 2,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <span
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 7, height: 7, background: isNext ? YELLOW : MUTE, flexShrink: 0 }} />
+          <span
+            style={{
+              fontFamily: DISPLAY,
+              fontSize: 9.5,
+              fontWeight: 800,
+              letterSpacing: '0.18em',
+              color: isNext ? YELLOW : MUTE,
+              lineHeight: 1,
+            }}
+          >
+            {kicker}
+          </span>
+        </div>
+        <p
           style={{
-            width: 30,
-            height: 30,
-            borderRadius: 999,
-            background: iconBg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
+            fontSize: isNext ? 14 : 12.5,
+            fontWeight: 800,
+            color: isNext ? WHITE : SUB,
+            letterSpacing: '-0.01em',
+            lineHeight: 1,
+            marginTop: 8,
           }}
         >
-          {icon}
+          {label}
+        </p>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: 4, justifyContent: 'flex-end' }}>
+          <span
+            style={{
+              fontFamily: DISPLAY,
+              fontSize: isNext ? 30 : 21,
+              fontWeight: 900,
+              color: isNext ? WHITE : SUB,
+              letterSpacing: '-0.02em',
+              lineHeight: 1,
+            }}
+          >
+            {usd}
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: isNext ? 'rgba(255,255,255,0.8)' : MUTE, lineHeight: 1 }}>/ 月</span>
         </span>
-        <div>
-          <p style={{ fontFamily: DISPLAY, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.18em', color: accent, lineHeight: 1 }}>
-            {tag}
-          </p>
-          <p style={{ fontSize: 14.5, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1, marginTop: 6 }}>{name}</p>
-        </div>
+        <p style={{ fontSize: 10, fontWeight: 700, color: isNext ? 'rgba(255,255,255,0.8)' : MUTE, lineHeight: 1, marginTop: 7 }}>
+          {jpy}
+        </p>
       </div>
+    </div>
+  );
+}
 
-      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 13 }}>
-        {gauges.map(([label, pct]) => (
-          <Meter key={label} label={label} pct={pct} color={accent} track={track} />
-        ))}
-      </div>
-
-      <span style={{ flex: 1 }} />
-
-      <div
+/** 右パネル下部の要点カード（表から落とした「工数・違い」をここで拾う） */
+function CostPoint({ y, icon, title, text }: { y: number; icon: React.ReactNode; title: string; text: string }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: COST_R_X + COST_PAD,
+        top: y,
+        width: COST_R_W - COST_PAD * 2,
+        height: 72,
+        boxSizing: 'border-box',
+        background: WHITE,
+        borderRadius: 12,
+        padding: '0 18px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        zIndex: 2,
+      }}
+    >
+      <span
         style={{
+          width: 30,
           height: 30,
-          borderRadius: 8,
-          background: dim ? SURFACE : BLUE_TINT,
+          borderRadius: 999,
+          background: BLUE_TINT,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: 11.5, fontWeight: 800, color: verdictColor, letterSpacing: '0.02em' }}>{verdict}</span>
+        {icon}
+      </span>
+      <div>
+        <p style={{ fontSize: 12.5, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1 }}>{title}</p>
+        <p style={{ fontSize: 10.5, fontWeight: 700, color: BODY, lineHeight: 1, marginTop: 8 }}>{text}</p>
       </div>
     </div>
   );
 }
 
-/** パネル下部の注記（白カード） */
-function PanelNote({ x, icon, children }: { x: number; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: x + PAD_IN,
-        top: 332,
-        width: PANEL_W - PAD_IN * 2,
-        height: 56,
-        boxSizing: 'border-box',
-        background: WHITE,
-        borderRadius: 10,
-        padding: '0 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 11,
-        zIndex: 2,
-      }}
-    >
-      <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
-      <p style={{ fontSize: 12.5, fontWeight: 700, color: BODY, lineHeight: 1.55 }}>{children}</p>
-    </div>
-  );
-}
-
-/* 並行運用タイムラインの座標（右パネル内の絶対座標） */
-const TL_L = R_X + PAD_IN; // 626
-const TL_R = R_X + PANEL_W - PAD_IN; // 1142
-const TL_SWITCH = 1000; // 完全切替の位置
-const TL_OVERLAP = 852; // 並行運用の開始位置
-
-const Slide7 = (
-  <Frame n={7}>
+const Slide6 = (
+  <Frame n={6}>
     <Head
-      en="PREMISE"
-      ja="前提"
+      en="RUNNING COST"
+      ja="ランニングコスト（概算）"
       aside={
         <HeadMeta
           items={[
-            ['INFRA', 'AWS 有料プラン'],
-            ['SWITCHING', '数か月の並行運用'],
+            ['CURRENT', '約 $440 / 月'],
+            ['PROPOSED', '約 $355 / 月'],
           ]}
         />
       }
       lead={
-        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
-          本プロジェクトは
-          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>2つの前提</span>
-          のもとで進める。
+        <p style={{ fontSize: 16.5, lineHeight: 1.7, color: BODY, fontWeight: 600 }}>
+          ECS (Fargate) 構成なら月額は約 $355（約53,250円）。現状維持案より
+          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>約19% 安く抑えられる</span>。
         </p>
       }
     />
 
-    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH7, flexShrink: 0 }}>
-      {/* ── 左：開発を進めるうえでの前提 ───────────────── */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: PANEL_W, height: DH7, background: SURFACE, borderRadius: 16 }} />
-      <PanelHead x={0} kicker="PREMISE 01" ja="開発を進めるうえでの前提" accent={BLUE} />
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH6, flexShrink: 0 }}>
+      {/* ── 内訳表 ─────────────────────────────── */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: COST_L_W, height: DH6, background: SURFACE, borderRadius: 16 }} />
+      <CmpPanelHead x={0} w={COST_L_W} no="01" ja="AWS 費用の内訳比較（月額）" />
 
-      <p
-        style={{
-          position: 'absolute',
-          left: PAD_IN,
-          top: 66,
-          width: PANEL_W - PAD_IN * 2,
-          fontSize: 24,
-          fontWeight: 800,
-          color: INK,
-          letterSpacing: '-0.01em',
-          lineHeight: 1.25,
-          zIndex: 2,
-        }}
-      >
-        AWSアカウントは
-        <span style={{ borderBottom: `3px solid ${YELLOW}` }}>有料プラン</span>
-        が必要
-      </p>
-
-      {/* 無料プラン（不足）— 制限を長さで表現する */}
-      <PlanCard
-        x={PAD_IN}
-        tag="FREE"
-        name="無料プラン"
-        icon={<Ban size={15} color={MUTE} strokeWidth={2.4} />}
-        iconBg={SURFACE}
-        accent={MUTE}
-        track="#E4E4E4"
-        gauges={[
-          ['データ速度', 22],
-          ['データ量', 15],
-        ]}
-        verdict="テスト段階ですら使えない"
-        verdictColor={SUB}
-        dim
-      />
-
-      {/* 有料プラン（十分） */}
-      <PlanCard
-        x={288}
-        tag="PAID"
-        name="有料プラン"
-        icon={<Check size={16} color={BLUE} strokeWidth={3} />}
-        iconBg={BLUE_TINT}
-        accent={BLUE}
-        track="#D8E6F8"
-        gauges={[
-          ['データ速度', 100],
-          ['データ量', 100],
-        ]}
-        verdict="開発・テストに必要な性能"
-        verdictColor={BLUE}
-      />
-
-      {/* 2枚のカードの間：対比を示す記号 */}
       <div
         style={{
           position: 'absolute',
-          left: 262,
-          top: 200,
-          width: 26,
-          height: 26,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 3,
+          left: COST_PAD,
+          top: COST_TOP,
+          width: COST_L_W - COST_PAD * 2,
+          background: WHITE,
+          borderRadius: 10,
+          overflow: 'hidden',
+          zIndex: 2,
         }}
       >
-        <span style={{ marginLeft: 2 }}>
-          <TriRight w={11} h={13} color={'#C4C8CE'} />
-        </span>
+        {/* 見出し行 */}
+        <div style={{ display: 'flex', height: COST_HEAD_H, borderBottom: `1.5px solid ${RULE}` }}>
+          {(['コンポーネント (役割)', '【現状維持】EC2 構成', '【新提案】ECS (Fargate) 構成', '差分'] as string[]).map((label, i) => (
+            <div key={label} style={{ ...costCell(i), background: i === 2 ? NEXT_TINT_HEAD : SURFACE }}>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 800,
+                  color: i === 2 ? BLUE_DEEP : SUB,
+                  letterSpacing: '0.04em',
+                  lineHeight: 1.2,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* 明細行 */}
+        {COST_ROWS.map((r, i) => (
+          <div key={r.name} style={{ display: 'flex', height: 34, borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
+            <div style={{ ...costCell(0), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 2 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1.2 }}>{r.name}</span>
+              {r.sub && <span style={{ fontSize: 8, fontWeight: 700, color: MUTE, lineHeight: 1.2 }}>{r.sub}</span>}
+            </div>
+            <div style={costCell(1)}>
+              <CostAmount cell={r.cur} />
+            </div>
+            <div style={costCell(2)}>
+              <CostAmount cell={r.next} strong={!r.same} />
+            </div>
+            <div style={costCell(3)}>
+              <span
+                style={{
+                  fontSize: r.same ? 10 : 12,
+                  fontWeight: 800,
+                  color: r.same ? MUTE : TEAL_INK,
+                  letterSpacing: '0.02em',
+                  lineHeight: 1,
+                }}
+              >
+                {r.diff}
+              </span>
+            </div>
+          </div>
+        ))}
+
+        {/* 合計行 */}
+        <div style={{ display: 'flex', height: 46, borderTop: `1.5px solid ${RULE}`, background: SURFACE }}>
+          <div style={costCell(0, false)}>
+            <span style={{ fontSize: 12.5, fontWeight: 900, color: INK, letterSpacing: '-0.01em' }}>AWS 請求額 合計</span>
+          </div>
+          <div style={costCell(1, false)}>
+            <CostAmount cell={{ usd: '約 $440', jpy: '(約66,000円)' }} big />
+          </div>
+          <div style={{ ...costCell(2, false), background: NEXT_TINT_HEAD }}>
+            <CostAmount cell={{ usd: '約 $355', jpy: '(約53,250円)' }} strong big />
+          </div>
+          <div style={costCell(3, false)}>
+            <span style={{ fontSize: 14, fontWeight: 900, color: TEAL_INK, letterSpacing: '0.02em', lineHeight: 1 }}>▲$85</span>
+          </div>
+        </div>
       </div>
 
-      <PanelNote x={0} icon={<TriangleAlert size={16} color={SUB} strokeWidth={2.3} />}>
-        無料プランは<span style={{ fontWeight: 800, color: INK }}>データ速度・データ量の制限が非常に厳しい</span>ため、有料プランを前提とする
-      </PanelNote>
-
-      {/* ── 右：乗り換えるうえでの前提 ───────────────── */}
-      <div style={{ position: 'absolute', left: R_X, top: 0, width: PANEL_W, height: DH7, background: SURFACE, borderRadius: 16 }} />
-      <PanelHead x={R_X} kicker="PREMISE 02" ja="乗り換えるうえでの前提" accent={BLUE} />
-
-      <p
+      {/* 試算の前提 */}
+      <div
         style={{
           position: 'absolute',
-          left: R_X + PAD_IN,
-          top: 66,
-          width: PANEL_W - PAD_IN * 2,
-          fontSize: 24,
-          fontWeight: 800,
-          color: INK,
-          letterSpacing: '-0.01em',
-          lineHeight: 1.25,
+          left: COST_PAD,
+          top: 374,
+          width: COST_L_W - COST_PAD * 2,
+          height: 38,
+          boxSizing: 'border-box',
+          background: WHITE,
+          borderRadius: 10,
+          padding: '0 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
           zIndex: 2,
         }}
       >
-        一括切替ではなく
-        <span style={{ borderBottom: `3px solid ${YELLOW}` }}>並行運用</span>
-        を挟む
-      </p>
+        <Info size={14} color={SUB} strokeWidth={2.3} />
+        <p style={{ fontSize: 10.5, fontWeight: 700, color: BODY, lineHeight: 1 }}>
+          前提：AWS東京リージョン(2026年料金) ／ 月間約1,000万リクエスト ／ 24時間常時稼働 ／ 1USD＝150円換算
+        </p>
+      </div>
 
-      {/* 並行運用ゾーン（2レーンにまたがる帯） */}
+      {/* ── サマリ ─────────────────────────────── */}
       <div
-        style={{
-          position: 'absolute',
-          left: TL_OVERLAP,
-          top: 142,
-          width: TL_SWITCH - TL_OVERLAP,
-          height: 134,
-          background: '#E4EFFB',
-          borderRadius: 8,
-          zIndex: 1,
-        }}
+        style={{ position: 'absolute', left: COST_R_X, top: 0, width: COST_R_W, height: DH6, background: SURFACE, borderRadius: 16 }}
       />
+      <CmpPanelHead x={COST_R_X} w={COST_R_W} no="02" ja="月額コストの比較" />
 
-      {/* レーン1：G1（現行） */}
+      <TotalCard y={50} h={58} kicker="CURRENT" label="現状維持（EC2 構成）" usd="$440" jpy="約 66,000円" tone="current" />
+      <TotalCard y={116} h={76} kicker="PROPOSED" label="新提案（ECS Fargate 構成）" usd="$355" jpy="約 53,250円" tone="next" />
+
+      {/* 削減額 */}
       <div
         style={{
           position: 'absolute',
-          left: TL_L,
-          top: 176,
-          width: TL_SWITCH - TL_L,
-          height: 42,
+          left: COST_R_X + COST_PAD,
+          top: 200,
+          width: COST_R_W - COST_PAD * 2,
+          height: 48,
           boxSizing: 'border-box',
           background: INK,
-          borderRadius: 8,
-          padding: '0 14px',
+          borderRadius: 12,
+          padding: '0 18px',
           display: 'flex',
           alignItems: 'center',
-          gap: 9,
+          gap: 12,
           zIndex: 2,
         }}
       >
-        <span style={{ fontSize: 16, fontWeight: 900, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1 }}>G1</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.72)', lineHeight: 1 }}>現行システム</span>
-      </div>
-
-      {/* レーン2：MP Core（新） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: TL_OVERLAP,
-          top: 228,
-          width: TL_R - TL_OVERLAP,
-          height: 42,
-          boxSizing: 'border-box',
-          background: BLUE,
-          borderRadius: 8,
-          padding: '0 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 9,
-          zIndex: 2,
-        }}
-      >
-        <span style={{ fontSize: 15, fontWeight: 900, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1, whiteSpace: 'nowrap' }}>
-          MP Core
+        <TrendingDown size={17} color={YELLOW} strokeWidth={2.6} />
+        <span style={{ fontFamily: DISPLAY, fontSize: 19, fontWeight: 900, color: YELLOW, letterSpacing: '-0.01em', lineHeight: 1 }}>
+          -19%
         </span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.78)', lineHeight: 1, whiteSpace: 'nowrap' }}>
-          新システム
-        </span>
+        <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.22)', flexShrink: 0 }} />
+        <p style={{ fontSize: 12.5, fontWeight: 800, color: WHITE, lineHeight: 1 }}>月 約12,750円 ／ 年 約153,000円 の削減</p>
       </div>
 
-      {/* 並行運用ラベル */}
-      <div
-        style={{
-          position: 'absolute',
-          left: TL_OVERLAP - 24,
-          top: 148,
-          width: TL_SWITCH - TL_OVERLAP + 48,
-          display: 'flex',
-          justifyContent: 'center',
-          zIndex: 3,
-        }}
-      >
-        <span
-          style={{
-            height: 22,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            background: BLUE,
-            borderRadius: 999,
-            padding: '0 11px',
-            fontSize: 10.5,
-            fontWeight: 800,
-            color: WHITE,
-            lineHeight: 1,
-            letterSpacing: '0.04em',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          並行運用（数か月）
-        </span>
-      </div>
-
-      {/* 切替ポイント（破線の頭に置く） */}
-      <div
-        style={{
-          position: 'absolute',
-          left: TL_SWITCH - 60,
-          top: 116,
-          width: 120,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-          zIndex: 4,
-        }}
-      >
-        <Flag size={13} color={INK} strokeWidth={2.6} />
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: INK, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>完全切替</span>
-      </div>
-
-      {/* 切替ライン（MP Core バーの上だけ白で抜き、レーンを跨いでも読めるようにする） */}
-      <svg width="100%" height={DH7} viewBox={`0 0 1164 ${DH7}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 3 }}>
-        <circle cx={TL_SWITCH} cy={140} r={4} fill={INK} />
-        <path d={`M${TL_SWITCH},140 L${TL_SWITCH},228`} stroke={INK} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
-        <path d={`M${TL_SWITCH},228 L${TL_SWITCH},270`} stroke={WHITE} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
-        <path d={`M${TL_SWITCH},270 L${TL_SWITCH},282`} stroke={INK} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
-      </svg>
-
-      {/* 期間キャプション */}
-      {(
-        [
-          [TL_L, TL_OVERLAP, '現行のまま運用'],
-          [TL_OVERLAP, TL_SWITCH, '両システムを運用'],
-          [TL_SWITCH, TL_R, 'MP Core のみ'],
-        ] as [number, number, string][]
-      ).map(([from, to, label]) => (
-        <div
-          key={label}
-          style={{
-            position: 'absolute',
-            left: from,
-            top: 290,
-            width: to - from,
-            display: 'flex',
-            justifyContent: 'center',
-            zIndex: 2,
-          }}
-        >
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: SUB, whiteSpace: 'nowrap', lineHeight: 1 }}>{label}</span>
-        </div>
-      ))}
-
-      <PanelNote x={R_X} icon={<ShieldCheck size={16} color={SUB} strokeWidth={2.3} />}>
-        数か月間は両システムを並行運用し、<span style={{ fontWeight: 800, color: INK }}>問題がないことを確認できたら</span>完全に切り替える
-      </PanelNote>
+      <CostPoint
+        y={260}
+        icon={<Blocks size={15} color={BLUE} strokeWidth={2.3} />}
+        title="API実行環境：OS 領域が不要"
+        text="アプリに必要な分だけ確保。OSの定期管理も不要"
+      />
+      <CostPoint
+        y={340}
+        icon={<ShieldCheck size={15} color={BLUE} strokeWidth={2.3} />}
+        title="認証とセッション：Redis 代が不要"
+        text="JWT/Cognito化で認証実装が不要。MAU5万人まで無料"
+      />
     </div>
   </Frame>
 );
 
 /* ============================================================
-   08 ／ フロント側の I/F 開発
+   07 ／ フロント側の I/F 開発
    ============================================================ */
 
-const DH8 = 410;
+const DH7 = 410;
 
 /** 連携先ボックス。dark=現行稼働 / blue=新系統 / dim=連携を閉じた状態 */
 function EndBox({
@@ -2386,8 +2346,8 @@ function TimingPill({ right, label }: { right: number; label: string }) {
   );
 }
 
-const Slide8 = (
-  <Frame n={8}>
+const Slide7 = (
+  <Frame n={7}>
     <Head
       en="INTERFACE"
       ja="フロント側の I/F 開発"
@@ -2408,9 +2368,9 @@ const Slide8 = (
       }
     />
 
-    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH8, flexShrink: 0 }}>
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH7, flexShrink: 0 }}>
       {/* ── 1回目：向き先の追加 ───────────────────── */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: PANEL_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <div style={{ position: 'absolute', left: 0, top: 0, width: PANEL_W, height: DH7, background: SURFACE, borderRadius: 16 }} />
       <PanelHead x={0} kicker="STEP 01" ja="1回目：向き先の追加" accent={BLUE} />
       <TimingPill right={1164 - (PANEL_W - PAD_IN)} label="並行稼働の開始時" />
 
@@ -2467,7 +2427,7 @@ const Slide8 = (
       </PanelNote>
 
       {/* ── 2回目：向き先を閉じる ─────────────────── */}
-      <div style={{ position: 'absolute', left: R_X, top: 0, width: PANEL_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <div style={{ position: 'absolute', left: R_X, top: 0, width: PANEL_W, height: DH7, background: SURFACE, borderRadius: 16 }} />
       <PanelHead x={R_X} kicker="STEP 02" ja="2回目：向き先を閉じる" accent={BLUE} />
       <TimingPill right={PAD_IN} label="完全切替のタイミング" />
 
@@ -2518,7 +2478,7 @@ const Slide8 = (
       </PanelNote>
 
       {/* 連携フロー */}
-      <svg width="100%" height={DH8} viewBox={`0 0 1164 ${DH8}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 2 }}>
+      <svg width="100%" height={DH7} viewBox={`0 0 1164 ${DH7}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 2 }}>
         {/* 1回目：既存の G1 系統は継続 */}
         <g stroke="#B2B8C0" strokeWidth={1.6} fill="none">
           <path d="M158,211 L244,211" />
@@ -2544,10 +2504,792 @@ const Slide8 = (
 );
 
 /* ============================================================
-   09 ／ まとめ
+   08 ／ 前提
+   ============================================================ */
+
+const DH8 = 410;
+
+/** 制限量を示すゲージ（無料＝低い / 有料＝満たされている、を長さで対比する） */
+function Meter({ label, pct, color, track }: { label: string; pct: number; color: string; track: string }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: SUB, lineHeight: 1 }}>{label}</span>
+        <span style={{ fontSize: 10, fontWeight: 800, color, letterSpacing: '0.04em', lineHeight: 1 }}>
+          {pct >= 100 ? '十分' : '不足'}
+        </span>
+      </div>
+      <div style={{ marginTop: 7, width: '100%', height: 8, borderRadius: 999, background: track, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+/** 料金プランの比較カード */
+function PlanCard({
+  x,
+  tag,
+  name,
+  icon,
+  iconBg,
+  accent,
+  track,
+  gauges,
+  verdict,
+  verdictColor,
+  dim,
+}: {
+  x: number;
+  tag: string;
+  name: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  accent: string;
+  track: string;
+  gauges: [string, number][];
+  verdict: string;
+  verdictColor: string;
+  dim?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: 116,
+        width: 250,
+        height: 196,
+        boxSizing: 'border-box',
+        background: WHITE,
+        border: dim ? `1px solid ${LINE}` : `2px solid ${accent}`,
+        borderRadius: 12,
+        padding: '15px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 2,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <span
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 999,
+            background: iconBg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </span>
+        <div>
+          <p style={{ fontFamily: DISPLAY, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.18em', color: accent, lineHeight: 1 }}>
+            {tag}
+          </p>
+          <p style={{ fontSize: 14.5, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1, marginTop: 6 }}>{name}</p>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 13 }}>
+        {gauges.map(([label, pct]) => (
+          <Meter key={label} label={label} pct={pct} color={accent} track={track} />
+        ))}
+      </div>
+
+      <span style={{ flex: 1 }} />
+
+      <div
+        style={{
+          height: 30,
+          borderRadius: 8,
+          background: dim ? SURFACE : BLUE_TINT,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: verdictColor, letterSpacing: '0.02em' }}>{verdict}</span>
+      </div>
+    </div>
+  );
+}
+
+/* 並行運用タイムラインの座標（右パネル内の絶対座標） */
+const TL_L = R_X + PAD_IN; // 626
+const TL_R = R_X + PANEL_W - PAD_IN; // 1142
+const TL_SWITCH = 1000; // 完全切替の位置
+const TL_OVERLAP = 852; // 並行運用の開始位置
+
+const Slide8 = (
+  <Frame n={8}>
+    <Head
+      en="PREMISE"
+      ja="前提"
+      aside={
+        <HeadMeta
+          items={[
+            ['INFRA', 'AWS 有料プラン'],
+            ['SWITCHING', '数か月の並行運用'],
+          ]}
+        />
+      }
+      lead={
+        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
+          本プロジェクトは
+          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>2つの前提</span>
+          のもとで進める。
+        </p>
+      }
+    />
+
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH8, flexShrink: 0 }}>
+      {/* ── 左：開発を進めるうえでの前提 ───────────────── */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: PANEL_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <PanelHead x={0} kicker="PREMISE 01" ja="開発を進めるうえでの前提" accent={BLUE} />
+
+      <p
+        style={{
+          position: 'absolute',
+          left: PAD_IN,
+          top: 66,
+          width: PANEL_W - PAD_IN * 2,
+          fontSize: 24,
+          fontWeight: 800,
+          color: INK,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.25,
+          zIndex: 2,
+        }}
+      >
+        AWSアカウントは
+        <span style={{ borderBottom: `3px solid ${YELLOW}` }}>有料プラン</span>
+        が必要
+      </p>
+
+      {/* 無料プラン（不足）— 制限を長さで表現する */}
+      <PlanCard
+        x={PAD_IN}
+        tag="FREE"
+        name="無料プラン"
+        icon={<Ban size={15} color={MUTE} strokeWidth={2.4} />}
+        iconBg={SURFACE}
+        accent={MUTE}
+        track="#E4E4E4"
+        gauges={[
+          ['データ速度', 22],
+          ['データ量', 15],
+        ]}
+        verdict="テスト段階ですら使えない"
+        verdictColor={SUB}
+        dim
+      />
+
+      {/* 有料プラン（十分） */}
+      <PlanCard
+        x={288}
+        tag="PAID"
+        name="有料プラン"
+        icon={<Check size={16} color={BLUE} strokeWidth={3} />}
+        iconBg={BLUE_TINT}
+        accent={BLUE}
+        track="#D8E6F8"
+        gauges={[
+          ['データ速度', 100],
+          ['データ量', 100],
+        ]}
+        verdict="開発・テストに必要な性能"
+        verdictColor={BLUE}
+      />
+
+      {/* 2枚のカードの間：対比を示す記号 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 262,
+          top: 200,
+          width: 26,
+          height: 26,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 3,
+        }}
+      >
+        <span style={{ marginLeft: 2 }}>
+          <TriRight w={11} h={13} color={'#C4C8CE'} />
+        </span>
+      </div>
+
+      <PanelNote x={0} icon={<TriangleAlert size={16} color={SUB} strokeWidth={2.3} />}>
+        無料プランは<span style={{ fontWeight: 800, color: INK }}>データ速度・データ量の制限が非常に厳しい</span>ため、有料プランを前提とする
+      </PanelNote>
+
+      {/* ── 右：乗り換えるうえでの前提 ───────────────── */}
+      <div style={{ position: 'absolute', left: R_X, top: 0, width: PANEL_W, height: DH8, background: SURFACE, borderRadius: 16 }} />
+      <PanelHead x={R_X} kicker="PREMISE 02" ja="乗り換えるうえでの前提" accent={BLUE} />
+
+      <p
+        style={{
+          position: 'absolute',
+          left: R_X + PAD_IN,
+          top: 66,
+          width: PANEL_W - PAD_IN * 2,
+          fontSize: 24,
+          fontWeight: 800,
+          color: INK,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.25,
+          zIndex: 2,
+        }}
+      >
+        一括切替ではなく
+        <span style={{ borderBottom: `3px solid ${YELLOW}` }}>並行運用</span>
+        を挟む
+      </p>
+
+      {/* 並行運用ゾーン（2レーンにまたがる帯） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_OVERLAP,
+          top: 142,
+          width: TL_SWITCH - TL_OVERLAP,
+          height: 134,
+          background: '#E4EFFB',
+          borderRadius: 8,
+          zIndex: 1,
+        }}
+      />
+
+      {/* レーン1：G1（現行） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_L,
+          top: 176,
+          width: TL_SWITCH - TL_L,
+          height: 42,
+          boxSizing: 'border-box',
+          background: INK,
+          borderRadius: 8,
+          padding: '0 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 9,
+          zIndex: 2,
+        }}
+      >
+        <span style={{ fontSize: 16, fontWeight: 900, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1 }}>G1</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.72)', lineHeight: 1 }}>現行システム</span>
+      </div>
+
+      {/* レーン2：MP Core（新） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_OVERLAP,
+          top: 228,
+          width: TL_R - TL_OVERLAP,
+          height: 42,
+          boxSizing: 'border-box',
+          background: BLUE,
+          borderRadius: 8,
+          padding: '0 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 9,
+          zIndex: 2,
+        }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 900, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1, whiteSpace: 'nowrap' }}>
+          MP Core
+        </span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.78)', lineHeight: 1, whiteSpace: 'nowrap' }}>
+          新システム
+        </span>
+      </div>
+
+      {/* 並行運用ラベル */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_OVERLAP - 24,
+          top: 148,
+          width: TL_SWITCH - TL_OVERLAP + 48,
+          display: 'flex',
+          justifyContent: 'center',
+          zIndex: 3,
+        }}
+      >
+        <span
+          style={{
+            height: 22,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: BLUE,
+            borderRadius: 999,
+            padding: '0 11px',
+            fontSize: 10.5,
+            fontWeight: 800,
+            color: WHITE,
+            lineHeight: 1,
+            letterSpacing: '0.04em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          並行運用（数か月）
+        </span>
+      </div>
+
+      {/* 切替ポイント（破線の頭に置く） */}
+      <div
+        style={{
+          position: 'absolute',
+          left: TL_SWITCH - 60,
+          top: 116,
+          width: 120,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          zIndex: 4,
+        }}
+      >
+        <Flag size={13} color={INK} strokeWidth={2.6} />
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: INK, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>完全切替</span>
+      </div>
+
+      {/* 切替ライン（MP Core バーの上だけ白で抜き、レーンを跨いでも読めるようにする） */}
+      <svg width="100%" height={DH8} viewBox={`0 0 1164 ${DH8}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 3 }}>
+        <circle cx={TL_SWITCH} cy={140} r={4} fill={INK} />
+        <path d={`M${TL_SWITCH},140 L${TL_SWITCH},228`} stroke={INK} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
+        <path d={`M${TL_SWITCH},228 L${TL_SWITCH},270`} stroke={WHITE} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
+        <path d={`M${TL_SWITCH},270 L${TL_SWITCH},282`} stroke={INK} strokeWidth={1.6} strokeDasharray="5 4" fill="none" />
+      </svg>
+
+      {/* 期間キャプション */}
+      {(
+        [
+          [TL_L, TL_OVERLAP, '現行のまま運用'],
+          [TL_OVERLAP, TL_SWITCH, '両システムを運用'],
+          [TL_SWITCH, TL_R, 'MP Core のみ'],
+        ] as [number, number, string][]
+      ).map(([from, to, label]) => (
+        <div
+          key={label}
+          style={{
+            position: 'absolute',
+            left: from,
+            top: 290,
+            width: to - from,
+            display: 'flex',
+            justifyContent: 'center',
+            zIndex: 2,
+          }}
+        >
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: SUB, whiteSpace: 'nowrap', lineHeight: 1 }}>{label}</span>
+        </div>
+      ))}
+
+      <PanelNote x={R_X} icon={<ShieldCheck size={16} color={SUB} strokeWidth={2.3} />}>
+        数か月間は両システムを並行運用し、<span style={{ fontWeight: 800, color: INK }}>問題がないことを確認できたら</span>完全に切り替える
+      </PanelNote>
+    </div>
+  </Frame>
+);
+
+/* ============================================================
+   09 ／ 全体スケジュール
    ============================================================ */
 
 const DH9 = 410;
+
+const MONTHS = ['9月', '10月', '11月', '12月', '27年1月'];
+const COL_X = 304; // 月カラムの開始 x
+const COL_W = 172; // 月カラム幅（5列で 860 ＝ 1164 - 304）
+const ROW_TOP = 46;
+const ROW_H = 96;
+
+const PHASES = [
+  {
+    kicker: 'PHASE 1',
+    name: 'フェーズ1',
+    desc: '現在のシステム通りにトレース・入れ替え開発',
+    period: '9月 〜 11月',
+    barX: 312,
+    barW: 500,
+    color: BLUE,
+  },
+  {
+    kicker: 'PHASE 1.5',
+    name: 'フェーズ1.5',
+    desc: '現在のデータを移行',
+    period: '12月',
+    barX: 828,
+    barW: 156,
+    color: TEAL_INK,
+  },
+  {
+    kicker: 'PHASE 2',
+    name: 'フェーズ2',
+    desc: '汎用化開発',
+    period: '27年1月 〜',
+    barX: 1000,
+    barW: 164,
+    color: BLUE,
+    planned: true, // 別途計画＝破線
+  },
+];
+
+const Slide9 = (
+  <Frame n={9}>
+    <Head
+      en="SCHEDULE"
+      ja="全体スケジュール"
+      aside={
+        <HeadMeta
+          items={[
+            ['PHASE 1', '9月〜11月'],
+            ['PHASE 1.5', '12月'],
+            ['PHASE 2', '27年1月〜'],
+          ]}
+        />
+      }
+      lead={
+        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
+          現行のトレース開発 → データ移行 → 汎用化開発の
+          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>3フェーズ</span>
+          で進める。
+        </p>
+      }
+    />
+
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH9, flexShrink: 0 }}>
+      {/* 月ヘッダー */}
+      <div
+        style={{
+          position: 'absolute',
+          left: COL_X,
+          top: 0,
+          width: COL_W * 5,
+          height: 40,
+          background: SURFACE,
+          borderRadius: 10,
+        }}
+      />
+      {MONTHS.map((m, i) => (
+        <div
+          key={m}
+          style={{
+            position: 'absolute',
+            left: COL_X + i * COL_W,
+            top: 0,
+            width: COL_W,
+            height: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2,
+          }}
+        >
+          <span style={{ fontSize: 12.5, fontWeight: 800, color: INK, letterSpacing: '0.04em' }}>{m}</span>
+        </div>
+      ))}
+
+      {/* 罫線（縦のガイド ＋ 行の区切り） */}
+      <svg width="100%" height={DH9} viewBox={`0 0 1164 ${DH9}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
+        <g stroke="#E8E8E8" strokeWidth={1}>
+          {[1, 2, 3, 4].map(i => (
+            <path key={i} d={`M${COL_X + i * COL_W},${ROW_TOP} L${COL_X + i * COL_W},${ROW_TOP + ROW_H * 3}`} />
+          ))}
+        </g>
+        <g stroke="#E1E1E1" strokeWidth={1}>
+          <path d={`M0,${ROW_TOP} L1164,${ROW_TOP}`} />
+          <path d={`M0,${ROW_TOP + ROW_H} L1164,${ROW_TOP + ROW_H}`} />
+          <path d={`M0,${ROW_TOP + ROW_H * 2} L1164,${ROW_TOP + ROW_H * 2}`} />
+          <path d={`M0,${ROW_TOP + ROW_H * 3} L1164,${ROW_TOP + ROW_H * 3}`} />
+        </g>
+      </svg>
+
+      {/* 各フェーズ */}
+      {PHASES.map((p, i) => {
+        const top = ROW_TOP + i * ROW_H;
+        return (
+          <div key={p.name}>
+            {/* 左：フェーズ名 */}
+            <div
+              style={{
+                position: 'absolute',
+                left: 0,
+                top,
+                width: 288,
+                height: ROW_H,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: 6,
+                zIndex: 2,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <span style={{ width: 8, height: 8, background: p.color, flexShrink: 0 }} />
+                <span style={{ fontFamily: DISPLAY, fontSize: 10, fontWeight: 800, letterSpacing: '0.20em', color: p.color }}>
+                  {p.kicker}
+                </span>
+              </div>
+              <span style={{ fontSize: 17, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1.3 }}>{p.name}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: SUB, lineHeight: 1.5 }}>{p.desc}</span>
+            </div>
+
+            {/* 右：バー */}
+            <div
+              style={{
+                position: 'absolute',
+                left: p.barX,
+                top: top + 28,
+                width: p.barW,
+                height: 40,
+                boxSizing: 'border-box',
+                background: p.planned ? BLUE_TINT : p.color,
+                border: p.planned ? `2px dashed ${p.color}` : 'none',
+                borderRadius: p.planned ? '10px 0 0 10px' : 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: p.planned ? p.color : WHITE,
+                  letterSpacing: '0.02em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {p.period}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* 注記 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 354,
+          width: 1164,
+          height: 56,
+          boxSizing: 'border-box',
+          background: SURFACE,
+          borderRadius: 14,
+          padding: '0 24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <Info size={17} color={SUB} strokeWidth={2.2} />
+        <p style={{ fontSize: 13.5, fontWeight: 700, color: BODY }}>
+          <span style={{ fontWeight: 800, color: INK }}>フェーズ2（汎用化開発）</span>
+          については、別途計画を策定する。
+        </p>
+      </div>
+    </div>
+  </Frame>
+);
+
+/* ============================================================
+   10 ／ 体制図
+   ============================================================ */
+
+const DH10 = 410;
+
+/** 役割カード（帯の色に関わらず白カードで統一する） */
+function RoleCard({ x, y, w, label, line }: { x: number; y: number; w: number; label: string; line: string }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        width: w,
+        height: 72,
+        boxSizing: 'border-box',
+        background: WHITE,
+        border: `1px solid ${line}`,
+        borderRadius: 10,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 12px',
+      }}
+    >
+      <span style={{ fontSize: 14, fontWeight: 800, color: INK, letterSpacing: '-0.01em', textAlign: 'center', lineHeight: 1.45 }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/** 組織帯の見出し（左端の社名ブロック）。両社は同格、アクセント色だけで識別する */
+function OrgLabel({ y, kicker, name, accent }: { y: number; kicker: string; name: string; accent: string }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 24,
+        top: y,
+        width: 250,
+        height: 130,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 10,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <span style={{ width: 8, height: 8, background: accent, flexShrink: 0 }} />
+        <span style={{ fontFamily: DISPLAY, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.20em', color: accent }}>
+          {kicker}
+        </span>
+      </div>
+      <span style={{ fontSize: 15, fontWeight: 800, color: INK, letterSpacing: '-0.01em', lineHeight: 1.5 }}>{name}</span>
+    </div>
+  );
+}
+
+/** 代表窓口カード（各社のアクセント色でベタ塗り） */
+function ContactCard({ x, org, name, accent }: { x: number; org: string; name: string; accent: string }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: 296,
+        width: 570,
+        height: 114,
+        boxSizing: 'border-box',
+        background: accent,
+        borderRadius: 16,
+        padding: '0 26px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 20,
+      }}
+    >
+      <span
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: 999,
+          background: 'rgba(255,255,255,0.18)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <UserRound size={25} color={WHITE} strokeWidth={2.1} />
+      </span>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ width: 8, height: 8, background: YELLOW, flexShrink: 0 }} />
+          <span style={{ fontFamily: DISPLAY, fontSize: 10, fontWeight: 800, letterSpacing: '0.20em', color: YELLOW }}>
+            CONTACT
+          </span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.78)' }}>{org}</span>
+        </div>
+        <p style={{ fontSize: 30, fontWeight: 900, color: WHITE, letterSpacing: '-0.01em', lineHeight: 1.1, marginTop: 8 }}>
+          {name}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const Slide10 = (
+  <Frame n={10}>
+    <Head
+      en="TEAM"
+      ja="体制図"
+      aside={
+        <HeadMeta
+          items={[
+            ['CLIENT', 'モバイル・プランニング 様'],
+            ['PARTNER', 'Meece株式会社'],
+          ]}
+        />
+      }
+      lead={
+        <p style={{ fontSize: 18.5, lineHeight: 1.9, color: BODY, fontWeight: 600 }}>
+          両社に
+          <span style={{ color: INK, fontWeight: 800, borderBottom: `3px solid ${YELLOW}` }}>代表窓口を1名ずつ</span>
+          置き、PM 同士の連携でプロジェクトを推進する。
+        </p>
+      }
+    />
+
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH10, flexShrink: 0 }}>
+      {/* 帯：モバイル・プランニング様 */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: 1164,
+          height: 130,
+          boxSizing: 'border-box',
+          background: BLUE_TINT,
+          border: `1px solid ${BLUE_LINE}`,
+          borderRadius: 16,
+        }}
+      />
+      <OrgLabel y={0} kicker="CLIENT" name="株式会社モバイル・プランニング 様" accent={BLUE} />
+      <RoleCard x={286} y={29} w={276} label="PM" line={BLUE_LINE} />
+      <RoleCard x={576} y={29} w={276} label="開発" line={BLUE_LINE} />
+      <RoleCard x={866} y={29} w={276} label="事務" line={BLUE_LINE} />
+
+      {/* 帯：Meece */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 146,
+          width: 1164,
+          height: 130,
+          boxSizing: 'border-box',
+          background: TEAL_TINT,
+          border: `1px solid ${TEAL_LINE}`,
+          borderRadius: 16,
+        }}
+      />
+      <OrgLabel y={146} kicker="DEVELOPMENT PARTNER" name="Meece株式会社" accent={TEAL_INK} />
+      <RoleCard x={286} y={175} w={203} label="PM" line={TEAL_LINE} />
+      <RoleCard x={503} y={175} w={203} label="フロントエンドエンジニア" line={TEAL_LINE} />
+      <RoleCard x={720} y={175} w={203} label="バックエンドエンジニア" line={TEAL_LINE} />
+      <RoleCard x={937} y={175} w={203} label="インフラエンジニア" line={TEAL_LINE} />
+
+      {/* 代表窓口 */}
+      <ContactCard x={0} org="モバイル・プランニング 代表窓口" name="渡辺 様" accent={BLUE} />
+      <ContactCard x={594} org="Meece 代表窓口" name="溝口" accent={TEAL_INK} />
+    </div>
+  </Frame>
+);
+
+/* ============================================================
+   11 ／ まとめ
+   ============================================================ */
+
+const DH11 = 410;
 
 const L_W = 660; // 左パネル（開発系）
 const C_X = 704; // 右パネル（コスト系）の左端
@@ -2705,8 +3447,8 @@ function KilledCost({ y, text }: { y: number; text: string }) {
 /* コスト推移グラフ（右肩上がり＝放置すると膨らむ、を形で示す） */
 const COST_BARS = [26, 38, 54, 72, 94];
 
-const Slide9 = (
-  <Frame n={9}>
+const Slide11 = (
+  <Frame n={11}>
     <Head
       en="SUMMARY"
       ja="まとめ"
@@ -2727,13 +3469,13 @@ const Slide9 = (
       }
     />
 
-    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH9, flexShrink: 0 }}>
+    <div style={{ marginTop: 16, position: 'relative', width: '100%', height: DH11, flexShrink: 0 }}>
       {/* ── 左：開発系 ───────────────────────────── */}
-      <div style={{ position: 'absolute', left: 0, top: 0, width: L_W, height: DH9, background: SURFACE, borderRadius: 16 }} />
+      <div style={{ position: 'absolute', left: 0, top: 0, width: L_W, height: DH11, background: SURFACE, borderRadius: 16 }} />
       <PanelHead x={0} w={L_W} kicker="DEVELOPMENT" ja="開発系" accent={BLUE} />
 
       {/* 引き出し線・ノード間の結線 */}
-      <svg width="100%" height={DH9} viewBox={`0 0 1164 ${DH9}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
+      <svg width="100%" height={DH11} viewBox={`0 0 1164 ${DH11}`} style={{ position: 'absolute', left: 0, top: 0, zIndex: 1 }}>
         <g stroke="#B2B8C0" strokeWidth={1.4} fill="none">
           {/* フロント → 外部サービス */}
           <path d="M152,107 L210,107" />
@@ -2783,7 +3525,7 @@ const Slide9 = (
       />
 
       {/* ── 右：コスト系 ─────────────────────────── */}
-      <div style={{ position: 'absolute', left: C_X, top: 0, width: C_W, height: DH9, background: SURFACE, borderRadius: 16 }} />
+      <div style={{ position: 'absolute', left: C_X, top: 0, width: C_W, height: DH11, background: SURFACE, borderRadius: 16 }} />
       <PanelHead x={C_X} w={C_W} kicker="COST" ja="コスト系" accent={BLUE} />
 
       {/* コスト推移グラフ */}
@@ -2878,10 +3620,12 @@ export const mpCorePresentation: PresentationEntry = {
     Slide2, // 2 システム構成整理
     Slide3, // 3 プロジェクトの目的
     Slide4, // 4 開発要素
-    Slide5, // 5 体制図
-    Slide6, // 6 全体スケジュール
-    Slide7, // 7 前提
-    Slide8, // 8 フロント側の I/F 開発
-    Slide9, // 9 まとめ
+    Slide5, // 5 現行システムからの変更点（ご提案）
+    Slide6, // 6 ランニングコスト（概算）
+    Slide7, // 7 フロント側の I/F 開発
+    Slide8, // 8 前提
+    Slide9, // 9 全体スケジュール
+    Slide10, // 10 体制図
+    Slide11, // 11 まとめ
   ],
 };
