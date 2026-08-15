@@ -24,8 +24,10 @@ import { wealthadvisorPresentation } from './wealthadvisor';
 import { wealthadvisorV2Presentation } from './wealthadvisor-v2';
 import { asahiKaseiTenantDxPresentation } from './asahi-kasei-tenant-dx';
 import { mpCorePresentation } from './mp-core';
+import { meeceSalesPresentation } from './meece-sales';
 
 export const presentationRegistry: PresentationEntry[] = [
+  meeceSalesPresentation,
   meeceIntroPresentation,
   maStatus2026Presentation,
   aiLabPresentation,
