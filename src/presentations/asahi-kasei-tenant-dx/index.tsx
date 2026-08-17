@@ -57,7 +57,7 @@ const SANS = "-apple-system, 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Not
 
 const SLIDE = 'w-full h-[720px] relative overflow-hidden';
 const DECK_TAG = 'テナントマッチング AIプラットフォーム構築のご提案';
-const TOTAL = 12;
+const TOTAL = 13;
 const MINT = '#5FE0BE';
 const SECTION_BG = '#07312A';
 
@@ -1157,6 +1157,296 @@ const Slide5 = (
 );
 
 /* ===================================================================== */
+/* SLIDE 5B — インフラ構成イメージ（AWS）                                  */
+/* ===================================================================== */
+
+/* サービス種別カラー */
+const C_NET = '#8B5CF6';
+const C_APP = '#DD5730';
+const C_DATA = '#4C8DF6';
+const C_SEC = '#D64545';
+const C_OPS = '#E8B44A';
+const C_AI = ACCENT;
+
+/* 通信フローカラー */
+const F_USER = '#4C8DF6';
+const F_APP = '#D9971C';
+const F_DEPLOY = '#D64545';
+const F_LOG = '#0B7C6A';
+const F_ALERT = '#8B5CF6';
+
+const FLOWS: { c: string; t: string }[] = [
+  { c: F_USER, t: 'システム利用者の通信' },
+  { c: F_APP, t: 'Fargate起点の通信' },
+  { c: F_DEPLOY, t: 'デプロイの流れ' },
+  { c: F_LOG, t: 'ログ／メトリクスの流れ' },
+  { c: F_ALERT, t: 'アラートの流れ' },
+];
+
+/* 構成図ノード */
+function ANode({
+  x,
+  y,
+  w,
+  h,
+  label,
+  sub,
+  color,
+  ghost,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: string;
+  sub?: string;
+  color?: string;
+  ghost?: boolean;
+}) {
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={w}
+        height={h}
+        rx="7"
+        fill={ghost ? '#F2F3F6' : CARD}
+        stroke={ghost ? FAINT : LINE}
+        strokeWidth="1"
+        strokeDasharray={ghost ? '4 3' : undefined}
+      />
+      {!ghost && color && <rect x={x} y={y + 1} width="4" height={h - 2} rx="2" fill={color} />}
+      <text x={x + 14} y={sub ? y + h / 2 - 1 : y + h / 2 + 4} fontSize="11.5" fontWeight="800" fill={ghost ? MUTE : INK} fontFamily={SANS}>
+        {label}
+      </text>
+      {sub && (
+        <text x={x + 14} y={y + h / 2 + 13} fontSize="9" fontWeight="600" fill={MUTE} fontFamily={SANS}>
+          {sub}
+        </text>
+      )}
+    </g>
+  );
+}
+
+/* エンドポイント等のピル */
+function APill({ x, y, w, h, label, color }: { x: number; y: number; w: number; h: number; label: string; color: string }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx={h / 2} fill="#FFFFFF" stroke={color} strokeWidth="1.2" />
+      <text x={x + w / 2} y={y + h / 2 + 3.6} textAnchor="middle" fontSize="10" fontWeight="800" fill={color} fontFamily={MONO} letterSpacing="0.02em">
+        {label}
+      </text>
+    </g>
+  );
+}
+
+/* 人物・外部サービスのチップ */
+function AActor({ x, y, w, label }: { x: number; y: number; w: number; label: string }) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height="28" rx="14" fill={INK} />
+      <text x={x + w / 2} y={y + 18} textAnchor="middle" fontSize="11" fontWeight="800" fill="#FFFFFF" fontFamily={SANS}>
+        {label}
+      </text>
+    </g>
+  );
+}
+
+/* サブネット枠 */
+function ASubnet({ x, y, w, h, label, tone }: { x: number; y: number; w: number; h: number; label: string; tone: 'public' | 'private' }) {
+  const c = tone === 'public' ? { bg: '#F1F8F2', bd: '#8CC194', fg: '#3F7F4C' } : { bg: '#EFF3FA', bd: '#93B4E0', fg: '#3C6198' };
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx="6" fill={c.bg} stroke={c.bd} strokeWidth="1" strokeDasharray="3 2.5" />
+      <rect x={x + 8} y={y + 7} width="8" height="8" rx="2" fill={c.bd} />
+      <text x={x + 21} y={y + 14.5} fontSize="9" fontWeight="800" fill={c.fg} fontFamily={MONO} letterSpacing="0.06em">
+        {label}
+      </text>
+    </g>
+  );
+}
+
+/* フロー矢印 */
+function AFlow({ d, c, marker, dash }: { d: string; c: string; marker: string; dash?: boolean }) {
+  return <path d={d} fill="none" stroke={c} strokeWidth="1.7" strokeLinejoin="round" strokeDasharray={dash ? '4 3' : undefined} markerEnd={`url(#${marker})`} />;
+}
+
+const MARKERS: [string, string][] = [
+  ['u', F_USER],
+  ['a', F_APP],
+  ['d', F_DEPLOY],
+  ['l', F_LOG],
+  ['t', F_ALERT],
+  ['g', '#A9AEB7'],
+];
+
+function AwsArchitecture() {
+  return (
+    <svg viewBox="0 0 1152 500" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', display: 'block' }}>
+      <defs>
+        {MARKERS.map(([id, c]) => (
+          <marker key={id} id={`arw-${id}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <path d="M0,1.2 L9,5 L0,8.8 Z" fill={c} />
+          </marker>
+        ))}
+      </defs>
+
+      {/* ===== 外部アクター ===== */}
+      <AActor x={628} y={2} w={120} label="システム利用者" />
+      <AActor x={6} y={246} w={80} label="開発者" />
+      <AActor x={110} y={456} w={88} label="運用者" />
+      <AActor x={249} y={456} w={120} label="Slack など" />
+
+      {/* ===== AWS Cloud 枠 ===== */}
+      <rect x={96} y={44} width={1052} height={400} rx="10" fill="none" stroke="#BFC4CC" strokeWidth="1.2" />
+      <rect x={110} y={53} width={9} height={9} rx="2" fill="#F0902B" />
+      <text x={124} y={62} fontSize="10.5" fontWeight="800" fill={GRAPHITE} fontFamily={MONO} letterSpacing="0.08em">
+        AWS Cloud
+      </text>
+
+      {/* ===== 左カラムA ===== */}
+      <ANode x={112} y={76} w={126} h={44} label="CloudFront" sub="エッジ配信・高速化" color={C_NET} />
+      <ANode x={112} y={130} w={126} h={44} label="S3" sub="静的コンテンツ" color={C_DATA} />
+      <ANode x={112} y={184} w={126} h={44} label="Certificate Mgr" sub="TLS証明書" color={C_SEC} />
+      <ANode x={112} y={238} w={126} h={44} label="ECR" sub="コンテナイメージ" color={C_APP} />
+      <ANode x={112} y={310} w={126} h={44} label="CW metrics" sub="メトリクス集約" color={C_OPS} />
+      <ANode x={112} y={364} w={126} h={44} label="CW Alarm" sub="しきい値監視" color={C_OPS} />
+
+      {/* ===== 左カラムB ===== */}
+      <ANode x={246} y={76} w={126} h={44} label="WAF" sub="不正アクセス防御" color={C_SEC} />
+      <ANode x={246} y={130} w={126} h={44} label="Secrets Manager" sub="接続情報の保管" color={C_SEC} />
+      <ANode x={246} y={184} w={126} h={44} label="Systems Manager" sub="アプリ変数の管理" color={C_SEC} />
+      <ANode x={246} y={238} w={126} h={44} label="CodeDeploy" sub="無停止デプロイ" color={C_APP} />
+      <ANode x={246} y={310} w={126} h={44} label="CW Logs" sub="ログ収集" color={C_OPS} />
+      <ANode x={246} y={364} w={126} h={44} label="Chatbot" sub="Slack通知連携" color={C_OPS} />
+
+      {/* ===== VPC ===== */}
+      <rect x={390} y={64} width={596} height={366} rx="9" fill="none" stroke="#8FA9CF" strokeWidth="1.2" />
+      <rect x={404} y={72} width={9} height={9} rx="2" fill="#5F82B8" />
+      <text x={418} y={81} fontSize="10.5" fontWeight="800" fill="#4A6193" fontFamily={MONO} letterSpacing="0.08em">
+        VPC
+      </text>
+
+      {/* AZ 枠 */}
+      {[
+        { x: 402, n: 'Availability Zone 1' },
+        { x: 597, n: 'Availability Zone 2' },
+        { x: 792, n: 'Availability Zone 3' },
+      ].map((az) => (
+        <g key={az.n}>
+          <rect x={az.x} y={90} width={182} height={334} rx="6" fill="none" stroke="#C2CFE2" strokeWidth="1" strokeDasharray="3 3" />
+          <text x={az.x + 91} y={104} textAnchor="middle" fontSize="9" fontWeight="800" fill="#7C8FA9" fontFamily={MONO} letterSpacing="0.04em">
+            {az.n}
+          </text>
+        </g>
+      ))}
+
+      {/* サブネット */}
+      {[410, 605, 800].map((x) => (
+        <ASubnet key={`pub${x}`} x={x} y={110} w={166} h={80} label="Public subnet" tone="public" />
+      ))}
+      {[410, 605, 800].map((x) => (
+        <ASubnet key={`pri1${x}`} x={x} y={200} w={166} h={88} label="Private subnet" tone="private" />
+      ))}
+      {[410, 605, 800].map((x) => (
+        <ASubnet key={`pri2${x}`} x={x} y={300} w={166} h={120} label="Private subnet" tone="private" />
+      ))}
+
+      {/* Internet Gateway（VPC境界） */}
+      <rect x={632} y={51} width={112} height={26} rx="13" fill={CARD} stroke={C_NET} strokeWidth="1.4" />
+      <text x={688} y={68} textAnchor="middle" fontSize="10.5" fontWeight="800" fill={C_NET} fontFamily={SANS}>
+        Internet Gateway
+      </text>
+
+      {/* Public 層 */}
+      <ANode x={418} y={136} w={150} h={44} label="（予備）" sub="マルチAZ冗長" ghost />
+      <ANode x={613} y={136} w={150} h={44} label="ALB" sub="負荷分散・WAF連携" color={C_NET} />
+      <ANode x={808} y={136} w={150} h={44} label="NAT Gateway" sub="外部通信の出口" color={C_NET} />
+
+      {/* アプリ層 */}
+      <ANode x={418} y={228} w={150} h={44} label="ECS / Fargate" sub="アプリ実行（AZ1）" color={C_APP} />
+      <ANode x={613} y={228} w={150} h={44} label="ECS / Fargate" sub="アプリ実行（AZ2）" color={C_APP} />
+      <ANode x={808} y={228} w={150} h={44} label="VPC Endpoint" sub="閉域でAWS接続" color={C_NET} />
+
+      {/* データ層 */}
+      <APill x={418} y={326} w={150} h={26} label="ReadWrite Endpoint" color={C_DATA} />
+      <APill x={613} y={326} w={150} h={26} label="ReadOnly Endpoint" color={C_DATA} />
+      <ANode x={418} y={364} w={150} h={44} label="Aurora Writer" sub="書き込み用インスタンス" color={C_DATA} />
+      <ANode x={613} y={364} w={150} h={44} label="Aurora Reader" sub="読み取り・分析用" color={C_DATA} />
+      <ANode x={808} y={364} w={150} h={44} label="Standby" sub="自動フェイルオーバー" ghost />
+
+      {/* ===== 右カラム（AI・外部サービス） ===== */}
+      <ANode x={1002} y={200} w={140} h={44} label="Bedrock" sub="生成AI・推論基盤" color={C_AI} />
+      <ANode x={1002} y={254} w={140} h={44} label="Location Service" sub="地図・周辺データ" color={C_AI} />
+      <ANode x={1002} y={308} w={140} h={44} label="SNS" sub="通知配信" color={C_AI} />
+
+      {/* ===================== フロー ===================== */}
+      {/* 利用者の通信 */}
+      <AFlow d="M628,16 H175 V76" c={F_USER} marker="arw-u" />
+      <AFlow d="M175,120 V130" c={F_USER} marker="arw-u" />
+      <AFlow d="M688,30 V51" c={F_USER} marker="arw-u" />
+      <AFlow d="M688,77 V136" c={F_USER} marker="arw-u" />
+      <AFlow d="M688,180 V228" c={F_USER} marker="arw-u" />
+
+      {/* Fargate起点の通信 */}
+      <AFlow d="M763,240 H785 V158 H808" c={F_APP} marker="arw-a" />
+      <AFlow d="M958,158 H978 V86 H730 V77" c={F_APP} marker="arw-a" />
+      <AFlow d="M763,258 H808" c={F_APP} marker="arw-a" />
+      <AFlow d="M958,250 H994 V222 H1002" c={F_APP} marker="arw-a" />
+      <AFlow d="M994,250 V276 H1002" c={F_APP} marker="arw-a" />
+      <AFlow d="M994,250 V330 H1002" c={F_APP} marker="arw-a" />
+      <AFlow d="M670,272 V294 H493 V326" c={F_APP} marker="arw-a" />
+      <AFlow d="M706,272 V326" c={F_APP} marker="arw-a" />
+
+      {/* DB 内部 */}
+      <AFlow d="M493,352 V364" c="#A9AEB7" marker="arw-g" />
+      <AFlow d="M688,352 V364" c="#A9AEB7" marker="arw-g" />
+      <AFlow d="M763,386 H808" c="#A9AEB7" marker="arw-g" dash />
+
+      {/* デプロイ */}
+      <AFlow d="M86,260 H112" c={F_DEPLOY} marker="arw-d" />
+      <AFlow d="M238,260 H246" c={F_DEPLOY} marker="arw-d" />
+      <AFlow d="M372,260 H396 V248 H418" c={F_DEPLOY} marker="arw-d" />
+
+      {/* ログ／メトリクス */}
+      <AFlow d="M418,268 H381 V332 H372" c={F_LOG} marker="arw-l" />
+      <AFlow d="M246,332 H238" c={F_LOG} marker="arw-l" />
+      <AFlow d="M175,354 V364" c={F_LOG} marker="arw-l" />
+
+      {/* アラート */}
+      <AFlow d="M238,386 H246" c={F_ALERT} marker="arw-t" />
+      <AFlow d="M309,408 V456" c={F_ALERT} marker="arw-t" />
+      <AFlow d="M249,470 H198" c={F_ALERT} marker="arw-t" />
+    </svg>
+  );
+}
+
+const SlideInfra = (
+  <Frame n={8}>
+    <Head
+      eyebrow="Infrastructure / インフラ構成イメージ"
+      title="AWSのマネージドサービスで、止まらない・伸ばせる基盤をつくる"
+      sub="マルチAZ構成による可用性、Fargateによる自動スケール、閉域からのAI連携。運用者を増やさずに拡張できる構成です。"
+    />
+
+    {/* 凡例 */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 12, flexShrink: 0, flexWrap: 'wrap' }}>
+      {FLOWS.map((f) => (
+        <span key={f.t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, color: GRAPHITE }}>
+          <span style={{ width: 18, height: 2.5, background: f.c, borderRadius: 999 }} />
+          {f.t}
+        </span>
+      ))}
+    </div>
+
+    <div style={{ flex: 1, marginTop: 8, minHeight: 0 }}>
+      <AwsArchitecture />
+    </div>
+  </Frame>
+);
+
+/* ===================================================================== */
 /* SLIDE 6 — 開発スケジュールイメージ                                     */
 /* ===================================================================== */
 
@@ -1183,7 +1473,7 @@ const GANTT: GanttItem[] = [
 ];
 
 const Slide6 = (
-  <Frame n={8}>
+  <Frame n={9}>
     <Head eyebrow="Schedule / 開発スケジュールイメージ" title="8月受注 → 11月に貴社検証 → 1月リリース、以降フェーズ2へ" />
 
     <div style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -1353,7 +1643,7 @@ function HeadCount({ n = 1 }: { n?: number }) {
 }
 
 const Slide9 = (
-  <Frame n={9}>
+  <Frame n={10}>
     <Head eyebrow="Team / 開発体制" title="PM 1名・エンジニア 2名。窓口を一本化した少数精鋭体制で進めます" />
 
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 14, minHeight: 0 }}>
@@ -1725,7 +2015,7 @@ function GrowthChart() {
 }
 
 const Slide7 = (
-  <Frame n={11}>
+  <Frame n={12}>
     <Head eyebrow="Goal / 叶えたいこと" title="成約率と1件あたり収益、その両輪で売上を伸ばす" />
 
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginTop: 16, minHeight: 0 }}>
@@ -1884,14 +2174,14 @@ const Section2 = (
     en="SYSTEM & AI DEVELOPMENT"
     jp="システムとAIの開発"
     lead="業務を回すシステムと、判断を支えるAI。それぞれで何ができるのか、そしてどのように開発を進めるのかをご説明します。"
-    items={['システムでできること', 'AIでできること', '開発スケジュール']}
+    items={['システムでできること', 'AIでできること', 'インフラ構成', '開発スケジュール']}
   />
 );
 
 const Section3 = (
   <SectionSlide
     key="sec3"
-    n={10}
+    n={11}
     num="03"
     en="GROWTH WITH DX × IT"
     jp="DX×ITで事業を伸ばす"
@@ -1968,7 +2258,7 @@ export const asahiKaseiTenantDxPresentation: PresentationEntry = {
     id: 'asahi-kasei-tenant-dx-2026',
     title: 'テナント事業DX ／ テナントマッチング AIプラットフォーム構築のご提案',
     description:
-      '旭化成ホームズ株式会社 御中（全12枚）。AI開発による事業戦略立案。Overview（今回のミッション／現在の業務フローの課題整理と改善ポイント）／システムとAIの開発（システムでできること・AIでできること・8月受注〜1月リリースの開発スケジュール・PM1名＋エンジニア2名の開発体制）／DX×ITで事業を伸ばす（成長ファクターと事業成長イメージ）の3章構成。ご提案元：Meece株式会社。',
+      '旭化成ホームズ株式会社 御中（全13枚）。AI開発による事業戦略立案。Overview（今回のミッション／現在の業務フローの課題整理と改善ポイント）／システムとAIの開発（システムでできること・AIでできること・AWSマネージドサービスによるインフラ構成イメージ・8月受注〜1月リリースの開発スケジュール・PM1名＋エンジニア2名の開発体制）／DX×ITで事業を伸ばす（成長ファクターと事業成長イメージ）の3章構成。ご提案元：Meece株式会社。',
     thumbnail: `linear-gradient(135deg, ${PAPER} 0%, ${ACCENT_SOFT} 55%, ${ACCENT} 130%)`,
     author: 'Meece株式会社',
     createdAt: '2026-07-30',
@@ -1981,10 +2271,11 @@ export const asahiKaseiTenantDxPresentation: PresentationEntry = {
     Section2, // 5  章扉 システムとAIの開発
     Slide4, //   6  システムでできること
     Slide5, //   7  AIでできること
-    Slide6, //   8  開発スケジュールイメージ
-    Slide9, //   9  開発体制
-    Section3, // 10 章扉 DX×ITで事業を伸ばす
-    Slide7, //  11  叶えたいこと
-    SlideEnd, // 12 END
+    SlideInfra, // 8 インフラ構成イメージ（AWS）
+    Slide6, //   9  開発スケジュールイメージ
+    Slide9, //  10  開発体制
+    Section3, // 11 章扉 DX×ITで事業を伸ばす
+    Slide7, //  12  叶えたいこと
+    SlideEnd, // 13 END
   ],
 };
