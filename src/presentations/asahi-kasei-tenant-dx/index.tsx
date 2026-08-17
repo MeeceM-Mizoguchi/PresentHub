@@ -1450,31 +1450,32 @@ const SlideInfra = (
 /* SLIDE 6 — 開発スケジュールイメージ                                     */
 /* ===================================================================== */
 
-const MONTHS = ['8月', '9月', '10月', '11月', '12月', '1月', '2月', '3月'];
+const MONTHS = ['9月', '10月', '11月', '12月', '1月', '2月', '3月', '4月'];
 const ROW_H = 28;
+const GANTT_ROWS = 13;
 
 type GanttItem = { r: number; type: 'bar' | 'ms'; x: number; w?: number; label: string; strong?: boolean };
 
 const GANTT: GanttItem[] = [
-  { r: 0, type: 'ms', x: 1.5, label: '受注' },
-  { r: 1, type: 'bar', x: 2, w: 11, label: 'AIモデル開発', strong: true },
-  { r: 2, type: 'bar', x: 2, w: 11, label: 'システム側微修正' },
-  { r: 3, type: 'bar', x: 9.5, w: 9.5, label: 'データ蓄積' },
-  { r: 4, type: 'bar', x: 2, w: 17, label: '開発検証' },
-  { r: 5, type: 'bar', x: 12.5, w: 25, label: 'インフラ構築' },
-  { r: 6, type: 'bar', x: 37.5, w: 13, label: '旭化成ホームズ様検証', strong: true },
-  { r: 7, type: 'bar', x: 38, w: 13, label: 'フィードバック対応' },
-  { r: 8, type: 'ms', x: 51.5, label: '検証結果議論' },
-  { r: 9, type: 'bar', x: 52.5, w: 7.5, label: '修正期間' },
-  { r: 10, type: 'bar', x: 55.5, w: 7.5, label: '再確認期間' },
-  { r: 11, type: 'ms', x: 63, label: 'リリース判定' },
-  { r: 12, type: 'ms', x: 66, label: 'リリース' },
-  { r: 13, type: 'bar', x: 66.5, w: 8.5, label: '本番環境動作確認' },
+  { r: 0, type: 'ms', x: 1, label: '受注' },
+  { r: 1, type: 'bar', x: 0.8, w: 14, label: 'AIモデル開発（Map検証）', strong: true },
+  { r: 2, type: 'bar', x: 1.5, w: 12.5, label: 'システム側微修正' },
+  { r: 3, type: 'bar', x: 12.5, w: 10, label: 'データ蓄積' },
+  { r: 4, type: 'bar', x: 12, w: 37.5, label: 'システム構築', strong: true },
+  { r: 5, type: 'bar', x: 2, w: 24.5, label: '本番インフラ構築' },
+  { r: 6, type: 'bar', x: 13, w: 13.5, label: '環境載せ替え', strong: true },
+  { r: 7, type: 'bar', x: 25, w: 25, label: 'AI検証・チューニング', strong: true },
+  { r: 8, type: 'bar', x: 50, w: 12, label: 'テスト', strong: true },
+  { r: 9, type: 'bar', x: 62.5, w: 12, label: '旭化成ホームズ様確認', strong: true },
+  { r: 10, type: 'bar', x: 63, w: 15, label: '指摘事項修正' },
+  { r: 10, type: 'bar', x: 87.7, w: 12, label: '検証インフラ構築' },
+  { r: 11, type: 'ms', x: 78.5, label: 'リリース判定' },
+  { r: 12, type: 'ms', x: 80.5, label: 'リリース' },
 ];
 
 const Slide6 = (
   <Frame n={9}>
-    <Head eyebrow="Schedule / 開発スケジュールイメージ" title="8月受注 → 11月に貴社検証 → 1月リリース、以降フェーズ2へ" />
+    <Head eyebrow="Schedule / 開発スケジュールイメージ" title="9月受注 → 2月に貴社ご確認 → 3月リリース、以降フェーズ2へ" />
 
     <div style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* 月ヘッダー */}
@@ -1501,7 +1502,7 @@ const Slide6 = (
       <div
         style={{
           position: 'relative',
-          height: ROW_H * GANTT.length + 12,
+          height: ROW_H * GANTT_ROWS + 12,
           border: `1px solid ${LINE}`,
           borderRadius: '0 0 8px 8px',
           background: CARD,
@@ -1520,10 +1521,10 @@ const Slide6 = (
         <div
           style={{
             position: 'absolute',
-            left: '75.2%',
-            width: '23.5%',
+            left: '87.7%',
+            width: '12%',
             top: ROW_H * 11 + 6,
-            height: ROW_H * 3 + 4,
+            height: ROW_H * 2 + 4,
             border: `1.5px solid ${LINE}`,
             borderRadius: 8,
             background: '#F7F8F9',
@@ -1532,7 +1533,7 @@ const Slide6 = (
             justifyContent: 'center',
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 800, color: GRAPHITE, letterSpacing: '0.04em' }}>以降、フェーズ2</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: GRAPHITE, letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>以降、フェーズ2</span>
         </div>
 
         {/* バー・マイルストーン */}
@@ -1589,9 +1590,9 @@ const Slide6 = (
 
       <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
         {[
-          { t: '8〜10月', d: 'AIモデル開発・開発検証と並行してインフラ構築を進める' },
-          { t: '11〜12月', d: '旭化成ホームズ様に実データで検証いただき、随時反映' },
-          { t: '12〜1月', d: '修正・再確認 → リリース判定 → リリース → 本番環境動作確認' },
+          { t: '9〜10月', d: 'AIモデル開発（Map検証）と本番インフラ構築を並行、10月からデータ蓄積を開始' },
+          { t: '11〜12月', d: 'システム構築と並行してAI検証・チューニングを行い、精度を作り込む' },
+          { t: '1〜4月', d: 'テスト → 旭化成ホームズ様確認・指摘事項修正 → 3月リリース → 検証インフラ構築' },
         ].map((c) => (
           <div key={c.t} style={{ flex: 1, background: CARD, border: `1px solid ${LINE}`, borderRadius: 8, padding: '9px 13px' }}>
             <p style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '0.14em', color: ACCENT_INK, fontWeight: 800 }}>{c.t}</p>
@@ -2258,7 +2259,7 @@ export const asahiKaseiTenantDxPresentation: PresentationEntry = {
     id: 'asahi-kasei-tenant-dx-2026',
     title: 'テナント事業DX ／ テナントマッチング AIプラットフォーム構築のご提案',
     description:
-      '旭化成ホームズ株式会社 御中（全13枚）。AI開発による事業戦略立案。Overview（今回のミッション／現在の業務フローの課題整理と改善ポイント）／システムとAIの開発（システムでできること・AIでできること・AWSマネージドサービスによるインフラ構成イメージ・8月受注〜1月リリースの開発スケジュール・PM1名＋エンジニア2名の開発体制）／DX×ITで事業を伸ばす（成長ファクターと事業成長イメージ）の3章構成。ご提案元：Meece株式会社。',
+      '旭化成ホームズ株式会社 御中（全13枚）。AI開発による事業戦略立案。Overview（今回のミッション／現在の業務フローの課題整理と改善ポイント）／システムとAIの開発（システムでできること・AIでできること・AWSマネージドサービスによるインフラ構成イメージ・9月受注〜3月リリースの開発スケジュール・PM1名＋エンジニア2名の開発体制）／DX×ITで事業を伸ばす（成長ファクターと事業成長イメージ）の3章構成。ご提案元：Meece株式会社。',
     thumbnail: `linear-gradient(135deg, ${PAPER} 0%, ${ACCENT_SOFT} 55%, ${ACCENT} 130%)`,
     author: 'Meece株式会社',
     createdAt: '2026-07-30',
