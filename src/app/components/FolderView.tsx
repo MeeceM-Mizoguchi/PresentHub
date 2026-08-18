@@ -25,7 +25,7 @@ interface FolderCardProps {
   onPermissionClick: (id: string) => void;
 }
 
-function FolderCard({ folder, viewMode, onNavigate, onPermissionClick }: FolderCardProps) {
+export function FolderCard({ folder, viewMode, onNavigate, onPermissionClick }: FolderCardProps) {
   const { moveItemToFolder, deleteFolder, renameFolder, isDescendantOf } = useApp();
   const { confirm } = useConfirm();
   const [isRenaming, setIsRenaming] = useState(false);

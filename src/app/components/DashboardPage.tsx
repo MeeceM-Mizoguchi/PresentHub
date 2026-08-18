@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { exportPdf } from '../lib/exportPdf';
 import { Sidebar } from './Sidebar';
-import { FolderView } from './FolderView';
+import { FolderView, FolderCard } from './FolderView';
 import { SharedManagementPage } from './SharedManagementPage';
 import { CreateFolderDialog } from './CreateFolderDialog';
 import { PermissionDialog } from './PermissionDialog';
@@ -35,7 +35,7 @@ import { AdminRequestsPage } from './AdminRequestsPage';
 import { AccountPage } from './AccountPage';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { FileItem } from '../types';
+import { FileItem, FolderItem } from '../types';
 import { presentationRegistry } from '../../presentations/registry';
 import { toast } from '../lib/toast';
 
@@ -122,6 +122,10 @@ export function DashboardPage() {
   }, []);
 
   const allFiles = items.filter(item => item.type === 'file') as FileItem[];
+  // ダッシュボード上部に出すルート直下のフォルダ（入れ子のフォルダはフォルダビューで表示）
+  const rootFolders = items.filter(
+    item => item.type === 'folder' && item.parentId === null
+  ) as FolderItem[];
   const filteredFiles = allFiles
     .filter(file => filterMode === 'starred' ? !!file.starred : true)
     .sort((a, b) => {
@@ -158,6 +162,11 @@ export function DashboardPage() {
 
   const handleCardClick = (file: FileItem) => {
     setViewingFileId(file.id);
+  };
+
+  const handleOpenFolder = (folderId: string) => {
+    setCurrentFolder(folderId);
+    navigate('/folder');
   };
 
   const closeMenu = () => { setOpenMenuId(null); setMenuAnchor(null); };
@@ -461,16 +470,56 @@ export function DashboardPage() {
             再試行
           </button>
         </div>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredFiles.map(renderFileCard)}
-        </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-violet-100">
-          <div className="divide-y divide-violet-50">
-            {filteredFiles.map(renderFileRow)}
-          </div>
-        </div>
+        <>
+          {/* フォルダ（お気に入り・最近使用の絞り込み中は非表示） */}
+          {filterMode === 'all' && rootFolders.length > 0 && (
+            <div className="mb-8">
+              <h2 className="mb-3 text-sm font-semibold text-gray-500">フォルダ</h2>
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {rootFolders.map(folder => (
+                    <FolderCard
+                      key={folder.id}
+                      folder={folder}
+                      viewMode="grid"
+                      onNavigate={handleOpenFolder}
+                      onPermissionClick={setPermissionItemId}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-violet-100">
+                  {rootFolders.map(folder => (
+                    <FolderCard
+                      key={folder.id}
+                      folder={folder}
+                      viewMode="list"
+                      onNavigate={handleOpenFolder}
+                      onPermissionClick={setPermissionItemId}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 資料 */}
+          {filterMode === 'all' && rootFolders.length > 0 && (
+            <h2 className="mb-3 text-sm font-semibold text-gray-500">資料</h2>
+          )}
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredFiles.map(renderFileCard)}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-violet-100">
+              <div className="divide-y divide-violet-50">
+                {filteredFiles.map(renderFileRow)}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </>
   );

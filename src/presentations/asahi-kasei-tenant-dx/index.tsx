@@ -57,7 +57,7 @@ const SANS = "-apple-system, 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Not
 
 const SLIDE = 'w-full h-[720px] relative overflow-hidden';
 const DECK_TAG = 'テナントマッチング AIプラットフォーム構築のご提案';
-const TOTAL = 13;
+const TOTAL = 15;
 const MINT = '#5FE0BE';
 const SECTION_BG = '#07312A';
 
@@ -1447,6 +1447,406 @@ const SlideInfra = (
 );
 
 /* ===================================================================== */
+/* SLIDE 5C — データとマッチングの仕組み                                   */
+/* ===================================================================== */
+
+/* 工程の見出し（01 INPUT など） */
+function StepHead({ n, en, jp }: { n: string; en: string; jp: string }) {
+  return (
+    <div style={{ flexShrink: 0, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 800, color: '#fff', background: ACCENT, borderRadius: 4, padding: '2px 6px' }}>{n}</span>
+        <span style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: '0.16em', color: ACCENT_INK, fontWeight: 800 }}>{en}</span>
+      </div>
+      <p style={{ fontSize: 12, fontWeight: 800, color: INK, marginTop: 6, lineHeight: 1.35 }}>{jp}</p>
+    </div>
+  );
+}
+
+/* 工程間の矢印 */
+function FlowArrow() {
+  return (
+    <div style={{ flexShrink: 0, width: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <ArrowRight style={{ width: 17, height: 17, color: ACCENT, strokeWidth: 2.4 }} />
+    </div>
+  );
+}
+
+/* INPUT 側の小カード */
+function MiniCard({ icon: Icon, title, items, accent }: { icon: any; title: string; items: string[]; accent?: boolean }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        background: CARD,
+        border: `1px solid ${accent ? ACCENT : LINE}`,
+        borderRadius: 10,
+        padding: '10px 12px 11px',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+        boxShadow: '0 8px 20px rgba(15,17,21,0.04)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+        <span
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            background: accent ? ACCENT : '#EDEFF2',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Icon style={{ width: 12.5, height: 12.5, color: accent ? '#fff' : GRAPHITE, strokeWidth: 2 }} />
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: INK, lineHeight: 1.25 }}>{title}</span>
+      </div>
+      {items.map((t) => (
+        <p key={t} style={{ fontSize: 10, color: GRAPHITE, fontWeight: 600, lineHeight: 1.75 }}>
+          ・{t}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/* データ取得元の行 */
+function SourceRow({ icon: Icon, t, d }: { icon: any; t: string; d: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: CARD, border: `1px solid ${LINE}`, borderRadius: 8, padding: '7px 9px' }}>
+      <Icon style={{ width: 13, height: 13, color: ACCENT, strokeWidth: 2, flexShrink: 0, marginTop: 1 }} />
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: 10.5, fontWeight: 800, color: INK, lineHeight: 1.3 }}>{t}</p>
+        <p style={{ fontSize: 9.5, fontWeight: 600, color: MUTE, lineHeight: 1.45, marginTop: 2 }}>{d}</p>
+      </div>
+    </div>
+  );
+}
+
+const PROFILE_ROWS: [string, string][] = [
+  ['500m', '飲食 23 ／ コンビニ 4 ／ ドラッグストア 1'],
+  ['1km', 'スーパー 2 ／ 学校 3 ／ 医療機関 8'],
+  ['3km', '競合チェーン 12 店舗'],
+];
+
+const MATCH_STEPS = [
+  { n: '①', t: 'ハードフィルタ', d: '用途地域NG・面積不足・エリア外を機械的に除外', tag: 'SQL' },
+  { n: '②', t: 'スコアリング', d: '商圏プロファイル × 出店条件で適合度を算出。似た商圏の成約実績をベクトル検索', tag: 'pgvector' },
+  { n: '③', t: '根拠の生成', d: '「なぜこの土地にこのテナントか」を日本語で文章化', tag: 'Bedrock' },
+];
+
+const RESULT_RANK = [
+  { r: '1', t: 'ドラッグストア A社', s: 92 },
+  { r: '2', t: 'コンビニ B社', s: 85 },
+  { r: '3', t: '飲食チェーン C社', s: 78 },
+];
+
+const SlideMatching = (
+  <Frame n={9}>
+    <Head
+      eyebrow="Mechanism / データとマッチングの仕組み"
+      title="土地を「商圏プロファイル」に変換し、保有テナント情報と突き合わせる"
+      sub="土地側の周辺環境はAWSと公的オープンデータから自動取得。テナント側は貴社がお持ちの情報資産をそのまま活かします。"
+    />
+
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginTop: 14, minHeight: 0, gap: 12 }}>
+      {/* ===== メインフロー ===== */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', minHeight: 0 }}>
+        {/* --- 01 INPUT --- */}
+        <div style={{ flex: 0.92, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <StepHead n="01" en="INPUT" jp="手元にある情報" />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
+            <MiniCard icon={MapPin} title="地主様の土地情報" items={['所在地・面積・形状', '前面道路・接道条件', '地主様のご意向']} />
+            <MiniCard icon={Building2} title="貴社の保有テナント情報" items={['業種・希望坪数', '希望賃料・希望エリア', '出店条件・過去の成約実績']} accent />
+          </div>
+        </div>
+
+        <FlowArrow />
+
+        {/* --- 02 ENRICH --- */}
+        <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <StepHead n="02" en="ENRICH" jp="周辺データを取得し、数値に変換" />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7, minHeight: 0 }}>
+            <SourceRow icon={Search} t="Amazon Location Service" d="半径500m／1km／3km の店舗・施設をカテゴリ別に取得" />
+            <SourceRow icon={Database} t="公的オープンデータ" d="用途地域・駅別乗降客数・人口メッシュ（国交省／e-Stat）" />
+
+            {/* 商圏プロファイル */}
+            <div style={{ flex: 1, background: ACCENT_SOFT, border: `1.5px solid ${ACCENT}`, borderRadius: 10, padding: '9px 11px 10px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <p style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.12em', fontWeight: 800, color: ACCENT_INK }}>商圏プロファイル（特徴量）</p>
+              <div style={{ marginTop: 7 }}>
+                {PROFILE_ROWS.map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '2.5px 0' }}>
+                    <span style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 800, color: ACCENT_INK, width: 32, flexShrink: 0 }}>{k}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: INK, lineHeight: 1.4 }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ borderTop: `1px solid rgba(11,124,106,0.25)`, marginTop: 7, paddingTop: 7 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: ACCENT_INK, lineHeight: 1.5 }}>用途地域：近隣商業／駅乗降 4.2万人・日</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <FlowArrow />
+
+        {/* --- 03 MATCH --- */}
+        <div style={{ flex: 1.24, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <StepHead n="03" en="MATCH" jp="3段構えでAIが突き合わせる" />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
+            {MATCH_STEPS.map((s) => (
+              <div key={s.n} style={{ flex: 1, background: CARD, border: `1px solid ${LINE}`, borderRadius: 10, padding: '9px 11px 10px', display: 'flex', flexDirection: 'column', minHeight: 0, boxShadow: '0 8px 20px rgba(15,17,21,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: ACCENT }}>{s.n}</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 800, color: INK }}>{s.t}</span>
+                  <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 8.5, fontWeight: 800, color: MUTE, background: '#EFF0F3', borderRadius: 3, padding: '2px 5px', flexShrink: 0 }}>{s.tag}</span>
+                </div>
+                <p style={{ fontSize: 10, color: GRAPHITE, fontWeight: 600, lineHeight: 1.55, marginTop: 5 }}>{s.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <FlowArrow />
+
+        {/* --- 04 OUTPUT --- */}
+        <div style={{ flex: 0.86, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <StepHead n="04" en="OUTPUT" jp="根拠つきの候補提示" />
+          <div style={{ flex: 1, background: CARD, border: `1px solid ${LINE}`, borderRadius: 10, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, boxShadow: '0 10px 24px rgba(15,17,21,0.06)' }}>
+            <div style={{ background: '#1B1E24', padding: '5px 9px', display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+              {['#FF5F57', '#FEBC2E', '#28C840'].map((c) => (
+                <span key={c} style={{ width: 6, height: 6, borderRadius: 999, background: c }} />
+              ))}
+              <span style={{ fontFamily: MONO, fontSize: 8, color: '#9CA0A8', marginLeft: 5 }}>テナント候補</span>
+            </div>
+            <div style={{ flex: 1, padding: '9px 11px 10px', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              {RESULT_RANK.map((x) => (
+                <div key={x.r} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 0', borderBottom: `1px solid ${HAIR}` }}>
+                  <span style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 800, color: x.r === '1' ? ACCENT : MUTE, flexShrink: 0 }}>{x.r}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: INK, flex: 1, minWidth: 0, lineHeight: 1.3 }}>{x.t}</span>
+                  <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 800, color: x.r === '1' ? ACCENT : GRAPHITE, flexShrink: 0 }}>{x.s}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 8, background: '#F6F7F8', borderRadius: 6, padding: '7px 8px' }}>
+                <p style={{ fontSize: 8.5, fontWeight: 800, color: MUTE, fontFamily: MONO, letterSpacing: '0.08em' }}>提案根拠</p>
+                <p style={{ fontSize: 9.5, color: GRAPHITE, fontWeight: 600, lineHeight: 1.55, marginTop: 3 }}>住宅密集エリアかつ半径1km内に競合なし。駅乗降4.2万人で来店が見込める。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== 学習ループ ===== */}
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'stretch', gap: 10, background: CARD, border: `1px solid ${LINE}`, borderRadius: 10, padding: '10px 13px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, paddingRight: 13, borderRight: `1px solid ${HAIR}` }}>
+          <span style={{ width: 26, height: 26, borderRadius: 8, background: ACCENT_SOFT, border: `1.5px solid ${ACCENT}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Repeat style={{ width: 13, height: 13, color: ACCENT_INK, strokeWidth: 2 }} />
+          </span>
+          <div>
+            <p style={{ fontSize: 11.5, fontWeight: 800, color: INK }}>学習ループ</p>
+            <p style={{ fontSize: 9.5, fontWeight: 600, color: MUTE, marginTop: 1 }}>成約／非成約の結果をスコアに反映</p>
+          </div>
+        </div>
+        {[
+          { p: 'フェーズ 1', n: '〜数十件', d: '営業担当の暗黙知をルール化し、AIが根拠を補完（データが少なくても動く）' },
+          { p: 'フェーズ 2', n: '数百件〜', d: '成約フィードバックでスコアの重みを自動学習し、案件が増えるほど精度が上がる' },
+        ].map((x) => (
+          <div key={x.p} style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontFamily: MONO, fontSize: 9.5, fontWeight: 800, color: ACCENT_INK, letterSpacing: '0.08em' }}>{x.p}</span>
+              <Chip text={x.n} tone="accent" />
+            </div>
+            <p style={{ fontSize: 10, color: GRAPHITE, fontWeight: 600, lineHeight: 1.5, marginTop: 4 }}>{x.d}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </Frame>
+);
+
+/* ===================================================================== */
+/* SLIDE 5D — 処理の流れ（インフラ構成図上のデータフロー）                  */
+/* ===================================================================== */
+
+const F_STEP_GRAY = '#9AA0A9';
+
+/* 手順番号バッジ */
+function StepBadge({ x, y, n, c }: { x: number; y: number; n: string; c: string }) {
+  return (
+    <g>
+      <circle cx={x} cy={y} r="10.5" fill={c} stroke="#FFFFFF" strokeWidth="2.2" />
+      <text x={x} y={y + 3.9} textAnchor="middle" fontSize="11" fontWeight="800" fill="#FFFFFF" fontFamily={MONO}>
+        {n}
+      </text>
+    </g>
+  );
+}
+
+const FLOW_MARKERS: [string, string][] = [
+  ['fu', F_USER],
+  ['fa', F_APP],
+  ['fg', F_STEP_GRAY],
+];
+
+const FLOW_STEPS = [
+  { n: '1', c: F_USER, t: '土地情報を入力する', d: '担当者が対象地の住所・面積を入力。画面はCloudFront＋S3から配信され、リクエストはALB経由でFargateへ' },
+  { n: '2', c: F_APP, t: '周辺施設の情報を取得する', d: 'FargateがVPC Endpoint経由でLocation Serviceを呼び、半径500m／1km／3kmの店舗・施設をカテゴリ別に収集' },
+  { n: '3', c: F_APP, t: '公的データを取得する', d: 'NAT Gateway経由で国交省・e-StatのAPIへ。用途地域・駅別乗降客数・人口メッシュを取得' },
+  { n: '4', c: F_APP, t: '商圏プロファイル化して照合する', d: 'Auroraへ保存し、保有テナント情報を読み出してハードフィルタ＋スコアリングを実行' },
+  { n: '5', c: F_APP, t: 'AIが判定し、根拠を生成する', d: 'VPC Endpoint経由でBedrockへ。適合度スコアの根拠を日本語の文章として生成' },
+  { n: '6', c: F_USER, t: '結果を画面に返す', d: 'ALB経由で、テナント候補のランキングと提案根拠を担当者の画面へ返却' },
+  { n: '7', c: F_STEP_GRAY, t: '成約結果を蓄積し、学習する', d: '成約／非成約の結果をAuroraに記録。次回以降のスコアリングに反映される' },
+];
+
+function AwsDataFlow() {
+  return (
+    <svg viewBox="0 0 740 470" preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%', display: 'block' }}>
+      <defs>
+        {FLOW_MARKERS.map(([id, c]) => (
+          <marker key={id} id={`arw-${id}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,1.2 L9,5 L0,8.8 Z" fill={c} />
+          </marker>
+        ))}
+      </defs>
+
+      {/* ===== 外部 ===== */}
+      <AActor x={21} y={4} w={140} label="担当者（システム利用者）" />
+      <ANode x={480} y={2} w={244} h={40} label="外部オープンデータAPI" sub="国土交通省 不動産情報ライブラリ／e-Stat" color={C_DATA} />
+
+      {/* ===== AWS Cloud ===== */}
+      <rect x={8} y={50} width={724} height={400} rx="10" fill="none" stroke="#BFC4CC" strokeWidth="1.2" />
+      <rect x={22} y={59} width={9} height={9} rx="2" fill="#F0902B" />
+      <text x={36} y={68} fontSize="10.5" fontWeight="800" fill={GRAPHITE} fontFamily={MONO} letterSpacing="0.08em">
+        AWS Cloud
+      </text>
+
+      {/* 配信 */}
+      <ANode x={26} y={92} w={130} h={48} label="CloudFront" sub="画面の配信" color={C_NET} />
+      <ANode x={26} y={152} w={130} h={48} label="S3" sub="静的コンテンツ" color={C_DATA} />
+
+      {/* ===== VPC ===== */}
+      <rect x={180} y={78} width={390} height={352} rx="9" fill="none" stroke="#8FA9CF" strokeWidth="1.2" />
+      <rect x={192} y={84} width={9} height={9} rx="2" fill="#5F82B8" />
+      <text x={206} y={93} fontSize="10.5" fontWeight="800" fill="#4A6193" fontFamily={MONO} letterSpacing="0.08em">
+        VPC
+      </text>
+
+      <ASubnet x={192} y={104} w={366} h={76} label="Public subnet" tone="public" />
+      <ASubnet x={192} y={200} w={366} h={82} label="Private subnet" tone="private" />
+      <ASubnet x={192} y={326} w={366} h={84} label="Private subnet" tone="private" />
+
+      {/* Internet Gateway */}
+      <rect x={230} y={65} width={110} height={26} rx="13" fill={CARD} stroke={C_NET} strokeWidth="1.4" />
+      <text x={285} y={82} textAnchor="middle" fontSize="10.5" fontWeight="800" fill={C_NET} fontFamily={SANS}>
+        Internet Gateway
+      </text>
+
+      <ANode x={202} y={124} w={166} h={48} label="ALB" sub="負荷分散" color={C_NET} />
+      <ANode x={384} y={124} w={164} h={48} label="NAT Gateway" sub="外部通信の出口" color={C_NET} />
+      <ANode x={202} y={220} w={180} h={54} label="ECS / Fargate" sub="アプリ処理の中心" color={C_APP} />
+      <ANode x={420} y={220} w={128} h={54} label="VPC Endpoint" sub="閉域でAWS接続" color={C_NET} />
+      <ANode x={202} y={344} w={346} h={50} label="Aurora（MySQL互換）" sub="保有テナント情報・商圏プロファイル・成約実績" color={C_DATA} />
+
+      {/* ===== AI・地図サービス ===== */}
+      <ANode x={590} y={206} w={134} h={52} label="Location Service" sub="周辺の店舗・施設" color={C_AI} />
+      <ANode x={590} y={270} w={134} h={52} label="Bedrock" sub="判定・根拠の生成" color={C_AI} />
+
+      {/* ===================== フロー ===================== */}
+      {/* 1 入力 */}
+      <AFlow d="M91,32 V92" c={F_USER} marker="arw-fu" />
+      <AFlow d="M91,140 V152" c={F_USER} marker="arw-fu" />
+      <AFlow d="M161,18 H260 V65" c={F_USER} marker="arw-fu" />
+      <AFlow d="M285,91 V124" c={F_USER} marker="arw-fu" />
+      <AFlow d="M285,172 V220" c={F_USER} marker="arw-fu" />
+
+      {/* 2 周辺施設の取得 */}
+      <AFlow d="M382,252 H420" c={F_APP} marker="arw-fa" />
+      <AFlow d="M548,232 H590" c={F_APP} marker="arw-fa" />
+
+      {/* 3 公的データの取得 */}
+      <AFlow d="M382,234 H401 V172" c={F_APP} marker="arw-fa" />
+      <AFlow d="M466,124 V100 H330 V91" c={F_APP} marker="arw-fa" />
+      <AFlow d="M310,65 V22 H480" c={F_APP} marker="arw-fa" />
+
+      {/* 4 蓄積・照合 */}
+      <AFlow d="M240,274 V344" c={F_APP} marker="arw-fa" />
+      <AFlow d="M300,344 V274" c={F_APP} marker="arw-fa" />
+
+      {/* 5 AI判定 */}
+      <AFlow d="M548,262 H576 V296 H590" c={F_APP} marker="arw-fa" />
+
+      {/* 6 返却 */}
+      <AFlow d="M320,220 V172" c={F_USER} marker="arw-fu" />
+      <AFlow d="M202,148 H168 V18 H161" c={F_USER} marker="arw-fu" />
+
+      {/* 7 学習 */}
+      <AFlow d="M355,274 V344" c={F_STEP_GRAY} marker="arw-fg" dash />
+
+      {/* ===================== 番号バッジ ===================== */}
+      <StepBadge x={215} y={18} n="1" c={F_USER} />
+      <StepBadge x={401} y={252} n="2" c={F_APP} />
+      <StepBadge x={401} y={200} n="3" c={F_APP} />
+      <StepBadge x={270} y={310} n="4" c={F_APP} />
+      <StepBadge x={576} y={279} n="5" c={F_APP} />
+      <StepBadge x={168} y={85} n="6" c={F_USER} />
+      <StepBadge x={355} y={310} n="7" c={F_STEP_GRAY} />
+    </svg>
+  );
+}
+
+const SlideFlow = (
+  <Frame n={10}>
+    <Head
+      eyebrow="Data Flow / 処理の流れ"
+      title="1件の土地査定で、どこが周辺情報を取り、どこがAIで判定するか"
+      sub="8ページのインフラ構成の上を、① 〜 ⑦ の順にデータが流れます。"
+    />
+
+    <div style={{ flex: 1, display: 'flex', gap: 16, marginTop: 12, minHeight: 0 }}>
+      {/* 構成図 */}
+      <div style={{ flex: 1.95, minWidth: 0 }}>
+        <AwsDataFlow />
+      </div>
+
+      {/* 手順リスト */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, gap: 6 }}>
+        {FLOW_STEPS.map((s) => (
+          <div key={s.n} style={{ flex: 1, display: 'flex', gap: 9, alignItems: 'flex-start', background: CARD, border: `1px solid ${LINE}`, borderRadius: 8, padding: '7px 10px 8px', minHeight: 0 }}>
+            <span
+              style={{
+                width: 19,
+                height: 19,
+                borderRadius: 999,
+                background: s.c,
+                color: '#fff',
+                fontFamily: MONO,
+                fontSize: 10.5,
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginTop: 1,
+              }}
+            >
+              {s.n}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 11.5, fontWeight: 800, color: INK, lineHeight: 1.3 }}>{s.t}</p>
+              <p style={{ fontSize: 9.5, color: GRAPHITE, fontWeight: 600, lineHeight: 1.55, marginTop: 2 }}>{s.d}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </Frame>
+);
+
+/* ===================================================================== */
 /* SLIDE 6 — 開発スケジュールイメージ                                     */
 /* ===================================================================== */
 
@@ -1474,7 +1874,7 @@ const GANTT: GanttItem[] = [
 ];
 
 const Slide6 = (
-  <Frame n={9}>
+  <Frame n={11}>
     <Head eyebrow="Schedule / 開発スケジュールイメージ" title="9月受注 → 2月に貴社ご確認 → 3月リリース、以降フェーズ2へ" />
 
     <div style={{ flex: 1, marginTop: 16, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -1644,7 +2044,7 @@ function HeadCount({ n = 1 }: { n?: number }) {
 }
 
 const Slide9 = (
-  <Frame n={10}>
+  <Frame n={12}>
     <Head eyebrow="Team / 開発体制" title="PM 1名・エンジニア 2名。窓口を一本化した少数精鋭体制で進めます" />
 
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 14, minHeight: 0 }}>
@@ -2016,7 +2416,7 @@ function GrowthChart() {
 }
 
 const Slide7 = (
-  <Frame n={12}>
+  <Frame n={14}>
     <Head eyebrow="Goal / 叶えたいこと" title="成約率と1件あたり収益、その両輪で売上を伸ばす" />
 
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginTop: 16, minHeight: 0 }}>
@@ -2175,14 +2575,14 @@ const Section2 = (
     en="SYSTEM & AI DEVELOPMENT"
     jp="システムとAIの開発"
     lead="業務を回すシステムと、判断を支えるAI。それぞれで何ができるのか、そしてどのように開発を進めるのかをご説明します。"
-    items={['システムでできること', 'AIでできること', 'インフラ構成', '開発スケジュール']}
+    items={['システムでできること', 'AIでできること', 'インフラ構成', 'マッチングの仕組み', '開発スケジュール']}
   />
 );
 
 const Section3 = (
   <SectionSlide
     key="sec3"
-    n={11}
+    n={13}
     num="03"
     en="GROWTH WITH DX × IT"
     jp="DX×ITで事業を伸ばす"
@@ -2259,7 +2659,7 @@ export const asahiKaseiTenantDxPresentation: PresentationEntry = {
     id: 'asahi-kasei-tenant-dx-2026',
     title: 'テナント事業DX ／ テナントマッチング AIプラットフォーム構築のご提案',
     description:
-      '旭化成ホームズ株式会社 御中（全13枚）。AI開発による事業戦略立案。Overview（今回のミッション／現在の業務フローの課題整理と改善ポイント）／システムとAIの開発（システムでできること・AIでできること・AWSマネージドサービスによるインフラ構成イメージ・9月受注〜3月リリースの開発スケジュール・PM1名＋エンジニア2名の開発体制）／DX×ITで事業を伸ばす（成長ファクターと事業成長イメージ）の3章構成。ご提案元：Meece株式会社。',
+      '旭化成ホームズ株式会社 御中（全15枚）。AI開発による事業戦略立案。Overview（今回のミッション／現在の業務フローの課題整理と改善ポイント）／システムとAIの開発（システムでできること・AIでできること・AWSマネージドサービスによるインフラ構成イメージ・土地を商圏プロファイル化して保有テナント情報と突き合わせるマッチングの仕組み・構成図上を①〜⑦で追う処理の流れ・9月受注〜3月リリースの開発スケジュール・PM1名＋エンジニア2名の開発体制）／DX×ITで事業を伸ばす（成長ファクターと事業成長イメージ）の3章構成。ご提案元：Meece株式会社。',
     thumbnail: `linear-gradient(135deg, ${PAPER} 0%, ${ACCENT_SOFT} 55%, ${ACCENT} 130%)`,
     author: 'Meece株式会社',
     createdAt: '2026-07-30',
@@ -2273,10 +2673,12 @@ export const asahiKaseiTenantDxPresentation: PresentationEntry = {
     Slide4, //   6  システムでできること
     Slide5, //   7  AIでできること
     SlideInfra, // 8 インフラ構成イメージ（AWS）
-    Slide6, //   9  開発スケジュールイメージ
-    Slide9, //  10  開発体制
-    Section3, // 11 章扉 DX×ITで事業を伸ばす
-    Slide7, //  12  叶えたいこと
-    SlideEnd, // 13 END
+    SlideMatching, // 9 データとマッチングの仕組み
+    SlideFlow, // 10 処理の流れ（構成図上のデータフロー）
+    Slide6, //  11  開発スケジュールイメージ
+    Slide9, //  12  開発体制
+    Section3, // 13 章扉 DX×ITで事業を伸ばす
+    Slide7, //  14  叶えたいこと
+    SlideEnd, // 15 END
   ],
 };

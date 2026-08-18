@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
-import { useDrop } from 'react-dnd';
+import { useState, useEffect, useRef } from 'react';
+import { useDrag, useDrop } from 'react-dnd';
 import {
   LayoutDashboard, FolderOpen, Folder, FileText,
   Settings, LogOut, ChevronRight, ChevronDown, User, Users, UserPlus,
-  FolderPlus, Trash2, Pencil, X,
+  FolderPlus, Trash2, Pencil, X, Star, FolderInput, Download, Loader2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from './ConfirmDialog';
+import { MoveToFolderDialog } from './MoveToFolderDialog';
+import { exportPdf } from '../lib/exportPdf';
 import { toast } from '../lib/toast';
-import { Item, FolderItem } from '../types';
+import { Item, FileItem } from '../types';
+import { presentationRegistry } from '../../presentations/registry';
 import { DRAG_TYPE, DragItem } from '../dnd';
 
 interface SidebarProps {
@@ -23,23 +26,39 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-interface SidebarFolderRowProps {
+interface SidebarRowProps {
   item: Item;
   depth: number;
   isExpanded: boolean;
   isActive: boolean;
   hasChildren: boolean;
   onToggle: (e: React.MouseEvent) => void;
+  onExpand: () => void;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onLongPress: (x: number, y: number) => void;
 }
 
-function SidebarFolderRow({ item, depth, isExpanded, isActive, hasChildren, onToggle, onClick, onContextMenu }: SidebarFolderRowProps) {
+function SidebarRow({
+  item, depth, isExpanded, isActive, hasChildren,
+  onToggle, onExpand, onClick, onContextMenu, onLongPress,
+}: SidebarRowProps) {
   const { moveItemToFolder, isDescendantOf } = useApp();
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
 
+  // ドラッグ元（ファイル・フォルダどちらも掴める）
+  const [{ isDragging }, drag] = useDrag<DragItem, void, { isDragging: boolean }>({
+    type: DRAG_TYPE,
+    item: { id: item.id, itemType: item.type, parentId: item.parentId },
+    collect: m => ({ isDragging: m.isDragging() }),
+  }, [item.id, item.type, item.parentId]);
+
+  // ドロップ先（フォルダのみ受け付ける）
   const [{ isOver, canDrop }, drop] = useDrop<DragItem, void, { isOver: boolean; canDrop: boolean }>({
     accept: DRAG_TYPE,
     canDrop: (dragItem) => {
+      if (item.type !== 'folder') return false;
       if (dragItem.parentId === item.id) return false;
       if (dragItem.id === item.id) return false;
       if (dragItem.itemType === 'folder' && isDescendantOf(dragItem.id, item.id)) return false;
@@ -47,6 +66,95 @@ function SidebarFolderRow({ item, depth, isExpanded, isActive, hasChildren, onTo
     },
     drop: (dragItem) => {
       moveItemToFolder(dragItem.id, dragItem.itemType, item.id);
+      toast.move('移動しました');
+    },
+    collect: m => ({ isOver: m.isOver(), canDrop: m.canDrop() }),
+  }, [item.id, item.type, isDescendantOf]);
+
+  const highlight = isOver && canDrop;
+
+  // 閉じたフォルダの上でホバーし続けたら自動で開く（深い階層へドロップできるように）
+  useEffect(() => {
+    if (!isOver || !canDrop || isExpanded || !hasChildren) return;
+    const timer = setTimeout(onExpand, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOver, canDrop, isExpanded, hasChildren]);
+
+  // モバイル: 長押しでコンテキストメニュー
+  const clearLongPress = () => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  };
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    longPressFired.current = false;
+    const { clientX, clientY } = touch;
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      onLongPress(clientX, clientY);
+    }, 500);
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    clearLongPress();
+    // 長押しで開いたメニューが直後の click で閉じないように合成クリックを抑止
+    if (longPressFired.current) e.preventDefault();
+  };
+
+  return (
+    <div
+      ref={(node) => { drag(drop(node)); }}
+      onContextMenu={onContextMenu}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={clearLongPress}
+      onTouchCancel={clearLongPress}
+      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer active:cursor-grabbing ${
+        highlight ? 'bg-violet-200 ring-2 ring-violet-400 text-violet-700' :
+        isActive ? 'bg-gradient-to-r from-violet-100 to-pink-100 text-violet-700' :
+        'text-gray-700 hover:bg-violet-50'
+      } ${isDragging ? 'opacity-40' : 'opacity-100'}`}
+      style={{ paddingLeft: `${12 + depth * 20}px` }}
+    >
+      {item.type === 'folder' && hasChildren && (
+        <button onClick={onToggle} className="flex-shrink-0 p-0.5 hover:bg-violet-200 rounded">
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </button>
+      )}
+      {/* <button> だと HTML5 バックエンドのドラッグ開始を奪われるため div で実装 */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          if (longPressFired.current) { longPressFired.current = false; return; }
+          onClick();
+        }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+        className="flex items-center gap-2 flex-1 text-left min-w-0"
+      >
+        {item.type === 'folder' ? (
+          highlight ? <FolderOpen className="w-4 h-4 flex-shrink-0 text-violet-600" /> :
+          isExpanded ? <FolderOpen className="w-4 h-4 flex-shrink-0" /> :
+          <Folder className="w-4 h-4 flex-shrink-0" />
+        ) : (
+          <FileText className="w-4 h-4 flex-shrink-0" />
+        )}
+        <span className="truncate text-sm">{item.name}</span>
+      </div>
+    </div>
+  );
+}
+
+/** 「フォルダー」見出し自体をルート（未分類）へのドロップ先にする */
+function RootDropZone() {
+  const { moveItemToFolder } = useApp();
+
+  const [{ isOver, canDrop }, drop] = useDrop<DragItem, void, { isOver: boolean; canDrop: boolean }>({
+    accept: DRAG_TYPE,
+    canDrop: (dragItem) => dragItem.parentId !== null,
+    drop: (dragItem) => {
+      moveItemToFolder(dragItem.id, dragItem.itemType, null);
+      toast.move('ルートに移動しました');
     },
     collect: m => ({ isOver: m.isOver(), canDrop: m.canDrop() }),
   });
@@ -56,29 +164,11 @@ function SidebarFolderRow({ item, depth, isExpanded, isActive, hasChildren, onTo
   return (
     <div
       ref={drop}
-      onContextMenu={onContextMenu}
-      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-        highlight ? 'bg-violet-200 ring-2 ring-violet-400 text-violet-700' :
-        isActive ? 'bg-gradient-to-r from-violet-100 to-pink-100 text-violet-700' :
-        'text-gray-700 hover:bg-violet-50'
+      className={`px-3 py-2 text-xs uppercase tracking-wider rounded-lg transition-colors ${
+        highlight ? 'bg-violet-200 text-violet-700 ring-2 ring-violet-400' : 'text-gray-500'
       }`}
-      style={{ paddingLeft: `${12 + depth * 20}px` }}
     >
-      {item.type === 'folder' && hasChildren && (
-        <button onClick={onToggle} className="flex-shrink-0 p-0.5 hover:bg-violet-200 rounded">
-          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </button>
-      )}
-      <button onClick={onClick} className="flex items-center gap-2 flex-1 text-left min-w-0">
-        {item.type === 'folder' ? (
-          highlight ? <FolderOpen className="w-4 h-4 flex-shrink-0 text-violet-600" /> :
-          isExpanded ? <FolderOpen className="w-4 h-4 flex-shrink-0" /> :
-          <Folder className="w-4 h-4 flex-shrink-0" />
-        ) : (
-          <FileText className="w-4 h-4 flex-shrink-0" />
-        )}
-        <span className="truncate text-sm">{item.name}</span>
-      </button>
+      {highlight ? 'ルートに移動' : 'フォルダー'}
     </div>
   );
 }
@@ -86,18 +176,24 @@ function SidebarFolderRow({ item, depth, isExpanded, isActive, hasChildren, onTo
 type ContextMenuState = {
   x: number;
   y: number;
-  folderId: string;
-  folderName: string;
+  item: Item;
 } | null;
 
+type RenamingState = { id: string; name: string; type: 'file' | 'folder' } | null;
+
 export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, isOpen = false, onClose }: SidebarProps) {
-  const { items, setCurrentFolder, currentFolderId, deleteFolder, renameFolder } = useApp();
+  const {
+    items, setCurrentFolder, currentFolderId,
+    deleteFolder, renameFolder, updateStaticTitle, toggleStar,
+  } = useApp();
   const { profile, isAdmin, signOut } = useAuth();
   const { confirm } = useConfirm();
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
-  const [renamingFolder, setRenamingFolder] = useState<{ id: string; name: string } | null>(null);
+  const [renaming, setRenaming] = useState<RenamingState>(null);
   const [renameVal, setRenameVal] = useState('');
+  const [movingFile, setMovingFile] = useState<FileItem | null>(null);
+  const [pdfExportingId, setPdfExportingId] = useState<string | null>(null);
 
   useEffect(() => {
     const close = () => setContextMenu(null);
@@ -119,6 +215,10 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, i
     });
   };
 
+  const expandFolder = (folderId: string) => {
+    setExpandedFolders(prev => prev.has(folderId) ? prev : new Set(prev).add(folderId));
+  };
+
   const handleFolderClick = (folderId: string) => {
     setCurrentFolder(folderId);
     onViewChange('folder');
@@ -128,35 +228,48 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, i
   // ナビ操作したらモバイルドロワーを閉じる
   const go = (view: string) => { onViewChange(view); onClose?.(); };
 
-  const handleContextMenu = (e: React.MouseEvent, item: Item) => {
-    if (item.type !== 'folder') return;
-    e.preventDefault();
-    e.stopPropagation();
-    const x = e.clientX + 192 > window.innerWidth ? e.clientX - 192 : e.clientX;
-    const y = e.clientY + 148 > window.innerHeight ? e.clientY - 148 : e.clientY;
-    setContextMenu({ x, y, folderId: item.id, folderName: item.name });
+  const menuHeightFor = (item: Item) => {
+    const rows = item.type === 'folder'
+      ? 3
+      : 3 + (presentationRegistry.some(p => p.meta.id === item.id) ? 1 : 0);
+    return rows * 42 + 40; // 見出し + 余白込みの概算
   };
 
-  const handleRenameFolder = () => {
-    if (!contextMenu) return;
-    setRenamingFolder({ id: contextMenu.folderId, name: contextMenu.folderName });
-    setRenameVal(contextMenu.folderName);
+  const openContextMenu = (clientX: number, clientY: number, item: Item) => {
+    const height = menuHeightFor(item);
+    const x = clientX + 192 > window.innerWidth ? Math.max(8, clientX - 192) : clientX;
+    const y = clientY + height > window.innerHeight ? Math.max(8, window.innerHeight - height - 8) : clientY;
+    setContextMenu({ x, y, item });
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, item: Item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openContextMenu(e.clientX, e.clientY, item);
+  };
+
+  const handleStartRename = (item: Item) => {
+    setRenaming({ id: item.id, name: item.name, type: item.type });
+    setRenameVal(item.name);
     setContextMenu(null);
   };
 
   const handleRenameSubmit = async () => {
-    if (!renamingFolder) return;
+    if (!renaming) return;
     const trimmed = renameVal.trim();
-    if (trimmed && trimmed !== renamingFolder.name) {
-      await renameFolder(renamingFolder.id, trimmed);
-      toast.rename('フォルダ名を変更しました');
+    if (trimmed && trimmed !== renaming.name) {
+      if (renaming.type === 'folder') {
+        await renameFolder(renaming.id, trimmed);
+        toast.rename('フォルダ名を変更しました');
+      } else {
+        updateStaticTitle(renaming.id, trimmed);
+        toast.rename('名前を変更しました');
+      }
     }
-    setRenamingFolder(null);
+    setRenaming(null);
   };
 
-  const handleDeleteFolder = async () => {
-    if (!contextMenu) return;
-    const { folderId, folderName } = contextMenu;
+  const handleDeleteFolder = async (folderId: string, folderName: string) => {
     setContextMenu(null);
     const ok = await confirm({
       title: 'フォルダを削除',
@@ -167,6 +280,21 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, i
     if (ok) {
       await deleteFolder(folderId);
       toast.delete('フォルダを削除しました');
+    }
+  };
+
+  const handleExportPdf = async (fileId: string) => {
+    const pres = presentationRegistry.find(p => p.meta.id === fileId);
+    if (!pres || pdfExportingId) return;
+    setContextMenu(null);
+    setPdfExportingId(fileId);
+    try {
+      await exportPdf(pres);
+      toast.success('PDFをダウンロードしました');
+    } catch {
+      toast.error('PDF生成に失敗しました');
+    } finally {
+      setPdfExportingId(null);
     }
   };
 
@@ -181,18 +309,20 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, i
 
       return (
         <div key={item.id}>
-          <SidebarFolderRow
+          <SidebarRow
             item={item}
             depth={depth}
             isExpanded={isExpanded}
             isActive={isActive}
             hasChildren={hasChildren}
             onToggle={(e) => toggleFolder(e, item.id)}
+            onExpand={() => expandFolder(item.id)}
             onClick={() => {
               if (item.type === 'folder') handleFolderClick(item.id);
               else if (item.type === 'file') { onFileClick?.(item.id); onClose?.(); }
             }}
             onContextMenu={(e) => handleContextMenu(e, item)}
+            onLongPress={(x, y) => openContextMenu(x, y, item)}
           />
           {item.type === 'folder' && isExpanded && (
             <div>{renderFolderTree(item.id, depth + 1)}</div>
@@ -216,6 +346,91 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, i
       <span>{label}</span>
     </button>
   );
+
+  const renderContextMenu = () => {
+    if (!contextMenu) return null;
+    const { item } = contextMenu;
+    const isFile = item.type === 'file';
+    const file = isFile ? (item as FileItem) : null;
+    const hasPdf = isFile && presentationRegistry.some(p => p.meta.id === item.id);
+
+    return (
+      <div
+        className="fixed z-[60] bg-white rounded-xl shadow-2xl border border-gray-100 py-1 w-48"
+        style={{ top: contextMenu.y, left: contextMenu.x }}
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      >
+        <div className="px-4 py-1.5 text-xs text-gray-400 truncate border-b border-gray-100 mb-1">
+          {item.name}
+        </div>
+
+        {isFile ? (
+          <>
+            <button
+              onClick={() => handleStartRename(item)}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+            >
+              <Pencil className="w-4 h-4 text-violet-500" />
+              名前を変更
+            </button>
+            <button
+              onClick={() => { toggleStar(item.id); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+            >
+              <Star className="w-4 h-4 text-yellow-500" />
+              {file?.starred ? 'お気に入り解除' : 'お気に入り'}
+            </button>
+            <button
+              onClick={() => { setMovingFile(file); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+            >
+              <FolderInput className="w-4 h-4 text-violet-500" />
+              フォルダに移動
+            </button>
+            {hasPdf && (
+              <button
+                onClick={() => handleExportPdf(item.id)}
+                disabled={!!pdfExportingId}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors disabled:opacity-40"
+              >
+                {pdfExportingId === item.id
+                  ? <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
+                  : <Download className="w-4 h-4 text-violet-500" />
+                }
+                PDF出力
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => { onAddFolder(item.id); setContextMenu(null); }}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+            >
+              <FolderPlus className="w-4 h-4 text-violet-500" />
+              フォルダ新規作成
+            </button>
+            <button
+              onClick={() => handleStartRename(item)}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
+            >
+              <Pencil className="w-4 h-4 text-violet-500" />
+              名前を変更
+            </button>
+            <div className="border-t border-gray-100 my-1" />
+            <button
+              onClick={() => handleDeleteFolder(item.id, item.name)}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              削除
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -252,7 +467,7 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, i
 
           {/* Folder tree */}
           <div className="pt-4">
-            <div className="px-3 py-2 text-xs text-gray-500 uppercase tracking-wider">フォルダー</div>
+            <RootDropZone />
             {renderFolderTree(null)}
           </div>
 
@@ -305,21 +520,23 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, i
       </div>
 
       {/* Rename Dialog */}
-      {renamingFolder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setRenamingFolder(null)}>
+      {renaming && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4" onClick={() => setRenaming(null)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xs" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-gray-800 mb-4">フォルダ名を変更</h3>
+            <h3 className="text-base font-semibold text-gray-800 mb-4">
+              {renaming.type === 'folder' ? 'フォルダ名を変更' : '資料名を変更'}
+            </h3>
             <input
               type="text"
               value={renameVal}
               onChange={e => setRenameVal(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') setRenamingFolder(null); }}
+              onKeyDown={e => { if (e.key === 'Enter') handleRenameSubmit(); if (e.key === 'Escape') setRenaming(null); }}
               className="w-full border border-violet-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 mb-4"
               autoFocus
             />
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setRenamingFolder(null)}
+                onClick={() => setRenaming(null)}
                 className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 キャンセル
@@ -335,40 +552,17 @@ export function Sidebar({ currentView, onViewChange, onAddFolder, onFileClick, i
         </div>
       )}
 
-      {/* Context Menu */}
-      {contextMenu && (
-        <div
-          className="fixed z-50 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 w-48"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="px-4 py-1.5 text-xs text-gray-400 truncate border-b border-gray-100 mb-1">
-            {contextMenu.folderName}
-          </div>
-          <button
-            onClick={() => { onAddFolder(contextMenu.folderId); setContextMenu(null); }}
-            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-          >
-            <FolderPlus className="w-4 h-4 text-violet-500" />
-            フォルダ新規作成
-          </button>
-          <button
-            onClick={handleRenameFolder}
-            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-violet-50 transition-colors"
-          >
-            <Pencil className="w-4 h-4 text-violet-500" />
-            名前を変更
-          </button>
-          <div className="border-t border-gray-100 my-1" />
-          <button
-            onClick={handleDeleteFolder}
-            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            削除
-          </button>
-        </div>
+      {/* Move to folder */}
+      {movingFile && (
+        <MoveToFolderDialog
+          fileId={movingFile.id}
+          currentFolderId={movingFile.parentId}
+          onClose={() => setMovingFile(null)}
+        />
       )}
+
+      {/* Context Menu */}
+      {renderContextMenu()}
     </>
   );
 }
