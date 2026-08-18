@@ -20,7 +20,6 @@ import { aiLabPresentation } from './ai-lab';
 import { devticketPresentation } from './devticket';
 import { smallProjectPresentation } from './small-project';
 import { cadchangePresentation } from './cadchange';
-import { wealthadvisorPresentation } from './wealthadvisor';
 import { wealthadvisorV2Presentation } from './wealthadvisor-v2';
 import { asahiKaseiTenantDxPresentation } from './asahi-kasei-tenant-dx';
 import { mpCorePresentation } from './mp-core';
@@ -34,7 +33,6 @@ export const presentationRegistry: PresentationEntry[] = [
   devticketPresentation,
   smallProjectPresentation,
   cadchangePresentation,
-  wealthadvisorPresentation,
   wealthadvisorV2Presentation,
   asahiKaseiTenantDxPresentation,
   mpCorePresentation,
