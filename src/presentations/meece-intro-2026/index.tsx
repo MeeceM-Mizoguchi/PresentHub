@@ -48,6 +48,19 @@ import {
   Banknote,
   Server,
   Gauge,
+  Network,
+  FileText,
+  Newspaper,
+  Boxes,
+  Send,
+  Radio,
+  Lock,
+  TrendingUp,
+  ChevronRight,
+  ShieldCheck,
+  Fingerprint,
+  Share2,
+  PhoneCall,
 } from 'lucide-react';
 import type { PresentationEntry } from '../registry';
 import { OFFICE_MAP_IMAGE } from './officeMap';
@@ -75,7 +88,7 @@ const BORDER = '#E9ECF1';
 const GRAD = `linear-gradient(to right, ${CYAN}, ${VIOLET})`;
 
 const SLIDE = 'w-full h-[720px] relative overflow-hidden';
-const TOTAL = 21;
+const TOTAL = 31;
 
 /* ---------------- 共通パーツ ---------------- */
 
@@ -1066,6 +1079,1016 @@ const S20 = (
 const S21 = <Divider key="s21" no="03" en="RESULTS" ja="実績とご相談" lead="経営の理想を、テクノロジーで具現化してきた軌跡。" n={18} />;
 
 /* ============================================================
+   実績・プロダクトパート ─ ログイン画面モックと共通テンプレート
+   ============================================================ */
+
+type IconType = React.ComponentType<{ size?: number; color?: string }>;
+
+/** アプリ画面のウィンドウ枠 */
+function Win({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ flex: 1, background: '#FFFFFF', borderRadius: 14, border: `1px solid ${BORDER}`, boxShadow: '0 18px 44px rgba(13,27,62,0.14)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ height: 26, background: '#F1F3F7', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', padding: '0 11px', gap: 5, flexShrink: 0 }}>
+        {['#FF5F57', '#FEBC2E', '#28C840'].map((c) => (
+          <span key={c} style={{ width: 7, height: 7, borderRadius: 4, background: c }} />
+        ))}
+        <div style={{ marginLeft: 12, height: 13, width: 210, background: '#FFFFFF', borderRadius: 7, border: `1px solid ${BORDER}` }} />
+      </div>
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+/** 入力欄のモック */
+function Field({ label, ph, icon: Ic, dark, pill, accent, right }: {
+  label: string; ph: string; icon?: IconType; dark?: boolean; pill?: boolean; accent: string; right?: ReactNode;
+}) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
+        <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', color: dark ? 'rgba(255,255,255,0.5)' : '#9AA3B2' }}>{label}</span>
+        {right && <span style={{ marginLeft: 'auto' }}>{right}</span>}
+      </div>
+      <div style={{ position: 'relative', height: pill ? 32 : 30, borderRadius: pill ? 99 : 9, background: dark ? 'rgba(255,255,255,0.06)' : '#FAFBFC', border: `${pill ? 1.5 : 1}px solid ${dark ? 'rgba(255,255,255,0.14)' : '#E2E8F0'}`, display: 'flex', alignItems: 'center', padding: pill ? '0 14px' : '0 10px', gap: 8 }}>
+        {Ic && <Ic size={11} color={dark ? 'rgba(255,255,255,0.45)' : '#C4CBD6'} />}
+        <span style={{ fontSize: 9, fontWeight: 600, color: dark ? 'rgba(255,255,255,0.35)' : '#C4CBD6' }}>{ph}</span>
+        <span style={{ marginLeft: 'auto', width: 1.5, height: 11, background: accent, borderRadius: 1 }} />
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 画面 01：テナントマッチング（ログイン） ---------- */
+
+const GOLD = '#E6B422';
+const GOLD_DK = '#C9A01A';
+
+const SCREEN_TENANT = (
+  <Win>
+    {/* 左：ブランドパネル */}
+    <div style={{ width: 366, background: '#080B10', position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '22px 24px' }}>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(230,180,34,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(230,180,34,0.05) 1px, transparent 1px)`, backgroundSize: '34px 34px' }} />
+      <div style={{ position: 'absolute', width: 260, height: 260, borderRadius: '50%', background: `radial-gradient(circle, ${GOLD}26 0%, transparent 70%)`, top: -90, left: -80 }} />
+      <div style={{ position: 'absolute', width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.16) 0%, transparent 70%)', bottom: -80, right: -50 }} />
+
+      <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ width: 26, height: 26, borderRadius: 9, background: `linear-gradient(135deg, ${GOLD}, #F5D060)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 3px 12px ${GOLD}55` }}>
+            <Building2 size={13} color="#5C3A00" />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#FFFFFF', lineHeight: 1.3 }}>テナントマッチング</div>
+            <div style={{ fontSize: 6.5, fontWeight: 900, letterSpacing: '0.24em', color: GOLD }}>PRO EDITION</div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 'auto', marginBottom: 'auto', paddingTop: 18 }}>
+          <div style={{ fontSize: 6.5, fontWeight: 900, letterSpacing: '0.2em', color: `${GOLD}AA`, marginBottom: 9 }}>COMMERCIAL REAL ESTATE MATCHING</div>
+          <div style={{ fontSize: 25, fontWeight: 900, color: '#FFFFFF', lineHeight: 1.28, letterSpacing: '-0.03em' }}>
+            物件とテナントを<br />
+            <span style={{ color: GOLD }}>スマートに</span><br />
+            つなぐ
+          </div>
+          <p style={{ fontSize: 9, color: '#94A3B8', lineHeight: 1.85, margin: '11px 0 0', fontWeight: 600 }}>
+            仲介業務の打診・追跡・成約管理を、ひとつのプラットフォームで。
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          {[
+            { icon: MapPin, t: '物件情報を一元管理。ステータス追跡から地主連絡先まで。' },
+            { icon: Users, t: 'テナント企業DB。業態・エリア・面積条件で即検索。' },
+            { icon: Zap, t: 'マッチング実行で、候補企業へ打診メールを一括送信。' },
+            { icon: TrendingUp, t: '成約率・打診数をダッシュボードで可視化。' },
+          ].map((f) => (
+            <div key={f.t} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <div style={{ width: 21, height: 21, borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <f.icon size={10} color={GOLD} />
+              </div>
+              <span style={{ fontSize: 8.5, color: '#8E9AAC', lineHeight: 1.5, fontWeight: 600 }}>{f.t}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 22, paddingTop: 13, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          {[{ n: '1,200+', l: '登録物件数' }, { n: '340+', l: 'テナント企業' }, { n: '98%', l: '顧客満足度' }].map((s) => (
+            <div key={s.l}>
+              <div style={{ fontSize: 15, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{s.n}</div>
+              <div style={{ fontSize: 7.5, color: '#64748B', fontWeight: 700, marginTop: 4 }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* 右：フォーム */}
+    <div style={{ flex: 1, background: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '26px 32px', minWidth: 0 }}>
+      <div style={{ fontSize: 20, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.03em' }}>おかえりなさい</div>
+      <div style={{ fontSize: 9, color: '#9AA3B2', fontWeight: 600, marginTop: 5, marginBottom: 16 }}>アカウントにサインインしてください</div>
+
+      <div style={{ borderRadius: 11, background: '#FFFBEB', border: `1px solid ${GOLD}44`, padding: '10px 11px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7 }}>
+          <Shield size={9} color={GOLD_DK} />
+          <span style={{ fontSize: 7.5, fontWeight: 900, letterSpacing: '0.1em', color: GOLD_DK }}>デモアカウント</span>
+        </div>
+        {[{ n: '山田 太郎', r: '管理者', e: 'yamada@tm-pro.co.jp' }, { n: '田中 花子', r: '営業担当', e: 'tanaka@tm-pro.co.jp' }].map((a) => (
+          <div key={a.e} style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 8, background: 'rgba(230,180,34,0.1)', border: '1px solid rgba(230,180,34,0.18)', padding: '6px 9px', marginBottom: 5 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 8.5, fontWeight: 900, color: '#334155' }}>{a.n}<span style={{ fontWeight: 600, color: '#94A3B8' }}> / {a.r}</span></div>
+              <div style={{ fontSize: 7.5, color: '#94A3B8', fontWeight: 600 }}>{a.e}</div>
+            </div>
+            <ArrowRight size={10} color={GOLD} style={{ marginLeft: 'auto', flexShrink: 0 }} />
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Field label="メールアドレス" ph="your@company.co.jp" icon={Mail} accent={GOLD} />
+        <Field label="パスワード" ph="••••••••••" icon={Lock} accent={GOLD} right={<Eye size={11} color="#C4CBD6" />} />
+      </div>
+
+      <div style={{ marginTop: 16, height: 32, borderRadius: 10, background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DK})`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: `0 4px 16px ${GOLD}55` }}>
+        <ArrowRight size={12} color="#FFFFFF" />
+        <span style={{ fontSize: 11, fontWeight: 900, color: '#FFFFFF' }}>サインインする</span>
+      </div>
+      <div style={{ textAlign: 'center', fontSize: 7.5, color: '#CBD3DE', fontWeight: 600, marginTop: 16 }}>© 2026 テナントマッチング PRO. All rights reserved.</div>
+    </div>
+  </Win>
+);
+
+/* ---------- 画面 02：CADCHANGE（ログイン／設計図パネル） ---------- */
+
+const SCREEN_CAD = (
+  <Win>
+    <div style={{ flex: 1, background: 'linear-gradient(145deg,#EEF4FF 0%,#F0F5FF 42%,#E8F0FE 100%)', position: 'relative', overflow: 'hidden', minWidth: 0 }}>
+      <svg width="100%" height="100%" viewBox="0 0 460 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0 }}>
+        <defs>
+          <pattern id="bpDots" width="22" height="22" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.8" fill="rgba(37,99,235,0.22)" />
+          </pattern>
+          <pattern id="bpGrid" width="110" height="110" patternUnits="userSpaceOnUse">
+            <path d="M110 0 L0 0 0 110" fill="none" stroke="rgba(37,99,235,0.10)" strokeWidth="0.7" />
+          </pattern>
+          <pattern id="bpHatch" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="9" stroke="rgba(37,99,235,0.07)" strokeWidth="2.4" />
+          </pattern>
+          <marker id="bpArr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="rgba(37,99,235,0.5)" />
+          </marker>
+          <marker id="bpArrR" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse">
+            <path d="M0,0 L0,6 L6,3 z" fill="rgba(37,99,235,0.5)" />
+          </marker>
+        </defs>
+        <rect width="460" height="500" fill="url(#bpDots)" />
+        <rect width="460" height="500" fill="url(#bpGrid)" />
+
+        <g transform="translate(58,128)">
+          <rect x="0" y="0" width="278" height="176" fill="rgba(219,234,254,0.2)" stroke="rgba(37,99,235,0.7)" strokeWidth="1.6" />
+          <rect x="0" y="0" width="278" height="176" fill="url(#bpHatch)" />
+          {[[0, 0], [278, 0], [0, 176], [278, 176]].map(([cx, cy], i) => (
+            <g key={i}>
+              <circle cx={cx} cy={cy} r="4" fill="rgba(37,99,235,0.45)" />
+              <circle cx={cx} cy={cy} r="9" fill="none" stroke="rgba(37,99,235,0.3)" strokeWidth="0.7" />
+            </g>
+          ))}
+          <line x1="0" y1="54" x2="278" y2="54" stroke="rgba(185,28,28,0.6)" strokeWidth="1.2" strokeDasharray="10 4" />
+          <rect x="282" y="47" width="46" height="14" rx="3" fill="rgba(254,242,242,0.92)" stroke="rgba(185,28,28,0.4)" strokeWidth="0.7" />
+          <text x="305" y="57" textAnchor="middle" fill="rgba(185,28,28,0.9)" fontSize="7" fontWeight="800">90° UP</text>
+          <line x1="0" y1="124" x2="278" y2="124" stroke="rgba(29,78,216,0.6)" strokeWidth="1.2" strokeDasharray="4 4" />
+          <rect x="282" y="117" width="52" height="14" rx="3" fill="rgba(239,246,255,0.92)" stroke="rgba(29,78,216,0.4)" strokeWidth="0.7" />
+          <text x="308" y="127" textAnchor="middle" fill="rgba(29,78,216,0.9)" fontSize="7" fontWeight="800">90° DOWN</text>
+          {[[28, 27, 9], [250, 27, 9], [28, 149, 9], [250, 149, 9], [139, 88, 13], [72, 88, 7], [206, 88, 7]].map(([cx, cy, r], i) => (
+            <g key={i}>
+              <circle cx={cx} cy={cy} r={r} fill="rgba(255,251,235,0.85)" stroke="rgba(180,83,9,0.7)" strokeWidth="1.2" />
+              <line x1={cx - (r + 5)} y1={cy} x2={cx + (r + 5)} y2={cy} stroke="rgba(180,83,9,0.5)" strokeWidth="0.7" />
+              <line x1={cx} y1={cy - (r + 5)} x2={cx} y2={cy + (r + 5)} stroke="rgba(180,83,9,0.5)" strokeWidth="0.7" />
+              {i === 4 && <text x={cx} y={cy + r + 11} textAnchor="middle" fill="rgba(146,64,14,0.85)" fontSize="7" fontWeight="700">⌀18</text>}
+              {i === 0 && <text x={cx} y={cy + r + 11} textAnchor="middle" fill="rgba(146,64,14,0.85)" fontSize="7" fontWeight="700">⌀12</text>}
+            </g>
+          ))}
+          <line x1="0" y1="-19" x2="278" y2="-19" stroke="rgba(37,99,235,0.5)" strokeWidth="0.8" markerStart="url(#bpArrR)" markerEnd="url(#bpArr)" />
+          <rect x="103" y="-27" width="72" height="13" rx="3" fill="rgba(255,255,255,0.9)" />
+          <text x="139" y="-18" textAnchor="middle" fill="rgba(29,78,216,0.9)" fontSize="7.5" fontWeight="800">278.000 mm</text>
+          <line x1="-19" y1="0" x2="-19" y2="176" stroke="rgba(37,99,235,0.5)" strokeWidth="0.8" markerStart="url(#bpArrR)" markerEnd="url(#bpArr)" />
+          <rect x="-52" y="81" width="66" height="13" rx="3" fill="rgba(255,255,255,0.9)" transform="rotate(-90,-19,88)" />
+          <text x="-19" y="88" textAnchor="middle" fill="rgba(29,78,216,0.9)" fontSize="7.5" fontWeight="800" transform="rotate(-90,-19,88)">176.000 mm</text>
+          <rect x="186" y="130" width="86" height="38" rx="4" fill="rgba(255,255,255,0.86)" stroke="rgba(37,99,235,0.3)" strokeWidth="0.7" />
+          <text x="229" y="143" textAnchor="middle" fill="rgba(29,78,216,0.72)" fontSize="6" fontWeight="700">MATERIAL</text>
+          <text x="229" y="154" textAnchor="middle" fill="rgba(29,78,216,0.92)" fontSize="7.5" fontWeight="800">SS400 / t2.3</text>
+          <text x="229" y="164" textAnchor="middle" fill="rgba(100,116,139,0.85)" fontSize="6">± 0.05 mm</text>
+        </g>
+
+        <g transform="translate(352,52)" opacity="0.75">
+          <rect x="0" y="0" width="92" height="92" fill="none" stroke="rgba(37,99,235,0.4)" strokeWidth="0.8" strokeDasharray="4 3" />
+          <text x="46" y="-6" textAnchor="middle" fill="rgba(29,78,216,0.62)" fontSize="6.5" fontWeight="700">DETAIL A — 2:1</text>
+          <circle cx="46" cy="46" r="26" fill="rgba(219,234,254,0.18)" stroke="rgba(37,99,235,0.55)" strokeWidth="1.1" />
+          <circle cx="46" cy="46" r="12" fill="rgba(255,251,235,0.75)" stroke="rgba(180,83,9,0.6)" strokeWidth="1.1" />
+          <line x1="18" y1="46" x2="74" y2="46" stroke="rgba(180,83,9,0.4)" strokeWidth="0.7" />
+          <line x1="46" y1="18" x2="46" y2="74" stroke="rgba(180,83,9,0.4)" strokeWidth="0.7" />
+          <line x1="46" y1="46" x2="68" y2="27" stroke="rgba(37,99,235,0.45)" strokeWidth="0.7" markerEnd="url(#bpArr)" />
+          <rect x="66" y="16" width="30" height="12" rx="3" fill="rgba(255,255,255,0.9)" />
+          <text x="81" y="25" textAnchor="middle" fill="rgba(29,78,216,0.88)" fontSize="6.5" fontWeight="700">R18.0</text>
+        </g>
+
+        <g transform="translate(316,360)" opacity="0.7">
+          <text x="60" y="-8" textAnchor="middle" fill="rgba(29,78,216,0.62)" fontSize="6.5" fontWeight="700">SECTION B-B</text>
+          <rect x="0" y="0" width="120" height="40" fill="rgba(219,234,254,0.18)" stroke="rgba(37,99,235,0.5)" strokeWidth="1.2" />
+          {[0, 8, 16, 24, 32].map((y) => (
+            <line key={y} x1={0} y1={y} x2={Math.min(y + 40, 120)} y2={Math.max(y - 80, 0)} stroke="rgba(37,99,235,0.18)" strokeWidth="0.7" />
+          ))}
+          <line x1="-12" y1="0" x2="-12" y2="40" stroke="rgba(37,99,235,0.5)" strokeWidth="0.7" markerStart="url(#bpArrR)" markerEnd="url(#bpArr)" />
+          <rect x="-34" y="13" width="22" height="12" rx="3" fill="rgba(255,255,255,0.9)" />
+          <text x="-23" y="22" textAnchor="middle" fill="rgba(29,78,216,0.88)" fontSize="6.5" fontWeight="700">t2.3</text>
+        </g>
+
+        <g transform="translate(24,414)" opacity="0.65">
+          <rect x="0" y="0" width="230" height="60" fill="rgba(255,255,255,0.6)" stroke="rgba(37,99,235,0.3)" strokeWidth="0.8" />
+          <line x1="0" y1="17" x2="230" y2="17" stroke="rgba(37,99,235,0.25)" strokeWidth="0.6" />
+          <line x1="0" y1="40" x2="230" y2="40" stroke="rgba(37,99,235,0.16)" strokeWidth="0.4" />
+          <line x1="115" y1="17" x2="115" y2="60" stroke="rgba(37,99,235,0.16)" strokeWidth="0.4" />
+          <text x="115" y="12" textAnchor="middle" fill="rgba(29,78,216,0.82)" fontSize="7.5" fontWeight="800">CADCHANGE SYSTEM — SS400</text>
+          <text x="34" y="31" textAnchor="middle" fill="rgba(37,99,235,0.68)" fontSize="6.5">DRAWN: AI-OCR</text>
+          <text x="166" y="31" textAnchor="middle" fill="rgba(37,99,235,0.68)" fontSize="6.5">SCALE: 1:2.5</text>
+          <text x="34" y="52" textAnchor="middle" fill="rgba(37,99,235,0.55)" fontSize="6">REV: A</text>
+          <text x="166" y="52" textAnchor="middle" fill="rgba(37,99,235,0.55)" fontSize="6">DWG: 49700</text>
+        </g>
+
+        <g transform="translate(272,318)" opacity="0.6">
+          <rect x="0" y="0" width="14" height="13" fill="none" stroke="rgba(37,99,235,0.5)" strokeWidth="0.7" />
+          <rect x="14" y="0" width="42" height="13" fill="none" stroke="rgba(37,99,235,0.5)" strokeWidth="0.7" />
+          <rect x="56" y="0" width="20" height="13" fill="none" stroke="rgba(37,99,235,0.5)" strokeWidth="0.7" />
+          <text x="7" y="10" textAnchor="middle" fill="rgba(29,78,216,0.8)" fontSize="8">⏥</text>
+          <text x="35" y="10" textAnchor="middle" fill="rgba(29,78,216,0.8)" fontSize="6.5">0.05</text>
+          <text x="66" y="10" textAnchor="middle" fill="rgba(29,78,216,0.8)" fontSize="6.5">A</text>
+        </g>
+        <g transform="translate(190,336)" opacity="0.6">
+          <polygon points="0,0 7,12 -7,12" fill="rgba(37,99,235,0.6)" />
+          <rect x="-9" y="12" width="18" height="12" rx="2" fill="none" stroke="rgba(37,99,235,0.5)" strokeWidth="0.7" />
+          <text x="0" y="21" textAnchor="middle" fill="rgba(29,78,216,0.85)" fontSize="7" fontWeight="700">A</text>
+        </g>
+      </svg>
+    </div>
+
+    <div style={{ width: 250, flexShrink: 0, background: '#FFFFFF', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '26px 24px', boxShadow: '-8px 0 30px rgba(15,23,42,0.10)' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg,#1D4ED8,#2563EB,#60A5FA)' }} />
+
+      <div style={{ display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 8, padding: '5px 12px 5px 5px', borderRadius: 10, background: '#EFF6FF', border: '1px solid rgba(37,99,235,0.16)', marginBottom: 16 }}>
+        <div style={{ width: 26, height: 26, borderRadius: 8, background: 'linear-gradient(135deg,#1E40AF,#2563EB)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Code2 size={13} color="#FFFFFF" />
+        </div>
+        <div>
+          <div style={{ fontSize: 7, fontWeight: 700, color: '#64748B', lineHeight: 1.3 }}>CAD自動生成システム</div>
+          <div style={{ fontSize: 11, fontWeight: 900, color: '#1E3A8A', letterSpacing: '0.05em', lineHeight: 1.3 }}>CADCHANGE</div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 19, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.03em', marginBottom: 6 }}>ログイン</div>
+      <p style={{ fontSize: 9, color: '#64748B', lineHeight: 1.7, margin: '0 0 18px', fontWeight: 600 }}>
+        CADCHANGE にアクセスするには<br />認証情報を入力してください
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Field label="ユーザーID" ph="ユーザーIDを入力" icon={User} accent="#2563EB" />
+        <Field label="パスワード" ph="パスワードを入力" icon={Lock} accent="#2563EB" right={<span style={{ fontSize: 7.5, color: '#2563EB', fontWeight: 700 }}>パスワードを忘れた場合</span>} />
+      </div>
+
+      <div style={{ marginTop: 16, height: 33, borderRadius: 10, background: 'linear-gradient(135deg,#1E40AF 0%,#2563EB 55%,#3B82F6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, boxShadow: '0 5px 18px rgba(37,99,235,0.42)' }}>
+        <span style={{ fontSize: 11, fontWeight: 900, color: '#FFFFFF' }}>ログイン</span>
+        <ChevronRight size={12} color="#FFFFFF" />
+      </div>
+
+      <div style={{ marginTop: 16, padding: '9px 11px', borderRadius: 10, background: 'linear-gradient(135deg,#F8FAFC,#F1F5F9)', border: '1px solid #EEF1F6' }}>
+        <div style={{ fontSize: 7.5, fontWeight: 800, color: '#64748B', marginBottom: 4, letterSpacing: '0.04em' }}>デモアカウント</div>
+        <div style={{ display: 'flex', gap: 14 }}>
+          {[['ID：', 'admin'], ['PW：', 'admin']].map(([l, v]) => (
+            <div key={l}>
+              <span style={{ fontSize: 7.5, color: '#94A3B8', fontWeight: 700 }}>{l}</span>
+              <span style={{ fontSize: 9, fontWeight: 900, color: '#1E293B' }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </Win>
+);
+
+/* ---------- 画面 03：AI記事自動生成（ログイン／ダーク中央） ---------- */
+
+const SCREEN_NEWS = (
+  <Win>
+    <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'linear-gradient(150deg,#150F2E 0%,#1E1547 45%,#241958 100%)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <svg width="100%" height="100%" viewBox="0 0 700 500" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, opacity: 0.9 }}>
+        <defs>
+          <pattern id="nvGrid" width="46" height="46" patternUnits="userSpaceOnUse">
+            <path d="M46 0 L0 0 0 46" fill="none" stroke="rgba(157,114,255,0.09)" strokeWidth="0.7" />
+          </pattern>
+          <linearGradient id="nvArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(157,114,255,0.22)" />
+            <stop offset="100%" stopColor="rgba(157,114,255,0)" />
+          </linearGradient>
+        </defs>
+        <rect width="700" height="500" fill="url(#nvGrid)" />
+        <path d="M0 400 L60 372 L120 386 L180 330 L240 348 L300 286 L360 300 L420 240 L480 262 L540 196 L600 214 L660 158 L700 172 L700 500 L0 500 Z" fill="url(#nvArea)" />
+        <path d="M0 400 L60 372 L120 386 L180 330 L240 348 L300 286 L360 300 L420 240 L480 262 L540 196 L600 214 L660 158 L700 172" fill="none" stroke="rgba(185,156,255,0.5)" strokeWidth="1.6" />
+        {[[60, 372], [180, 330], [300, 286], [420, 240], [540, 196], [660, 158]].map(([cx, cy], i) => (
+          <circle key={i} cx={cx} cy={cy} r="2.6" fill="#B99CFF" />
+        ))}
+      </svg>
+      <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(157,114,255,0.3) 0%, transparent 70%)', top: -120, right: -60 }} />
+
+      <div style={{ position: 'relative', zIndex: 2, height: 26, borderBottom: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', gap: 20, padding: '0 16px', background: 'rgba(0,0,0,0.22)', flexShrink: 0 }}>
+        {[
+          { t: '日経平均', v: '38,420.15', d: '▲ 0.82%', up: true },
+          { t: 'TOPIX', v: '2,714.63', d: '▲ 0.44%', up: true },
+          { t: 'USD/JPY', v: '152.31', d: '▼ 0.12%', up: false },
+          { t: '国内株式ファンド 資金流入', v: '3ヶ月連続', d: '＋', up: true },
+        ].map((k) => (
+          <div key={k.t} style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 7.5, fontWeight: 800, color: 'rgba(255,255,255,0.42)' }}>{k.t}</span>
+            <span style={{ fontSize: 8.5, fontWeight: 900, color: '#FFFFFF' }}>{k.v}</span>
+            <span style={{ fontSize: 7.5, fontWeight: 900, color: k.up ? '#4ADE80' : '#FB7185' }}>{k.d}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 2, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+        <div style={{ width: 320, borderRadius: 18, background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.13)', boxShadow: '0 24px 60px rgba(0,0,0,0.42)', padding: '24px 26px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 18 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg,#9D72FF,#6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 16px rgba(109,40,217,0.55)' }}>
+              <Newspaper size={14} color="#FFFFFF" />
+            </div>
+            <div>
+              <div style={{ fontSize: 6.5, fontWeight: 900, letterSpacing: '0.22em', color: '#B99CFF' }}>AI CONTENT DESK</div>
+              <div style={{ fontSize: 12, fontWeight: 900, color: '#FFFFFF', lineHeight: 1.35 }}>記事自動生成システム</div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 17, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em', marginBottom: 5 }}>サインイン</div>
+          <p style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.48)', margin: '0 0 16px', fontWeight: 600 }}>編集部アカウントでログインしてください</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <Field label="社員ID" ph="editorial-0000" icon={User} dark accent="#B99CFF" />
+            <Field label="パスワード" ph="••••••••••" icon={Lock} dark accent="#B99CFF" right={<Eye size={11} color="rgba(255,255,255,0.4)" />} />
+          </div>
+
+          <div style={{ marginTop: 15, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#9D72FF,#6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(109,40,217,0.5)' }}>
+            <span style={{ fontSize: 11, fontWeight: 900, color: '#FFFFFF' }}>サインイン</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '13px 0' }}>
+            <span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+            <span style={{ fontSize: 7.5, fontWeight: 700, color: 'rgba(255,255,255,0.32)' }}>または</span>
+            <span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+          </div>
+
+          <div style={{ height: 30, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+            <Shield size={11} color="rgba(255,255,255,0.7)" />
+            <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.82)' }}>社内 SSO でログイン</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 2, height: 28, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', padding: '0 16px', flexShrink: 0 }}>
+        <span style={{ fontSize: 7.5, fontWeight: 700, color: 'rgba(255,255,255,0.35)' }}>社内ネットワークからのみ接続できます</span>
+        <span style={{ marginLeft: 'auto', fontSize: 7.5, fontWeight: 700, color: 'rgba(255,255,255,0.25)' }}>v1.4.0 ／ 本番環境</span>
+      </div>
+    </div>
+  </Win>
+);
+
+/* ---------- 画面 04：MP Core（ログイン／基幹システム） ---------- */
+
+const SCREEN_CORE = (
+  <Win>
+    <div style={{ flex: 1, background: '#EEF1F5', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ height: 44, background: 'linear-gradient(100deg,#0F766E 0%,#155E75 45%,#1D4ED8 100%)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 10, flexShrink: 0 }}>
+        <div style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.24)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Server size={13} color="#FFFFFF" />
+        </div>
+        <div>
+          <div style={{ fontSize: 6.5, fontWeight: 900, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.55)' }}>CORE BUSINESS SYSTEM</div>
+          <div style={{ fontSize: 12.5, fontWeight: 900, color: '#FFFFFF', letterSpacing: '0.01em', lineHeight: 1.3 }}>MP Core</div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 7.5, fontWeight: 800, color: 'rgba(255,255,255,0.6)' }}>環境</span>
+          <span style={{ fontSize: 8, fontWeight: 900, color: '#FFFFFF', background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.24)', borderRadius: 99, padding: '3px 10px' }}>本番</span>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, padding: 16 }}>
+        <div style={{ width: 356, background: '#FFFFFF', borderRadius: 14, border: '1px solid #DFE4EC', boxShadow: '0 14px 38px rgba(15,23,42,0.10)', overflow: 'hidden' }}>
+          <div style={{ padding: '20px 26px 22px' }}>
+            <div style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.2em', color: '#94A3B8', marginBottom: 6 }}>AUTHENTICATION</div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 16 }}>業務システムへログイン</div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Field label="社員番号" ph="000000" icon={User} accent="#1D4ED8" />
+              <Field label="パスワード" ph="••••••••••" icon={Lock} accent="#1D4ED8" right={<Eye size={11} color="#C4CBD6" />} />
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                <ShieldCheck size={10} color="#0F766E" />
+                <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', color: '#9AA3B2' }}>ワンタイムコード</span>
+                <span style={{ marginLeft: 'auto', fontSize: 7.5, fontWeight: 800, color: '#0F766E' }}>残り 00:42</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {['4', '1', '8', '', '', ''].map((d, i) => (
+                  <div key={i} style={{ flex: 1, height: 30, borderRadius: 8, background: d ? '#FFFFFF' : '#FAFBFC', border: `1px solid ${i === 3 ? '#1D4ED8' : '#E2E8F0'}`, boxShadow: i === 3 ? '0 0 0 3px rgba(29,78,216,0.12)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: '#0F172A' }}>{d}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 16, height: 33, borderRadius: 10, background: 'linear-gradient(135deg,#1D4ED8,#0F766E)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 5px 18px rgba(29,78,216,0.35)' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 900, color: '#FFFFFF' }}>ログイン</span>
+              <ChevronRight size={12} color="#FFFFFF" />
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid #EEF1F6', background: '#FAFBFD', padding: '10px 26px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Shield size={10} color="#94A3B8" />
+            <span style={{ fontSize: 7.5, fontWeight: 700, color: '#8B94A3', lineHeight: 1.5 }}>本システムの操作内容はすべて記録されます。</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ height: 28, borderTop: '1px solid #E2E7EE', background: '#F7F9FC', display: 'flex', alignItems: 'center', padding: '0 16px', flexShrink: 0 }}>
+        <span style={{ fontSize: 7.5, fontWeight: 700, color: '#98A1AE' }}>MP Core v1.2.0 ／ 移行フェーズ 1</span>
+        <span style={{ marginLeft: 'auto', fontSize: 7.5, fontWeight: 700, color: '#98A1AE' }}>社内ヘルプデスク 内線 4120</span>
+      </div>
+    </div>
+  </Win>
+);
+
+/* ---------- 画面 05：Looop Connect（ログイン／中央カード） ---------- */
+
+const SCREEN_LOOOP = (
+  <Win>
+    <div style={{ flex: 1, background: '#F7FAFC', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 0, padding: 20 }}>
+      <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: 'rgba(252,212,0,0.28)', filter: 'blur(70px)', top: -80, right: -50 }} />
+      <div style={{ position: 'absolute', width: 260, height: 260, borderRadius: '50%', background: 'rgba(0,88,148,0.16)', filter: 'blur(70px)', bottom: -80, left: -50 }} />
+
+      <div style={{ position: 'relative', zIndex: 2, width: 330 }}>
+        {/* ロゴ */}
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+            <div style={{ width: 30, height: 30, background: '#0071BC', borderRadius: 9, borderTopRightRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Share2 size={15} color="#FFFFFF" />
+            </div>
+            <span style={{ fontSize: 19, fontWeight: 900, color: '#181C1E', letterSpacing: '-0.02em' }}>Looop Connect</span>
+          </div>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: '#404751' }}>コールセンター支援システム</div>
+        </div>
+
+        {/* カード */}
+        <div style={{ background: '#FFFFFF', borderRadius: 14, boxShadow: '0 12px 40px rgba(24,28,30,0.09)', border: '1px solid rgba(192,199,211,0.3)', padding: '22px 24px' }}>
+          <div style={{ fontSize: 15, fontWeight: 900, color: '#181C1E', marginBottom: 4 }}>おかえりなさい</div>
+          <p style={{ fontSize: 9, color: '#404751', margin: '0 0 16px', fontWeight: 600, lineHeight: 1.6 }}>オペレーター情報を入力してセッションを開始してください。</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+            <Field label="オペレーターID" ph="IDを入力してください" icon={User} pill accent="#0071BC" />
+            <Field label="パスワード" ph="パスワードを入力してください" icon={Lock} pill accent="#0071BC" right={<span style={{ fontSize: 7.5, color: '#005894', fontWeight: 800 }}>パスワードを忘れた場合</span>} />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 13 }}>
+            <span style={{ width: 11, height: 11, borderRadius: 3, border: '1.5px solid #C0C7D3', background: '#FFFFFF', flexShrink: 0 }} />
+            <span style={{ fontSize: 9, fontWeight: 600, color: '#404751' }}>ログイン情報を保持する</span>
+          </div>
+
+          <div style={{ marginTop: 15, height: 34, borderRadius: 10, background: '#0071BC', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 6px 18px rgba(0,88,148,0.28)' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 900, color: '#FFFFFF' }}>ログイン</span>
+            <ArrowRight size={12} color="#FFFFFF" />
+          </div>
+        </div>
+
+        {/* フッター */}
+        <div style={{ textAlign: 'center', marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 8, fontWeight: 700, color: '#404751' }}>
+            <span>システム v4.2.0</span>
+            <span style={{ width: 3, height: 3, borderRadius: 2, background: '#C0C7D3' }} />
+            <span>サポートセンター</span>
+          </div>
+          <div style={{ fontSize: 8, fontWeight: 600, color: '#8A94A3', marginTop: 5 }}>© 2026 Looop Connect. 全著作権所有。</div>
+        </div>
+      </div>
+    </div>
+  </Win>
+);
+
+/* ---------- 画面 06：Dev Ticket（ログイン） ---------- */
+
+const SCREEN_DEVTICKET = (
+  <Win>
+    <div style={{ width: 296, background: '#0F766E', position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px 26px' }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 70% 26%, rgba(255,255,255,0.09) 0%, transparent 60%), radial-gradient(circle at 18% 82%, rgba(0,0,0,0.12) 0%, transparent 52%)' }} />
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.2, backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
+
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 34 }}>
+          <div style={{ width: 26, height: 26, borderRadius: 9, background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 10px rgba(0,0,0,0.16)' }}>
+            <Ticket size={13} color="#0F766E" />
+          </div>
+          <span style={{ fontSize: 13, fontWeight: 900, color: '#FFFFFF' }}>Dev Ticket</span>
+        </div>
+        <div style={{ fontSize: 25, fontWeight: 900, color: '#FFFFFF', lineHeight: 1.32, letterSpacing: '-0.03em', marginBottom: 12 }}>
+          プロジェクトを、<br />スマートに。
+        </div>
+        <p style={{ fontSize: 9.5, color: '#99F6E4', lineHeight: 1.85, margin: 0, fontWeight: 600 }}>
+          チケット・スプリント・メンバーを一元管理。<br />チームの生産性を最大化するツール。
+        </p>
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 2, display: 'flex', gap: 24 }}>
+        {[{ n: '4件', l: '進行中PJ' }, { n: '5名', l: 'メンバー' }, { n: '87%', l: '完了率' }].map((s) => (
+          <div key={s.l}>
+            <div style={{ fontSize: 17, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{s.n}</div>
+            <div style={{ fontSize: 8, color: '#5EEAD4', fontWeight: 700, marginTop: 4 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div style={{ flex: 1, background: '#F5F6F8', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '24px 30px', minWidth: 0 }}>
+      <div style={{ fontSize: 19, fontWeight: 900, color: '#1C1917', letterSpacing: '-0.02em' }}>ログイン</div>
+      <div style={{ fontSize: 9, color: '#A8A29E', fontWeight: 600, marginTop: 4, marginBottom: 14 }}>アカウントにアクセスしてください</div>
+
+      <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #E7E5E4', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', padding: '18px 20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+          <Field label="メールアドレス" ph="you@company.com" icon={Mail} accent="#059669" />
+          <Field label="パスワード" ph="••••••••" icon={Lock} accent="#059669" />
+        </div>
+
+        <div style={{ marginTop: 15, height: 32, borderRadius: 10, background: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(5,150,105,0.3)' }}>
+          <span style={{ fontSize: 11, fontWeight: 900, color: '#FFFFFF' }}>ログイン</span>
+          <ArrowRight size={12} color="#FFFFFF" />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '13px 0' }}>
+          <span style={{ flex: 1, height: 1, background: '#E7E5E4' }} />
+          <span style={{ fontSize: 7.5, fontWeight: 700, color: '#A8A29E' }}>または</span>
+          <span style={{ flex: 1, height: 1, background: '#E7E5E4' }} />
+        </div>
+
+        <div style={{ height: 31, borderRadius: 10, background: '#FFFFFF', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+          <Fingerprint size={12} color="#047857" />
+          <span style={{ fontSize: 10.5, fontWeight: 900, color: '#047857' }}>生体認証でログイン</span>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12, background: '#FFFFFF', borderRadius: 11, border: '1px solid #E7E5E4', padding: '11px 14px' }}>
+        <div style={{ fontSize: 7.5, fontWeight: 900, letterSpacing: '0.12em', color: '#A8A29E', marginBottom: 7 }}>最近のログイン</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          {['mizoguchi@meece.io', 'suzuki@meece.io'].map((u) => (
+            <span key={u} style={{ fontSize: 8, fontWeight: 700, color: '#78716C', background: '#FAFAF9', border: '1px solid #E7E5E4', borderRadius: 7, padding: '4px 8px' }}>{u}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  </Win>
+);
+
+/* ---------- 画面 07：NegoNavi（ログイン） ---------- */
+
+const NegoMark = ({ size = 20, color = '#FFFFFF' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" style={{ flexShrink: 0 }}>
+    <path
+      fill={color}
+      fillRule="evenodd"
+      d="M6 3h11a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Zm9 9h11a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3V15a3 3 0 0 1 3-3Z"
+    />
+  </svg>
+);
+
+const SCREEN_NEGONAVI = (
+  <Win>
+    {/* 左：段そのものがグラフ */}
+    <div style={{ width: 378, position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '24px 26px' }}>
+      <svg width="100%" height="100%" viewBox="0 0 760 640" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
+        <rect width="760" height="640" fill="#04222B" />
+        <path d="M0 640V520l152-26v146z" fill="#0A3E4E" />
+        <path d="M152 640V494l152-44v190z" fill="#0D4C60" />
+        <path d="M304 640V450l152-62v252z" fill="#105C73" />
+        <path d="M456 640V388l152-84v336z" fill="#146D87" />
+        <path d="M608 640V304l152-104v440z" fill="#18809D" />
+        <g stroke="#fff" strokeOpacity=".18">
+          <path d="M0 506h152M152 480h152M304 436h152M456 374h152M608 290h152" />
+        </g>
+        <g fill="#fff">
+          <text x="22" y="546" fontSize="26" fontWeight="700" fillOpacity=".72">¥12.0M</text>
+          <text x="22" y="572" fontSize="17" fillOpacity=".44">初回接触 10%</text>
+          <text x="174" y="520" fontSize="26" fontWeight="700" fillOpacity=".76">¥2.8M</text>
+          <text x="174" y="546" fontSize="17" fillOpacity=".44">ヒアリング 25%</text>
+          <text x="326" y="476" fontSize="26" fontWeight="700" fillOpacity=".8">¥12.0M</text>
+          <text x="326" y="502" fontSize="17" fillOpacity=".48">提案 45%</text>
+          <text x="478" y="414" fontSize="28" fontWeight="700">¥12.9M</text>
+          <text x="478" y="440" fontSize="17" fillOpacity=".6">見積提出 65%</text>
+          <text x="630" y="330" fontSize="26" fontWeight="700" fillOpacity=".88">¥4.8M</text>
+          <text x="630" y="356" fontSize="17" fillOpacity=".54">クロージング 85%</text>
+        </g>
+        <circle cx="534" cy="374" r="11" fill="#8EF0FF" />
+        <circle cx="534" cy="374" r="20" fill="none" stroke="#8EF0FF" strokeOpacity=".5" strokeWidth="2.5" />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(4,34,43,0.92) 0%, rgba(4,34,43,0.6) 42%, rgba(4,34,43,0) 66%)' }} />
+
+      <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <NegoMark size={20} />
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.2em' }}>NEGONAVI</span>
+        </div>
+        <div style={{ marginTop: 26 }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#FFFFFF', lineHeight: 1.42, letterSpacing: '-0.035em', marginBottom: 10 }}>
+            商談を、<br />成約へナビゲート
+          </div>
+          <p style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.74)', lineHeight: 1.95, margin: 0, fontWeight: 500, maxWidth: 230 }}>
+            初回接触から受注まで。案件の現在地と着地予定を、ひとつの画面に。
+          </p>
+        </div>
+        <div style={{ marginTop: 'auto', fontSize: 8, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>© 2026 Meece株式会社</div>
+      </div>
+    </div>
+
+    {/* 右：フォーム */}
+    <div style={{ flex: 1, background: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '26px 34px', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 22, color: '#0E7490' }}>
+        <NegoMark size={15} color="#0E7490" />
+        <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0E7490', letterSpacing: '0.2em' }}>NEGONAVI</span>
+      </div>
+
+      <div style={{ fontSize: 21, fontWeight: 800, color: '#16232A', letterSpacing: '-0.03em', marginBottom: 5 }}>ログイン</div>
+      <p style={{ fontSize: 9, color: '#7B8B92', margin: '0 0 20px', fontWeight: 600, lineHeight: 1.65 }}>アカウントのメールアドレスとパスワードを入力してください。</p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+        <Field label="メールアドレス" ph="suzuki@meece.io" accent="#0E7490" />
+        <Field label="パスワード" ph="••••••••" accent="#0E7490" right={<span style={{ fontSize: 7.5, color: '#0E7490', fontWeight: 800 }}>お忘れですか？</span>} />
+      </div>
+
+      <div style={{ marginTop: 16, height: 33, borderRadius: 8, background: '#0E7490', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 5px 16px rgba(14,116,144,0.28)' }}>
+        <span style={{ fontSize: 11.5, fontWeight: 900, color: '#FFFFFF' }}>ログイン</span>
+      </div>
+
+      <div style={{ fontSize: 8.5, color: '#7B8B92', fontWeight: 600, marginTop: 14 }}>
+        招待メールをお持ちの方は <span style={{ color: '#0E7490', fontWeight: 800 }}>こちらから設定</span>
+      </div>
+
+      <div style={{ display: 'flex', gap: 14, marginTop: 18, paddingTop: 13, borderTop: '1px solid #E1E6E8' }}>
+        {['利用条件', 'プライバシー', 'Cookie の設定'].map((t) => (
+          <span key={t} style={{ fontSize: 8, color: '#9AA8AE', fontWeight: 600 }}>{t}</span>
+        ))}
+      </div>
+    </div>
+  </Win>
+);
+
+/* ---------- 実績・プロダクトのデータ ---------- */
+
+type Project = {
+  no: string;
+  en: string;
+  industry: string;
+  title: string;
+  short: string;
+  tags: string[];
+  headline: string;
+  lead: string;
+  icon: IconType;
+  color: string; // 明るい背景の上で使う色
+  accent: string; // ネイビー面の上で使う色
+  bg: string;
+  metaLine: string;
+  stack: string[];
+  screen: ReactNode;
+  notes: { icon: IconType; t: string; d: string }[];
+};
+
+const PROJECTS: Project[] = [
+  {
+    no: 'PROJECT 01',
+    en: 'REAL ESTATE',
+    industry: '大手不動産会社',
+    title: 'テナント事業DX ／ テナントマッチング AIプラットフォーム構築',
+    short: 'テナントマッチング AIプラットフォーム',
+    tags: ['AI開発', '事業戦略立案', 'AWS基盤設計'],
+    headline: '土地とテナントを、データでつなぐ。',
+    lead: '担当者の勘に頼っていた組み合わせを、スコアで可視化しました。',
+    icon: Building2,
+    color: '#0D9488',
+    accent: CYAN,
+    bg: '#E6FFFA',
+    metaLine: 'PM 1名 ＋ エンジニア 2名 ／ 約7ヶ月でリリース',
+    stack: ['AWS', 'Bedrock', 'Aurora', 'pgvector'],
+    screen: SCREEN_TENANT,
+    notes: [
+      { icon: Gauge, t: '適合度を、数字で見る', d: '商圏プロファイルと出店条件から0〜100点で採点。' },
+      { icon: Send, t: '選んで、一括で打診', d: 'メール送信から回答受領まで画面上で完結。' },
+      { icon: LayoutDashboard, t: '進捗は一覧で追う', d: '停滞している案件は自動でアラート。' },
+    ],
+  },
+  {
+    no: 'PROJECT 02',
+    en: 'MANUFACTURING',
+    industry: '金属加工会社',
+    title: 'CADCHANGE ／ 図面PDF → DXF 自動変換サービス',
+    short: 'CADCHANGE ／ 図面PDF → DXF 変換',
+    tags: ['生成AI活用', '機械学習', 'プロダクト開発'],
+    headline: '図面のPDFを、DXFに変える。',
+    lead: '外形・穴・曲げ線を読み取り、そのままCADデータへ書き出します。',
+    icon: Factory,
+    color: '#3182CE',
+    accent: '#5BC8E8',
+    bg: '#EBF8FF',
+    metaLine: '専用Webアプリとして開発 ／ 評価を機械学習へ還流',
+    stack: ['React', 'TypeScript', '生成AI', 'DXF'],
+    screen: SCREEN_CAD,
+    notes: [
+      { icon: FileText, t: 'PDFを入れるだけ', d: 'アップロードから解析・DXF生成まで一本道。' },
+      { icon: Brain, t: '設定値は、AIが作る', d: 'プロンプトをコピーし、回答を貼り戻すだけ。' },
+      { icon: Layers, t: '用途別にDXF出力', d: '図面用とCAM用、2種類を書き出せます。' },
+    ],
+  },
+  {
+    no: 'PROJECT 03',
+    en: 'FINANCE / SECURITIES',
+    industry: '大手証券グループ会社',
+    title: '投資信託レポート／ニュース記事 AI自動生成システム',
+    short: '投資信託レポート／記事 AI自動生成',
+    tags: ['生成AI', '業務自動化', '機械学習'],
+    headline: '収集から承認まで、AIで自動化。',
+    lead: '執筆も事実確認もAIが担い、最終承認だけを人が行う設計にしました。',
+    icon: Landmark,
+    color: VIOLET,
+    accent: '#B99CFF',
+    bg: '#F5F3FF',
+    metaLine: '4名体制 ／ 約2ヶ月で本番リリース',
+    stack: ['生成AI', 'RAG', '機械学習', 'CMS連携'],
+    screen: SCREEN_NEWS,
+    notes: [
+      { icon: Search, t: '材料集めから自動', d: '対象ソースを巡回し、必要な情報を集約。' },
+      { icon: Newspaper, t: '記事はAIが下書き', d: 'レポートもニュースも同じ流れで生成。' },
+      { icon: CheckCircle2, t: '最終承認は、人が', d: '事実確認の結果を見て、承認か差戻しか。' },
+    ],
+  },
+  {
+    no: 'PROJECT 04',
+    en: 'TELECOMMUNICATIONS',
+    industry: '大手通信事業会社',
+    title: '基幹システム「MP Core」フルスクラッチ開発プロジェクト',
+    short: '基幹システム「MP Core」フルスクラッチ開発',
+    tags: ['基幹システム', 'フルスクラッチ', 'データ移行'],
+    headline: '基幹システムを、まるごと作り替える。',
+    lead: '現行システムをトレースしながら、止めずに新基盤へ載せ替えます。',
+    icon: Radio,
+    color: PINK,
+    accent: '#FF8FC8',
+    bg: '#FFF5F7',
+    metaLine: '3フェーズで全面移行 ／ 両社にPM窓口を1名ずつ',
+    stack: ['AWS', 'API連携', 'マスタ設計', 'データ移行'],
+    screen: SCREEN_CORE,
+    notes: [
+      { icon: LayoutDashboard, t: '業務をひとつの画面に', d: '顧客・受注・在庫・配送・問合せを集約。' },
+      { icon: Network, t: '外部サービスと連携', d: '既存の連携先を止めずにつなぎ替え。' },
+      { icon: Boxes, t: '移行は専用フェーズで', d: '全データのカラム設計から作り直します。' },
+    ],
+  },
+  {
+    no: 'PROJECT 05',
+    en: 'ENERGY',
+    industry: '大手エネルギー開発事業会社',
+    title: 'Looop Connect ／ コンタクトセンター＆CRM システム',
+    short: 'Looop Connect ／ コンタクトセンター＆CRM',
+    tags: ['WebRTC開発', 'CRM構築', 'クラウド構成'],
+    headline: '電話とお客様情報を、ひとつに。',
+    lead: 'ブラウザだけで通話できるコンタクトセンター基盤を構築しました。',
+    icon: Zap,
+    color: '#D97706',
+    accent: '#FBBF24',
+    bg: '#FFFAF0',
+    metaLine: 'コンタクトセンター基盤の内製化 ／ クラウド構成',
+    stack: ['React', 'TypeScript', 'WebRTC', 'Supabase'],
+    screen: SCREEN_LOOOP,
+    notes: [
+      { icon: PhoneCall, t: 'ブラウザだけで通話', d: 'WebRTCで発着信。電話機器は不要です。' },
+      { icon: Users, t: '顧客の360度ビュー', d: '応対履歴をタイムラインで一望できます。' },
+      { icon: LayoutDashboard, t: '稼働状況を可視化', d: 'オペレーターの状態と統計を集約。' },
+    ],
+  },
+];
+
+const PRODUCTS: Project[] = [
+  {
+    no: 'PRODUCT 01',
+    en: 'PROJECT MANAGEMENT',
+    industry: 'Dev Ticket',
+    title: 'システム開発管理ツール「Dev Ticket」',
+    short: 'システム開発管理ツール',
+    tags: ['チケット管理', 'スプリント', 'AI連携'],
+    headline: 'プロジェクトを、スマートに。',
+    lead: 'チケット・スプリント・メンバーを一元管理する、開発現場のためのツール。',
+    icon: Ticket,
+    color: '#059669',
+    accent: '#34D399',
+    bg: '#ECFDF5',
+    metaLine: '2026年6月24日リリース ／ 自社プロダクト第一弾',
+    stack: ['React', 'TypeScript', 'Supabase', 'iOS / Mac'],
+    screen: SCREEN_DEVTICKET,
+    notes: [
+      { icon: LayoutDashboard, t: 'リスト・ボード・ガント', d: '3つのビューで進捗を追えます。' },
+      { icon: Users, t: 'スプリントとメンバー', d: '誰が何を持っているかが一目で分かる。' },
+      { icon: Sparkles, t: 'チケットからAIプロンプト', d: '実装指示をワンクリックで生成。' },
+    ],
+  },
+  {
+    no: 'PRODUCT 02',
+    en: 'SALES CRM / SFA',
+    industry: 'NegoNavi',
+    title: 'セールス管理ツール「NegoNavi」',
+    short: 'セールス管理ツール（CRM / SFA）',
+    tags: ['パイプライン', '見積・受注', '承認フロー'],
+    headline: '商談を、成約へナビゲート。',
+    lead: '初回接触から受注まで、案件の現在地と着地予定をひとつの画面に。',
+    icon: Handshake,
+    color: '#0E7490',
+    accent: '#22D3EE',
+    bg: '#ECFEFF',
+    metaLine: '独立型の営業管理SaaS ／ マルチテナント構成',
+    stack: ['React', 'TypeScript', 'Supabase', 'PDF出力'],
+    screen: SCREEN_NEGONAVI,
+    notes: [
+      { icon: BarChart3, t: 'パイプラインで見る', d: 'ステージ別の金額と着地見込みを可視化。' },
+      { icon: FileText, t: '見積・受注書まで', d: '作成から承認フローまで画面内で完結。' },
+      { icon: Ticket, t: '受注後は開発へ', d: 'Dev Ticket へプロジェクト化を依頼。' },
+    ],
+  },
+];
+
+/* ---------- 実績・プロダクトスライドのテンプレート ---------- */
+
+function ProjectSlide({ p, n, paper }: { p: Project; n: number; paper?: boolean }) {
+  return (
+    <div className={SLIDE} style={{ background: paper ? PAPER : '#FFFFFF', padding: '44px 64px 0' }}>
+      {/* ヘッダー */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 20 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
+            <span style={{ width: 22, height: 3, background: p.color, borderRadius: 2 }} />
+            <span style={{ fontSize: 10, letterSpacing: '0.2em', color: p.color, fontWeight: 900 }}>{p.no}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 900, color: INK }}>{p.industry}</span>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: FAINT }}>／ {p.short}</span>
+          </div>
+          <h2 style={{ fontSize: 34, fontWeight: 900, color: INK, letterSpacing: '-0.03em', margin: 0, lineHeight: 1.2 }}>{p.headline}</h2>
+        </div>
+        <p style={{ width: 372, fontSize: 12, color: MUTE, lineHeight: 1.85, margin: 0, fontWeight: 600, flexShrink: 0 }}>{p.lead}</p>
+      </div>
+
+      {/* 本体：ログイン画面 ＋ 補足 */}
+      <div style={{ display: 'flex', gap: 20, height: 530 }}>
+        {p.screen}
+
+        <div style={{ width: 300, display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
+          {p.notes.map((v, i) => (
+            <Card key={v.t} style={{ flex: 1, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 14, background: p.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+                <v.icon size={19} color={p.color} />
+                <span style={{ position: 'absolute', top: -5, left: -5, width: 17, height: 17, borderRadius: 9, background: p.color, color: '#FFFFFF', fontSize: 9, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 900, color: INK, marginBottom: 5, letterSpacing: '-0.01em' }}>{v.t}</div>
+                <p style={{ fontSize: 11.5, color: MUTE, lineHeight: 1.6, margin: 0, fontWeight: 600 }}>{v.d}</p>
+              </div>
+            </Card>
+          ))}
+
+          <Card style={{ height: 100, background: INK, border: 'none', padding: '15px 18px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+            <div style={{ fontSize: 9, letterSpacing: '0.16em', color: p.accent, fontWeight: 900, marginBottom: 7 }}>PROJECT DATA</div>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: '#FFFFFF', lineHeight: 1.5, marginBottom: 'auto' }}>{p.metaLine}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {p.stack.map((t) => (
+                <span key={t} style={{ fontSize: 9.5, fontWeight: 800, color: 'rgba(255,255,255,0.78)', background: 'rgba(255,255,255,0.09)', borderRadius: 6, padding: '3px 8px' }}>{t}</span>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+      <Foot n={n} />
+    </div>
+  );
+}
+
+/* ============================================================
+   19  主要な開発実績（サマリ）
+   ============================================================ */
+const R00 = (
+  <div key="r00" className={SLIDE} style={{ background: PAPER, padding: '46px 64px 0' }}>
+    <Head
+      eyebrow="Development Track Record"
+      title="主要な開発実績。"
+      lead="不動産・製造・金融・通信・エネルギー ── AIの実装から基幹システムの全面刷新まで、自社チームでご支援しています。"
+    />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+      {PROJECTS.map((p) => (
+        <Card key={p.no} style={{ padding: 0, height: 372, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ background: p.bg, height: 118, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <p.icon size={44} color={p.color} />
+            <div style={{ position: 'absolute', left: 15, top: 12, fontSize: 8.5, letterSpacing: '0.14em', color: p.color, fontWeight: 900 }}>{p.no}</div>
+          </div>
+          <div style={{ padding: '18px 18px 20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <div style={{ fontSize: 8.5, letterSpacing: '0.12em', color: FAINT, fontWeight: 900, marginBottom: 7 }}>{p.en}</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: INK, marginBottom: 10, letterSpacing: '-0.02em', lineHeight: 1.35 }}>{p.industry}</div>
+            <p style={{ fontSize: 11, color: MUTE, lineHeight: 1.7, margin: 0, fontWeight: 700 }}>{p.short}</p>
+            <div style={{ height: 1, background: BORDER, margin: '13px 0 12px' }} />
+            <div style={{ marginTop: 'auto', display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {p.tags.map((t) => (
+                <span key={t} style={{ fontSize: 9.5, fontWeight: 800, color: p.color, background: p.bg, borderRadius: 100, padding: '4px 9px' }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+    <Card style={{ marginTop: 16, padding: '15px 26px', background: INK, border: 'none', display: 'flex', alignItems: 'center', gap: 18 }}>
+      <span style={{ fontSize: 10, letterSpacing: '0.2em', color: CYAN, fontWeight: 900, flexShrink: 0 }}>ENTERPRISE</span>
+      <span style={{ fontSize: 14, color: '#FFFFFF', fontWeight: 800 }}>上場企業グループから中堅製造業まで。規模も産業も異なる現場で、AIと基幹の両輪を担っています。</span>
+    </Card>
+    <Foot n={19} />
+  </div>
+);
+
+/* ============================================================
+   20〜24  実績詳細（PROJECT 01〜05）
+   ============================================================ */
+const R01 = <ProjectSlide key="r01" p={PROJECTS[0]} n={20} />;
+const R02 = <ProjectSlide key="r02" p={PROJECTS[1]} n={21} paper />;
+const R03 = <ProjectSlide key="r03" p={PROJECTS[2]} n={22} />;
+const R04 = <ProjectSlide key="r04" p={PROJECTS[3]} n={23} paper />;
+const R05 = <ProjectSlide key="r05" p={PROJECTS[4]} n={24} />;
+
+/* ============================================================
+   27  章扉 04 PRODUCTS
+   ============================================================ */
+const P00 = <Divider key="p00" no="04" en="OUR PRODUCTS" ja="自社プロダクト" lead="受託開発の現場から生まれた、2つのプロダクト。" n={27} />;
+
+/* ============================================================
+   28  プロダクトラインナップ
+   ============================================================ */
+const P01 = (
+  <div key="p01" className={SLIDE} style={{ background: '#FFFFFF', padding: '46px 64px 0' }}>
+    <Head
+      eyebrow="Product Lineup"
+      title="つくる現場と、売る現場に。"
+      lead="開発マネジメントと営業マネジメント。自分たちが使うために作り、そのまま製品にしました。"
+    />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
+      {PRODUCTS.map((p) => (
+        <Card key={p.no} style={{ padding: 0, height: 384, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ background: p.bg, height: 132, display: 'flex', alignItems: 'center', gap: 20, padding: '0 30px' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 21, background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 6px 18px rgba(13,27,62,0.08)' }}>
+              <p.icon size={29} color={p.color} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 9, letterSpacing: '0.18em', color: p.color, fontWeight: 900, marginBottom: 6 }}>{p.no} ／ {p.en}</div>
+              <div style={{ fontSize: 30, fontWeight: 900, color: INK, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{p.industry}</div>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: p.color, marginTop: 6 }}>{p.short}</div>
+            </div>
+          </div>
+          <div style={{ padding: '22px 30px 24px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <p style={{ fontSize: 13, color: MUTE, lineHeight: 1.85, margin: 0, fontWeight: 600 }}>{p.lead}</p>
+            <div style={{ height: 1, background: BORDER, margin: '18px 0 16px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              {p.notes.map((v) => (
+                <div key={v.t} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 10, background: p.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <v.icon size={14} color={p.color} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: INK, flexShrink: 0 }}>{v.t}</span>
+                  <span style={{ fontSize: 11.5, color: MUTE, fontWeight: 600 }}>{v.d}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 'auto', display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 16 }}>
+              {p.stack.map((t) => (
+                <span key={t} style={{ fontSize: 10.5, fontWeight: 800, color: MUTE, background: PAPER, borderRadius: 7, padding: '5px 10px' }}>{t}</span>
+              ))}
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+    <Card style={{ marginTop: 16, padding: '15px 26px', background: INK, border: 'none', display: 'flex', alignItems: 'center', gap: 18 }}>
+      <span style={{ fontSize: 10, letterSpacing: '0.2em', color: CYAN, fontWeight: 900, flexShrink: 0 }}>IN-HOUSE</span>
+      <span style={{ fontSize: 14, color: '#FFFFFF', fontWeight: 800 }}>受注は NegoNavi、開発は Dev Ticket。商談から実装まで、自社の業務がそのまま製品になっています。</span>
+    </Card>
+    <Foot n={28} />
+  </div>
+);
+
+/* ============================================================
+   29〜30  プロダクト詳細
+   ============================================================ */
+const P02 = <ProjectSlide key="p02" p={PRODUCTS[0]} n={29} paper />;
+const P03 = <ProjectSlide key="p03" p={PRODUCTS[1]} n={30} />;
+
+/* ============================================================
    22  支援事例
    ============================================================ */
 const S22 = (
@@ -1125,7 +2148,7 @@ const S22 = (
         </Card>
       ))}
     </div>
-    <Foot n={19} />
+    <Foot n={25} />
   </div>
 );
 
@@ -1179,7 +2202,7 @@ const S23 = (
       </div>
       <div style={{ fontSize: 11, color: FAINT, fontWeight: 800, textAlign: 'right', marginTop: 8 }}>時間と事業規模の拡大 →</div>
     </Card>
-    <Foot n={20} />
+    <Foot n={26} />
   </div>
 );
 
@@ -1245,7 +2268,7 @@ export const meeceIntro2026Presentation: PresentationEntry = {
     id: 'meece-intro-2026',
     title: 'Meece株式会社 会社紹介（2026年度版）',
     description:
-      '他社ご紹介用の会社案内（全21枚・図解主体）。公式サイト最新情報に基づき、会社概要／代表挨拶／社名の由来（5つの産業）／沿革／行動指針、SERVICES（受託開発・AI研究開発・ITコンサルティング・多角的事業支援の4本柱とAIによる工期短縮）、TOPICS 2026（少額案件償却プロジェクト・AI開発ラボ・自社プロダクト「Dev Ticket」）、RESULTS（支援事例2件・対応産業とフェーズ）で構成。',
+      '他社ご紹介用の会社案内（全31枚・図解主体）。公式サイト最新情報に基づき、会社概要／代表挨拶／社名の由来（5つの産業）／沿革／行動指針、SERVICES（受託開発・AI研究開発・ITコンサルティング・多角的事業支援の4本柱とAIによる工期短縮）、TOPICS 2026（少額案件償却プロジェクト・AI開発ラボ・自社プロダクト「Dev Ticket」）、RESULTS（主要な開発実績サマリ＋実績詳細5件：大手不動産会社のテナントマッチングAIプラットフォーム／金属加工会社のCADCHANGE／大手証券グループ会社のAI記事自動生成システム／大手通信事業会社の基幹システム「MP Core」／大手エネルギー開発事業会社のLooop Connect、支援事例2件・対応産業とフェーズ）、OUR PRODUCTS（自社プロダクト2件：システム開発管理ツール「Dev Ticket」／セールス管理ツール「NegoNavi」）で構成。各実績はプロダクトのログイン画面モックを掲載。',
     thumbnail: `linear-gradient(135deg, ${INK} 0%, ${INK} 40%, ${CYAN} 72%, ${VIOLET} 100%)`,
     author: 'Meece株式会社',
     createdAt: '2026-08-18',
@@ -1269,8 +2292,18 @@ export const meeceIntro2026Presentation: PresentationEntry = {
     S19, // 16  AI開発ラボ
     S20, // 17  Dev Ticket（製品画面）
     S21, // 18  章扉 03 RESULTS
-    S22, // 19  支援事例
-    S23, // 20  対応産業とフェーズ
-    S24, // 21  END
+    R00, // 19  主要な開発実績（サマリ）
+    R01, // 20  実績 01 大手不動産会社（テナントマッチングAI）
+    R02, // 21  実績 02 金属加工会社（CADCHANGE）
+    R03, // 22  実績 03 大手証券グループ会社（AI記事自動生成）
+    R04, // 23  実績 04 大手通信事業会社（MP Core）
+    R05, // 24  実績 05 大手エネルギー開発事業会社（Looop Connect）
+    S22, // 25  支援事例
+    S23, // 26  対応産業とフェーズ
+    P00, // 27  章扉 04 PRODUCTS
+    P01, // 28  プロダクトラインナップ
+    P02, // 29  プロダクト 01 Dev Ticket
+    P03, // 30  プロダクト 02 NegoNavi
+    S24, // 31  END
   ],
 };
