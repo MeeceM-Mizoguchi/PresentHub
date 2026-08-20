@@ -823,74 +823,163 @@ const S16 = (
 const S17 = <Divider key="s17" no="02" en="TOPICS 2026" ja="新しい取り組み" lead="予算の壁を壊す新事業、高速PoC、そして自社プロダクト。" n={14} />;
 
 /* ============================================================
-   18  少額案件償却プロジェクト
+   16  少額案件償却プロジェクト（費用の話に一本化）
    ============================================================ */
 const S18 = (
   <div key="s18" className={SLIDE} style={{ background: PAPER, padding: '46px 64px 0' }}>
-    <Head eyebrow="Topic 01 / Small Project" title="システム開発は、100万円から。" lead="「予算が足りない」を、DXを諦める理由にしない。" />
+    <Head eyebrow="Topic 02 / Small Project" title="システム開発は、100万円から。" lead="「予算が足りない」を、DXを諦める理由にしない。" />
 
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.55fr', gap: 22 }}>
-      <Card style={{ background: INK, border: 'none', padding: '32px 34px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ fontSize: 10, letterSpacing: '0.2em', color: CYAN, fontWeight: 900, marginBottom: 22 }}>これまでの常識 → Meece</div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', letterSpacing: '-0.02em' }}>¥1,000万〜</div>
-        <div style={{ margin: '10px 0 12px' }}>
-          <ArrowRight size={22} color={CYAN} style={{ transform: 'rotate(90deg)' }} />
+    <div style={{ display: 'flex', gap: 22, height: 480 }}>
+      {/* 左：価格の常識を変える */}
+      <Card style={{ width: 420, background: INK, border: 'none', padding: '34px 36px', display: 'flex', flexDirection: 'column', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ fontSize: 10, letterSpacing: '0.2em', color: CYAN, fontWeight: 900, marginBottom: 24 }}>これまでの常識 → Meece</div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: 'rgba(255,255,255,0.38)', textDecoration: 'line-through', letterSpacing: '-0.02em' }}>¥1,000万〜</div>
+        <div style={{ margin: '12px 0 14px' }}>
+          <ArrowRight size={24} color={CYAN} style={{ transform: 'rotate(90deg)' }} />
         </div>
-        <div style={{ fontSize: 58, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.04em', lineHeight: 1 }}>¥100万〜</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 700, margin: '18px 0 26px' }}>最短1ヶ月／開発規模に上限なし</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 11, borderTop: '1px solid rgba(255,255,255,0.14)', paddingTop: 22 }}>
+        <div style={{ fontSize: 68, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.04em', lineHeight: 1 }}>¥100万〜</div>
+        <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.62)', fontWeight: 700, margin: '20px 0 28px', lineHeight: 1.7 }}>
+          小さく始めても、開発規模に上限はありません。
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 13, borderTop: '1px solid rgba(255,255,255,0.14)', paddingTop: 24 }}>
           {['AI駆動開発による高速化', '独自の開発フレームワーク', '少数精鋭の体制'].map((t) => (
             <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <CheckCircle2 size={15} color={CYAN} />
-              <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.88)', fontWeight: 700 }}>{t}</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.88)', fontWeight: 700 }}>{t}</span>
             </div>
           ))}
         </div>
       </Card>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ fontSize: 10, letterSpacing: '0.2em', color: CRIMSON, fontWeight: 900 }}>実績 ─ 従来の開発費との比較</div>
-        {[
-          { t: 'EC在庫一元管理システム', legacy: 2000, cost: 400, m: '1.5ヶ月', c: TEAL },
-          { t: '情報マッチングシステム', legacy: 1200, cost: 200, m: '1ヶ月', c: VIOLET },
-          { t: '社内ワークフローシステム', legacy: 1500, cost: 300, m: '2ヶ月', c: PINK },
-        ].map((r) => (
-          <Card key={r.t} style={{ padding: '18px 24px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 16, fontWeight: 900, color: INK }}>{r.t}</span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: FAINT }}>納期 {r.m}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
-              <span style={{ fontSize: 10, color: FAINT, fontWeight: 900, width: 44, flexShrink: 0 }}>従来</span>
-              <div style={{ flex: 1, height: 16, background: '#EDF0F5', borderRadius: 8 }} />
-              <span style={{ fontSize: 12.5, fontWeight: 800, color: FAINT, width: 96, textAlign: 'right', flexShrink: 0 }}>約{r.legacy.toLocaleString()}万円</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span style={{ fontSize: 10, color: r.c, fontWeight: 900, width: 44, flexShrink: 0 }}>MEECE</span>
-              <div style={{ flex: 1, height: 16, background: '#F5F7FA', borderRadius: 8, overflow: 'hidden' }}>
-                <div style={{ width: `${(r.cost / r.legacy) * 100}%`, height: '100%', background: r.c, borderRadius: 8 }} />
+      {/* 右：補助金との併用 */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: 18 }}>
+          <span style={{ width: 18, height: 3, background: AMBER, borderRadius: 2 }} />
+          <span style={{ fontSize: 10, letterSpacing: '0.2em', color: AMBER, fontWeight: 900 }}>SUBSIDY</span>
+          <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>補助金と組み合わせれば、さらに効果的。</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, height: 176 }}>
+          {[
+            { icon: Store, t: '小規模事業者\n持続化補助金', d: '販路開拓とあわせて申請。', c: TEAL, bg: '#E6FFFA' },
+            { icon: Sparkles, t: 'デジタル化・\nAI導入2026', d: '業務のデジタル化・AI活用に。', c: VIOLET, bg: '#F5F3FF' },
+            { icon: Factory, t: 'ものづくり\n補助金', d: '生産プロセスの改善を伴う開発に。', c: PINK, bg: '#FFF5F7' },
+          ].map((s) => (
+            <Card key={s.t} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ width: 38, height: 38, borderRadius: 13, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                <s.icon size={18} color={s.c} />
               </div>
-              <span style={{ fontSize: 17, fontWeight: 900, color: INK, width: 96, textAlign: 'right', flexShrink: 0 }}>{r.cost}万円</span>
+              <div style={{ fontSize: 14, fontWeight: 900, color: INK, marginBottom: 8, lineHeight: 1.45, whiteSpace: 'pre-line', letterSpacing: '-0.01em' }}>{s.t}</div>
+              <p style={{ fontSize: 11, color: MUTE, lineHeight: 1.7, margin: 0, fontWeight: 600 }}>{s.d}</p>
+            </Card>
+          ))}
+        </div>
+
+        {/* 自己負担のイメージ */}
+        <Card style={{ height: 202, padding: '20px 26px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 18 }}>
+            <Wallet size={16} color={AMBER} />
+            <span style={{ fontSize: 15, fontWeight: 900, color: INK }}>自己負担のイメージ</span>
+            <span style={{ fontSize: 11.5, color: MUTE, fontWeight: 700 }}>開発費 100万円 ／ 補助率 2/3 の制度を利用した場合</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', height: 46, borderRadius: 12, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
+                <div style={{ width: '66.7%', background: `linear-gradient(to right, ${AMBER}, #ECC94B)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: '#7B4A00' }}>補助金 約67万円</span>
+                </div>
+                <div style={{ width: '33.3%', background: INK, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: '#FFFFFF' }}>自己負担</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 9 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: FAINT }}>開発費 100万円</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: FAINT }}>実質のご負担はここだけ</span>
+              </div>
             </div>
-          </Card>
-        ))}
-        <Card style={{ padding: '13px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <Wallet size={16} color={VIOLET} />
-          <span style={{ fontSize: 12.5, fontWeight: 900, color: INK }}>補助金との相性も良好</span>
-          <span style={{ fontSize: 11.5, color: MUTE, fontWeight: 700 }}>小規模事業者持続化／デジタル化・AI導入2026／ものづくり補助金</span>
+            <div style={{ textAlign: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: 36, fontWeight: 900, color: CRIMSON, lineHeight: 1, letterSpacing: '-0.03em' }}>約33<span style={{ fontSize: 18 }}>万円</span></div>
+              <div style={{ fontSize: 11.5, fontWeight: 900, color: MUTE, marginTop: 7 }}>実質の自己負担</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 10, background: PAPER, borderRadius: 9, padding: '9px 14px' }}>
+            <Handshake size={14} color={TEAL} />
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: INK }}>申請書類の作成・事業計画づくりまで、あわせてご支援します。</span>
+          </div>
         </Card>
+
+        <div style={{ fontSize: 10, color: FAINT, fontWeight: 700, lineHeight: 1.7 }}>
+          ※ 補助率・上限額・対象要件は制度や公募回によって異なります。上図は補助率 2/3 と仮定した試算イメージです。<br />
+          ※ 補助金の採択を保証するものではありません。申請の可否は最新の公募要領をご確認ください。
+        </div>
       </div>
     </div>
-    <Foot n={15} />
+    <Foot n={16} />
   </div>
 );
 
 /* ============================================================
-   19  AI開発ラボ
+   15  AI開発ラボ
+   ------------------------------------------------------------
+   下段は「開発規模の例」を使った AS-IS / TO-BE の構成比ドーナツ。
    ============================================================ */
+
+/** ドーナツの1セグメント分のパスを返す（角度は12時起点・時計回り） */
+function donutArc(cx: number, cy: number, rO: number, rI: number, a0: number, a1: number) {
+  const pt = (r: number, a: number) => [cx + r * Math.sin(a), cy - r * Math.cos(a)] as const;
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  const [x0, y0] = pt(rO, a0);
+  const [x1, y1] = pt(rO, a1);
+  const [x2, y2] = pt(rI, a1);
+  const [x3, y3] = pt(rI, a0);
+  return `M${x0} ${y0} A${rO} ${rO} 0 ${large} 1 ${x1} ${y1} L${x2} ${y2} A${rI} ${rI} 0 ${large} 0 ${x3} ${y3} Z`;
+}
+
+/** 工程の構成比：従来 6ヶ月 → Meece 1ヶ月（中規模の開発を例に） */
+const PHASE_MIX = [
+  { t: '要件定義', c: TEAL, asis: 15, tobe: 35 },
+  { t: '設計', c: '#3182CE', asis: 20, tobe: 20 },
+  { t: '実装', c: VIOLET, asis: 45, tobe: 25 },
+  { t: 'テスト', c: PINK, asis: 20, tobe: 20 },
+];
+
+/** 期間短縮率：構成比 × 全体期間（従来6ヶ月／Meece1ヶ月）から算出 */
+const phaseCut = (asis: number, tobe: number) => Math.round((1 - (tobe * 1) / (asis * 6)) * 100);
+
+function MixDonut({ mode, total, label }: { mode: 'asis' | 'tobe'; total: string; label: string }) {
+  const GAP = 0.035; // セグメント間の隙間（rad）
+  let acc = 0;
+  return (
+    <svg width="100%" height="224" viewBox="0 0 236 224">
+      {PHASE_MIX.map((p) => {
+        const v = p[mode];
+        const a0 = acc * Math.PI * 2 + GAP / 2;
+        acc += v / 100;
+        const a1 = acc * Math.PI * 2 - GAP / 2;
+        const mid = (a0 + a1) / 2;
+        const lx = 118 + 88 * Math.sin(mid);
+        const ly = 106 - 88 * Math.cos(mid);
+        return (
+          <g key={p.t}>
+            <path d={donutArc(118, 106, 68, 44, a0, a1)} fill={mode === 'asis' ? `${p.c}59` : p.c} />
+            <text x={lx} y={ly + 4} textAnchor="middle" fontSize="11.5" fontWeight="900" fill={mode === 'asis' ? FAINT : p.c}>{v}%</text>
+          </g>
+        );
+      })}
+      <text x="118" y="98" textAnchor="middle" fontSize="10" fontWeight="900" fill={FAINT} letterSpacing="1.6">{label}</text>
+      <text x="118" y="126" textAnchor="middle" fontSize="26" fontWeight="900" fill={mode === 'asis' ? FAINT : INK} letterSpacing="-1">{total}</text>
+      <text x="118" y="214" textAnchor="middle" fontSize="11" fontWeight="800" fill={FAINT}>
+        {mode === 'asis' ? '従来の開発（6ヶ月）' : 'Meece の開発（1ヶ月）'}
+      </text>
+    </svg>
+  );
+}
+
 const S19 = (
   <div key="s19" className={SLIDE} style={{ background: '#FFFFFF', padding: '46px 64px 0' }}>
-    <Head eyebrow="Topic 02 / AI Lab" title="AI開発ラボ ─ 最短2週間で、動くものを。" lead="アイデアの段階で「触れる形」にして、意思決定のスピードを上げます。" />
+    <Head eyebrow="Topic 01 / AI Lab" title="AI開発ラボ ─ 最短2週間で、動くものを。" lead="アイデアの段階で「触れる形」にして、意思決定のスピードを上げます。" />
 
     {/* 期間比較 */}
     <Card style={{ padding: '26px 30px', marginBottom: 20 }}>
@@ -917,37 +1006,67 @@ const S19 = (
       </div>
     </Card>
 
-    {/* 3つの活用型 */}
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18, marginBottom: 18 }}>
-      {[
-        { tag: '大手企業様', t: 'PoC・システム更改', d: '最小限のチームで、品質を保ったまま工期を60%削減。', c: TEAL, bg: '#E6FFFA', icon: Building2 },
-        { tag: '中小企業様', t: '新規プロダクト開発', d: '事業に必要な基盤をAIモジュールで一気に構築。', c: VIOLET, bg: '#F5F3FF', icon: Rocket },
-        { tag: '営業会社様', t: '商談を動かすデモ実装', d: '2回目の商談までに、60%完成した「動くデモ」を提示。', c: PINK, bg: '#FFF5F7', icon: Handshake },
-      ].map((c) => (
-        <Card key={c.t} style={{ padding: '24px 26px', height: 176, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <span style={{ fontSize: 10, fontWeight: 900, color: c.c, background: c.bg, borderRadius: 100, padding: '6px 14px' }}>{c.tag}</span>
-            <c.icon size={19} color={c.c} />
-          </div>
-          <div style={{ fontSize: 19, fontWeight: 900, color: INK, marginBottom: 12, letterSpacing: '-0.02em' }}>{c.t}</div>
-          <p style={{ fontSize: 12.5, color: MUTE, lineHeight: 1.8, margin: 0, fontWeight: 600 }}>{c.d}</p>
-        </Card>
-      ))}
-    </div>
+    {/* AS-IS / TO-BE の構成比 */}
+    <div style={{ display: 'flex', gap: 20, height: 318 }}>
+      <Card style={{ flex: 1, padding: '18px 24px', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+          <span style={{ fontSize: 9.5, fontWeight: 900, letterSpacing: '0.16em', color: VIOLET }}>AS-IS → TO-BE</span>
+          <span style={{ fontSize: 12.5, fontWeight: 900, color: INK }}>工程ごとの時間の使われ方が、変わる。</span>
+          <span style={{ marginLeft: 'auto', fontSize: 10.5, fontWeight: 800, color: FAINT }}>例：中規模（ECサイト・在庫管理システム）</span>
+        </div>
 
-    <div style={{ display: 'flex', gap: 16 }}>
-      {[
-        { icon: Gauge, t: '従来の10倍の構築速度' },
-        { icon: Shield, t: '型定義と最新プロトコルで堅牢' },
-        { icon: Server, t: '拡張前提の設計・ソースコード納品可' },
-      ].map((f) => (
-        <Card key={f.t} style={{ flex: 1, padding: '14px 22px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <f.icon size={16} color={VIOLET} />
-          <span style={{ fontSize: 12.5, fontWeight: 800, color: INK }}>{f.t}</span>
-        </Card>
-      ))}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', minHeight: 0 }}>
+          <div style={{ flex: 1, minWidth: 0 }}><MixDonut mode="asis" total="6ヶ月" label="AS-IS" /></div>
+          <div style={{ width: 96, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <ArrowRight size={22} color="#C7CFDB" />
+            <div style={{ background: '#FFF5F7', borderRadius: 100, padding: '7px 14px', textAlign: 'center' }}>
+              <div style={{ fontSize: 17, fontWeight: 900, color: CRIMSON, lineHeight: 1 }}>−83<span style={{ fontSize: 11 }}>%</span></div>
+              <div style={{ fontSize: 8.5, fontWeight: 900, color: CRIMSON, marginTop: 3 }}>全体の期間</div>
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}><MixDonut mode="tobe" total="1ヶ月" label="TO-BE" /></div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 18, paddingTop: 4 }}>
+          {PHASE_MIX.map((p) => (
+            <div key={p.t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 3, background: p.c }} />
+              <span style={{ fontSize: 11, fontWeight: 800, color: INK }}>{p.t}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* 工程別の内訳 */}
+      <Card style={{ width: 400, padding: '18px 24px', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 900, color: INK }}>工程別の内訳</span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: FAINT }}>数値は全体に占める構成比</span>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {PHASE_MIX.map((p, i, arr) => (
+            <div key={p.t} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 0', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${BORDER}` }}>
+              <span style={{ width: 9, height: 9, borderRadius: 3, background: p.c, flexShrink: 0 }} />
+              <span style={{ width: 60, fontSize: 12.5, fontWeight: 900, color: INK, flexShrink: 0 }}>{p.t}</span>
+              <span style={{ fontSize: 9.5, fontWeight: 900, color: FAINT }}>従来</span>
+              <span style={{ width: 32, fontSize: 14, fontWeight: 900, color: FAINT, textAlign: 'right' }}>{p.asis}%</span>
+              <ArrowRight size={11} color="#C7CFDB" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 9.5, fontWeight: 900, color: p.c }}>Meece</span>
+              <span style={{ width: 32, fontSize: 14, fontWeight: 900, color: INK, textAlign: 'right' }}>{p.tobe}%</span>
+              <span style={{ marginLeft: 'auto', fontSize: 14.5, fontWeight: 900, color: CRIMSON, flexShrink: 0 }}>−{phaseCut(p.asis, p.tobe)}%</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: PAPER, borderRadius: 9, padding: '10px 13px', marginTop: 8 }}>
+          <p style={{ fontSize: 10, color: MUTE, lineHeight: 1.75, margin: 0, fontWeight: 700 }}>
+            右端は<span style={{ color: INK, fontWeight: 900 }}>実期間の短縮率</span>。全体が約1/6になるため、実装の比重は下がり、要件定義の比重が上がります。
+          </p>
+        </div>
+      </Card>
     </div>
-    <Foot n={16} />
+    <Foot n={15} />
   </div>
 );
 
@@ -1085,14 +1204,17 @@ const S21 = <Divider key="s21" no="03" en="RESULTS" ja="実績とご相談" lead
 type IconType = React.ComponentType<{ size?: number; color?: string }>;
 
 /** アプリ画面のウィンドウ枠 */
-function Win({ children }: { children: ReactNode }) {
+function Win({ children, label }: { children: ReactNode; label?: string }) {
   return (
     <div style={{ flex: 1, background: '#FFFFFF', borderRadius: 14, border: `1px solid ${BORDER}`, boxShadow: '0 18px 44px rgba(13,27,62,0.14)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ height: 26, background: '#F1F3F7', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', padding: '0 11px', gap: 5, flexShrink: 0 }}>
         {['#FF5F57', '#FEBC2E', '#28C840'].map((c) => (
           <span key={c} style={{ width: 7, height: 7, borderRadius: 4, background: c }} />
         ))}
-        <div style={{ marginLeft: 12, height: 13, width: 210, background: '#FFFFFF', borderRadius: 7, border: `1px solid ${BORDER}` }} />
+        <div style={{ marginLeft: 12, height: 14, minWidth: 210, background: '#FFFFFF', borderRadius: 7, border: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: 5, padding: '0 8px' }}>
+          <Lock size={7} color="#B9C0CC" />
+          <span style={{ fontSize: 7.5, fontWeight: 700, color: '#A8B0BD', whiteSpace: 'nowrap' }}>{label}</span>
+        </div>
       </div>
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>{children}</div>
     </div>
@@ -1124,7 +1246,7 @@ const GOLD = '#E6B422';
 const GOLD_DK = '#C9A01A';
 
 const SCREEN_TENANT = (
-  <Win>
+  <Win label="テナントマッチング PRO ｜ ログイン">
     {/* 左：ブランドパネル */}
     <div style={{ width: 366, background: '#080B10', position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '22px 24px' }}>
       <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(230,180,34,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(230,180,34,0.05) 1px, transparent 1px)`, backgroundSize: '34px 34px' }} />
@@ -1219,7 +1341,7 @@ const SCREEN_TENANT = (
 /* ---------- 画面 02：CADCHANGE（ログイン／設計図パネル） ---------- */
 
 const SCREEN_CAD = (
-  <Win>
+  <Win label="CADCHANGE ｜ ログイン">
     <div style={{ flex: 1, background: 'linear-gradient(145deg,#EEF4FF 0%,#F0F5FF 42%,#E8F0FE 100%)', position: 'relative', overflow: 'hidden', minWidth: 0 }}>
       <svg width="100%" height="100%" viewBox="0 0 460 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0 }}>
         <defs>
@@ -1375,7 +1497,7 @@ const SCREEN_CAD = (
 /* ---------- 画面 03：AI記事自動生成（ログイン／ダーク中央） ---------- */
 
 const SCREEN_NEWS = (
-  <Win>
+  <Win label="AI Content Desk ｜ サインイン">
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'linear-gradient(150deg,#150F2E 0%,#1E1547 45%,#241958 100%)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <svg width="100%" height="100%" viewBox="0 0 700 500" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, opacity: 0.9 }}>
         <defs>
@@ -1459,7 +1581,7 @@ const SCREEN_NEWS = (
 /* ---------- 画面 04：MP Core（ログイン／基幹システム） ---------- */
 
 const SCREEN_CORE = (
-  <Win>
+  <Win label="MP Core ｜ ログイン">
     <div style={{ flex: 1, background: '#EEF1F5', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ height: 44, background: 'linear-gradient(100deg,#0F766E 0%,#155E75 45%,#1D4ED8 100%)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 10, flexShrink: 0 }}>
         <div style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.24)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1522,10 +1644,10 @@ const SCREEN_CORE = (
   </Win>
 );
 
-/* ---------- 画面 05：Looop Connect（ログイン／中央カード） ---------- */
+/* ---------- 画面 05：Call Net（ログイン／中央カード） ---------- */
 
-const SCREEN_LOOOP = (
-  <Win>
+const SCREEN_CALLNET = (
+  <Win label="Call Net ｜ ログイン">
     <div style={{ flex: 1, background: '#F7FAFC', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 0, padding: 20 }}>
       <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: 'rgba(252,212,0,0.28)', filter: 'blur(70px)', top: -80, right: -50 }} />
       <div style={{ position: 'absolute', width: 260, height: 260, borderRadius: '50%', background: 'rgba(0,88,148,0.16)', filter: 'blur(70px)', bottom: -80, left: -50 }} />
@@ -1537,7 +1659,7 @@ const SCREEN_LOOOP = (
             <div style={{ width: 30, height: 30, background: '#0071BC', borderRadius: 9, borderTopRightRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Share2 size={15} color="#FFFFFF" />
             </div>
-            <span style={{ fontSize: 19, fontWeight: 900, color: '#181C1E', letterSpacing: '-0.02em' }}>Looop Connect</span>
+            <span style={{ fontSize: 19, fontWeight: 900, color: '#181C1E', letterSpacing: '-0.02em' }}>Call Net</span>
           </div>
           <div style={{ fontSize: 9.5, fontWeight: 700, color: '#404751' }}>コールセンター支援システム</div>
         </div>
@@ -1570,7 +1692,7 @@ const SCREEN_LOOOP = (
             <span style={{ width: 3, height: 3, borderRadius: 2, background: '#C0C7D3' }} />
             <span>サポートセンター</span>
           </div>
-          <div style={{ fontSize: 8, fontWeight: 600, color: '#8A94A3', marginTop: 5 }}>© 2026 Looop Connect. 全著作権所有。</div>
+          <div style={{ fontSize: 8, fontWeight: 600, color: '#8A94A3', marginTop: 5 }}>© 2026 Call Net. 全著作権所有。</div>
         </div>
       </div>
     </div>
@@ -1580,7 +1702,7 @@ const SCREEN_LOOOP = (
 /* ---------- 画面 06：Dev Ticket（ログイン） ---------- */
 
 const SCREEN_DEVTICKET = (
-  <Win>
+  <Win label="Dev Ticket ｜ ログイン">
     <div style={{ width: 296, background: '#0F766E', position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px 26px' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 70% 26%, rgba(255,255,255,0.09) 0%, transparent 60%), radial-gradient(circle at 18% 82%, rgba(0,0,0,0.12) 0%, transparent 52%)' }} />
       <div style={{ position: 'absolute', inset: 0, opacity: 0.2, backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
@@ -1662,7 +1784,7 @@ const NegoMark = ({ size = 20, color = '#FFFFFF' }: { size?: number; color?: str
 );
 
 const SCREEN_NEGONAVI = (
-  <Win>
+  <Win label="NegoNavi ｜ ログイン">
     {/* 左：段そのものがグラフ */}
     <div style={{ width: 378, position: 'relative', overflow: 'hidden', flexShrink: 0, display: 'flex', flexDirection: 'column', padding: '24px 26px' }}>
       <svg width="100%" height="100%" viewBox="0 0 760 640" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
@@ -1747,8 +1869,9 @@ type Project = {
   no: string;
   en: string;
   industry: string;
+  system: string; // プロダクト／システム名
   title: string;
-  short: string;
+  short: string; // 種別（サブタイトル）
   tags: string[];
   headline: string;
   lead: string;
@@ -1767,6 +1890,7 @@ const PROJECTS: Project[] = [
     no: 'PROJECT 01',
     en: 'REAL ESTATE',
     industry: '大手不動産会社',
+    system: 'テナントマッチング PRO',
     title: 'テナント事業DX ／ テナントマッチング AIプラットフォーム構築',
     short: 'テナントマッチング AIプラットフォーム',
     tags: ['AI開発', '事業戦略立案', 'AWS基盤設計'],
@@ -1789,8 +1913,9 @@ const PROJECTS: Project[] = [
     no: 'PROJECT 02',
     en: 'MANUFACTURING',
     industry: '金属加工会社',
+    system: 'CADCHANGE',
     title: 'CADCHANGE ／ 図面PDF → DXF 自動変換サービス',
-    short: 'CADCHANGE ／ 図面PDF → DXF 変換',
+    short: '図面PDF → DXF 自動変換サービス',
     tags: ['生成AI活用', '機械学習', 'プロダクト開発'],
     headline: '図面のPDFを、DXFに変える。',
     lead: '外形・穴・曲げ線を読み取り、そのままCADデータへ書き出します。',
@@ -1811,8 +1936,9 @@ const PROJECTS: Project[] = [
     no: 'PROJECT 03',
     en: 'FINANCE / SECURITIES',
     industry: '大手証券グループ会社',
+    system: 'AI Content Desk',
     title: '投資信託レポート／ニュース記事 AI自動生成システム',
-    short: '投資信託レポート／記事 AI自動生成',
+    short: '投資信託レポート／記事 AI自動生成システム',
     tags: ['生成AI', '業務自動化', '機械学習'],
     headline: '収集から承認まで、AIで自動化。',
     lead: '執筆も事実確認もAIが担い、最終承認だけを人が行う設計にしました。',
@@ -1833,8 +1959,9 @@ const PROJECTS: Project[] = [
     no: 'PROJECT 04',
     en: 'TELECOMMUNICATIONS',
     industry: '大手通信事業会社',
+    system: 'MP Core',
     title: '基幹システム「MP Core」フルスクラッチ開発プロジェクト',
-    short: '基幹システム「MP Core」フルスクラッチ開発',
+    short: '基幹システム（フルスクラッチ開発）',
     tags: ['基幹システム', 'フルスクラッチ', 'データ移行'],
     headline: '基幹システムを、まるごと作り替える。',
     lead: '現行システムをトレースしながら、止めずに新基盤へ載せ替えます。',
@@ -1855,8 +1982,9 @@ const PROJECTS: Project[] = [
     no: 'PROJECT 05',
     en: 'ENERGY',
     industry: '大手エネルギー開発事業会社',
-    title: 'Looop Connect ／ コンタクトセンター＆CRM システム',
-    short: 'Looop Connect ／ コンタクトセンター＆CRM',
+    system: 'Call Net',
+    title: 'Call Net ／ コンタクトセンター＆CRM システム',
+    short: 'コンタクトセンター＆CRM システム',
     tags: ['WebRTC開発', 'CRM構築', 'クラウド構成'],
     headline: '電話とお客様情報を、ひとつに。',
     lead: 'ブラウザだけで通話できるコンタクトセンター基盤を構築しました。',
@@ -1866,7 +1994,7 @@ const PROJECTS: Project[] = [
     bg: '#FFFAF0',
     metaLine: 'コンタクトセンター基盤の内製化 ／ クラウド構成',
     stack: ['React', 'TypeScript', 'WebRTC', 'Supabase'],
-    screen: SCREEN_LOOOP,
+    screen: SCREEN_CALLNET,
     notes: [
       { icon: PhoneCall, t: 'ブラウザだけで通話', d: 'WebRTCで発着信。電話機器は不要です。' },
       { icon: Users, t: '顧客の360度ビュー', d: '応対履歴をタイムラインで一望できます。' },
@@ -1879,7 +2007,8 @@ const PRODUCTS: Project[] = [
   {
     no: 'PRODUCT 01',
     en: 'PROJECT MANAGEMENT',
-    industry: 'Dev Ticket',
+    industry: '自社プロダクト',
+    system: 'Dev Ticket',
     title: 'システム開発管理ツール「Dev Ticket」',
     short: 'システム開発管理ツール',
     tags: ['チケット管理', 'スプリント', 'AI連携'],
@@ -1901,7 +2030,8 @@ const PRODUCTS: Project[] = [
   {
     no: 'PRODUCT 02',
     en: 'SALES CRM / SFA',
-    industry: 'NegoNavi',
+    industry: '自社プロダクト',
+    system: 'NegoNavi',
     title: 'セールス管理ツール「NegoNavi」',
     short: 'セールス管理ツール（CRM / SFA）',
     tags: ['パイプライン', '見積・受注', '承認フロー'],
@@ -1927,22 +2057,32 @@ const PRODUCTS: Project[] = [
 function ProjectSlide({ p, n, paper }: { p: Project; n: number; paper?: boolean }) {
   return (
     <div className={SLIDE} style={{ background: paper ? PAPER : '#FFFFFF', padding: '44px 64px 0' }}>
-      {/* ヘッダー */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 20 }}>
+      {/* ヘッダー：システム名を主役に */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <span style={{ width: 22, height: 3, background: p.color, borderRadius: 2 }} />
             <span style={{ fontSize: 10, letterSpacing: '0.2em', color: p.color, fontWeight: 900 }}>{p.no}</span>
             <span style={{ fontSize: 11.5, fontWeight: 900, color: INK }}>{p.industry}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 800, color: FAINT }}>／ {p.short}</span>
           </div>
-          <h2 style={{ fontSize: 34, fontWeight: 900, color: INK, letterSpacing: '-0.03em', margin: 0, lineHeight: 1.2 }}>{p.headline}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+            <div style={{ width: 50, height: 50, borderRadius: 17, background: p.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <p.icon size={24} color={p.color} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <h2 style={{ fontSize: 34, fontWeight: 900, color: INK, letterSpacing: '-0.03em', margin: 0, lineHeight: 1.15 }}>{p.system}</h2>
+              <div style={{ fontSize: 12.5, fontWeight: 900, color: p.color, marginTop: 5 }}>{p.short}</div>
+            </div>
+          </div>
         </div>
-        <p style={{ width: 372, fontSize: 12, color: MUTE, lineHeight: 1.85, margin: 0, fontWeight: 600, flexShrink: 0 }}>{p.lead}</p>
+        <div style={{ width: 372, flexShrink: 0 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 900, color: INK, letterSpacing: '-0.02em', marginBottom: 7 }}>{p.headline}</div>
+          <p style={{ fontSize: 11.5, color: MUTE, lineHeight: 1.8, margin: 0, fontWeight: 600 }}>{p.lead}</p>
+        </div>
       </div>
 
       {/* 本体：ログイン画面 ＋ 補足 */}
-      <div style={{ display: 'flex', gap: 20, height: 530 }}>
+      <div style={{ display: 'flex', gap: 20, height: 504 }}>
         {p.screen}
 
         <div style={{ width: 300, display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
@@ -1993,14 +2133,17 @@ const R00 = (
             <div style={{ position: 'absolute', left: 15, top: 12, fontSize: 8.5, letterSpacing: '0.14em', color: p.color, fontWeight: 900 }}>{p.no}</div>
           </div>
           <div style={{ padding: '18px 18px 20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <div style={{ fontSize: 8.5, letterSpacing: '0.12em', color: FAINT, fontWeight: 900, marginBottom: 7 }}>{p.en}</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: INK, marginBottom: 10, letterSpacing: '-0.02em', lineHeight: 1.35 }}>{p.industry}</div>
-            <p style={{ fontSize: 11, color: MUTE, lineHeight: 1.7, margin: 0, fontWeight: 700 }}>{p.short}</p>
-            <div style={{ height: 1, background: BORDER, margin: '13px 0 12px' }} />
-            <div style={{ marginTop: 'auto', display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {p.tags.map((t) => (
-                <span key={t} style={{ fontSize: 9.5, fontWeight: 800, color: p.color, background: p.bg, borderRadius: 100, padding: '4px 9px' }}>{t}</span>
-              ))}
+            <div style={{ fontSize: 8.5, letterSpacing: '0.12em', color: FAINT, fontWeight: 900, marginBottom: 6 }}>{p.en}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: MUTE, marginBottom: 8, lineHeight: 1.4 }}>{p.industry}</div>
+            <div style={{ fontSize: 19, fontWeight: 900, color: INK, letterSpacing: '-0.02em', lineHeight: 1.25, marginBottom: 6 }}>{p.system}</div>
+            <p style={{ fontSize: 10.5, color: p.color, lineHeight: 1.6, margin: 0, fontWeight: 800 }}>{p.short}</p>
+            <div style={{ marginTop: 'auto' }}>
+              <div style={{ height: 1, background: BORDER, margin: '13px 0 12px' }} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {p.tags.map((t) => (
+                  <span key={t} style={{ fontSize: 9.5, fontWeight: 800, color: p.color, background: p.bg, borderRadius: 100, padding: '4px 9px' }}>{t}</span>
+                ))}
+              </div>
             </div>
           </div>
         </Card>
@@ -2047,7 +2190,7 @@ const P01 = (
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 9, letterSpacing: '0.18em', color: p.color, fontWeight: 900, marginBottom: 6 }}>{p.no} ／ {p.en}</div>
-              <div style={{ fontSize: 30, fontWeight: 900, color: INK, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{p.industry}</div>
+              <div style={{ fontSize: 30, fontWeight: 900, color: INK, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{p.system}</div>
               <div style={{ fontSize: 11.5, fontWeight: 800, color: p.color, marginTop: 6 }}>{p.short}</div>
             </div>
           </div>
@@ -2268,7 +2411,7 @@ export const meeceIntro2026Presentation: PresentationEntry = {
     id: 'meece-intro-2026',
     title: 'Meece株式会社 会社紹介（2026年度版）',
     description:
-      '他社ご紹介用の会社案内（全31枚・図解主体）。公式サイト最新情報に基づき、会社概要／代表挨拶／社名の由来（5つの産業）／沿革／行動指針、SERVICES（受託開発・AI研究開発・ITコンサルティング・多角的事業支援の4本柱とAIによる工期短縮）、TOPICS 2026（少額案件償却プロジェクト・AI開発ラボ・自社プロダクト「Dev Ticket」）、RESULTS（主要な開発実績サマリ＋実績詳細5件：大手不動産会社のテナントマッチングAIプラットフォーム／金属加工会社のCADCHANGE／大手証券グループ会社のAI記事自動生成システム／大手通信事業会社の基幹システム「MP Core」／大手エネルギー開発事業会社のLooop Connect、支援事例2件・対応産業とフェーズ）、OUR PRODUCTS（自社プロダクト2件：システム開発管理ツール「Dev Ticket」／セールス管理ツール「NegoNavi」）で構成。各実績はプロダクトのログイン画面モックを掲載。',
+      '他社ご紹介用の会社案内（全31枚・図解主体）。公式サイト最新情報に基づき、会社概要／代表挨拶／社名の由来（5つの産業）／沿革／行動指針、SERVICES（受託開発・AI研究開発・ITコンサルティング・多角的事業支援の4本柱とAIによる工期短縮）、TOPICS 2026（少額案件償却プロジェクト・AI開発ラボ・自社プロダクト「Dev Ticket」）、RESULTS（主要な開発実績サマリ＋実績詳細5件：大手不動産会社のテナントマッチングAIプラットフォーム／金属加工会社のCADCHANGE／大手証券グループ会社のAI記事自動生成システム／大手通信事業会社の基幹システム「MP Core」／大手エネルギー開発事業会社のCall Net、支援事例2件・対応産業とフェーズ）、OUR PRODUCTS（自社プロダクト2件：システム開発管理ツール「Dev Ticket」／セールス管理ツール「NegoNavi」）で構成。各実績はプロダクトのログイン画面モックを掲載。',
     thumbnail: `linear-gradient(135deg, ${INK} 0%, ${INK} 40%, ${CYAN} 72%, ${VIOLET} 100%)`,
     author: 'Meece株式会社',
     createdAt: '2026-08-18',
@@ -2288,8 +2431,8 @@ export const meeceIntro2026Presentation: PresentationEntry = {
     S15, // 12  ITコンサル（Before/After）
     S16, // 13  多角的事業支援（ステップ図）
     S17, // 14  章扉 02 TOPICS 2026
-    S18, // 15  少額案件償却プロジェクト
-    S19, // 16  AI開発ラボ
+    S19, // 15  AI開発ラボ（AS-IS / TO-BE の構成比）
+    S18, // 16  少額案件償却プロジェクト（費用と補助金）
     S20, // 17  Dev Ticket（製品画面）
     S21, // 18  章扉 03 RESULTS
     R00, // 19  主要な開発実績（サマリ）
@@ -2297,7 +2440,7 @@ export const meeceIntro2026Presentation: PresentationEntry = {
     R02, // 21  実績 02 金属加工会社（CADCHANGE）
     R03, // 22  実績 03 大手証券グループ会社（AI記事自動生成）
     R04, // 23  実績 04 大手通信事業会社（MP Core）
-    R05, // 24  実績 05 大手エネルギー開発事業会社（Looop Connect）
+    R05, // 24  実績 05 大手エネルギー開発事業会社（Call Net）
     S22, // 25  支援事例
     S23, // 26  対応産業とフェーズ
     P00, // 27  章扉 04 PRODUCTS
