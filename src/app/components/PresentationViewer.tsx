@@ -74,6 +74,19 @@ const SPEECH_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2
 function loadAllComments(): Record<string, SlideComment[]> {
   try { return JSON.parse(localStorage.getItem(COMMENT_KEY) ?? '{}'); } catch { return {}; }
 }
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+// 送信ショートカット: Mac は ⌘ + Enter、Windows/Linux は Ctrl + Enter（Enter 単体は改行）
+const SUBMIT_HINT = IS_MAC ? '\u2318 + Enter' : 'Ctrl + Enter';
+function isSubmitKey(e: { key: string; metaKey: boolean; ctrlKey: boolean }): boolean {
+  return e.key === 'Enter' && (IS_MAC ? e.metaKey : e.ctrlKey);
+}
+
+// IME 変換中のキー入力（日本語確定の Enter、変換取消の Esc）はショートカットとして扱わない
+function isImeComposing(e: { nativeEvent: KeyboardEvent } | KeyboardEvent): boolean {
+  const ne = 'nativeEvent' in e ? e.nativeEvent : e;
+  return ne.isComposing || ne.keyCode === 229;
+}
+
 function saveAllComments(data: Record<string, SlideComment[]>) {
   localStorage.setItem(COMMENT_KEY, JSON.stringify(data));
 }
@@ -284,6 +297,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (isImeComposing(e)) return;
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
       else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prev();
       else if (e.key === 'Escape') {
@@ -291,6 +305,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
         if (replyingToId) { setReplyingToId(null); setReplyText(''); return; }
         if (editingId) { setEditingId(null); return; }
         if (isCommentMode) { setIsCommentMode(false); return; }
+        if (activeCommentId) { setActiveCommentId(null); return; }
+        if (showPanel) { setShowPanel(false); return; }
         if (isFullscreen) { exitFullscreen(); return; }
         handleClose();
       }
@@ -302,7 +318,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [next, prev, handleClose, toggleFullscreen, pendingPos, isCommentMode, editingId, replyingToId, isFullscreen, exitFullscreen]);
+  }, [next, prev, handleClose, toggleFullscreen, pendingPos, isCommentMode, editingId, replyingToId, activeCommentId, showPanel, isFullscreen, exitFullscreen]);
 
   // ── プレゼンス: 視聴者リストを維持 ─────────────────────────────────────
   useEffect(() => {
@@ -626,8 +642,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
           <div style={{ background: 'white', borderRadius: 12, padding: '10px 12px', boxShadow: '0 6px 24px rgba(0,0,0,0.2)', width: 240 }}>
             <div style={{ fontSize: 11, color: '#8B5CF6', fontWeight: 600, marginBottom: 6 }}>{authorName}</div>
             <textarea autoFocus value={newCommentText} onChange={e => setNewCommentText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(); } if (e.key === 'Escape') { e.stopPropagation(); setPendingPos(null); setNewCommentText(''); } }}
-              placeholder="コメントを入力... (Enter で送信)"
+              onKeyDown={e => { if (isImeComposing(e)) return; if (isSubmitKey(e)) { e.preventDefault(); addComment(); } if (e.key === 'Escape') { e.stopPropagation(); setPendingPos(null); setNewCommentText(''); } }}
+              placeholder={`コメントを入力... (${SUBMIT_HINT} で送信)`}
               style={{ width: '100%', border: 'none', outline: 'none', resize: 'none', fontSize: 13, color: '#1e293b', lineHeight: 1.5, minHeight: 64, fontFamily: 'inherit', background: 'transparent', boxSizing: 'border-box' }}
               rows={3}
             />
@@ -713,7 +729,7 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
                 {isEditing ? (
                   <div onClick={e => e.stopPropagation()} style={{ paddingBottom: 8 }}>
                     <textarea autoFocus value={editText} onChange={e => setEditText(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') { e.stopPropagation(); setEditingId(null); } }}
+                      onKeyDown={e => { if (isImeComposing(e)) return; if (isSubmitKey(e)) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') { e.stopPropagation(); setEditingId(null); } }}
                       style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 6, padding: '6px 8px', fontSize: 12, color: 'white', resize: 'none', outline: 'none', lineHeight: 1.5, fontFamily: 'inherit', boxSizing: 'border-box' }}
                       rows={3}
                     />
@@ -753,8 +769,8 @@ export function PresentationViewer({ presentation, onClose, titleOverride }: Pre
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8px 10px' }} onClick={e => e.stopPropagation()}>
                   <div style={{ fontSize: 10, color: '#a78bfa', fontWeight: 600, marginBottom: 4 }}>{authorName} として返信</div>
                   <textarea autoFocus value={replyText} onChange={e => setReplyText(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addReply(); } if (e.key === 'Escape') { e.stopPropagation(); setReplyingToId(null); setReplyText(''); } }}
-                    placeholder="返信を入力... (Enter で送信)"
+                    onKeyDown={e => { if (isImeComposing(e)) return; if (isSubmitKey(e)) { e.preventDefault(); addReply(); } if (e.key === 'Escape') { e.stopPropagation(); setReplyingToId(null); setReplyText(''); } }}
+                    placeholder={`返信を入力... (${SUBMIT_HINT} で送信)`}
                     style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(167,139,250,0.35)', borderRadius: 6, padding: '6px 8px', fontSize: 12, color: 'white', resize: 'none', outline: 'none', lineHeight: 1.5, fontFamily: 'inherit', boxSizing: 'border-box' }}
                     rows={2}
                   />
